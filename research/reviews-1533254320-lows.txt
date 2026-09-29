@@ -1,0 +1,215 @@
+[2★ v5.2.2 2026-09-25] It’s broken again: Everything was working as it should. I got used to restarting my phone for the widgets to update, ok fine. But now there’s a new issue - I cannot delete line items from my list. Selecting edit and the minus sign does nothing. It doesn’t delete! Please fix!
+
+[1★ v5.2.2 2026-09-22] Cannot adjust words: I don’t know what changed, but you can no longer make adjustments to the words on sticky notes. You can change the color, font, etc. but only to words that have already been typed out.
+
+[1★ v5.2.2 2026-09-18] I pin it but it still does not stays pin after a day: I don’t understand why it only pins for a day and then the pin is removed so I have to pin it again
+
+[1★ v5.2.1 2026-09-17] Won’t stay open: This app won’t stay open since update and as a result can’t ask for help.
+
+[1★ v5.2.0 2026-09-12] Long time semi-reliable app broken: It apparently was updated within the past day and that update appears to a broken it. When I change the text on a Sticky Widget it will not stay even after I click them but reverts to the prior note. At some point, hours later, the edited note will appear, but that’s no good to me later  Now, this morning, I can’t keep a note open to even edit a note, because as soon as I open it, it snaps shut. I even tried restarting the phone (I am running the latest iOS). The app is now essentially worthless to me. Too bad, because when it’s working and it’s reliable it is worth it.  I don’t like to put support complaints into the review, but when I went to the app support button all it took me to was th
+
+[3★ v5.2.0 2026-09-12] good until removing content: I like these sticky notes, but now when I go to remove content and add new content the old content does not leave the note. Not even when I restart my phone. It’s getting annoying. And the worst of it is I pay for this note now, and I don’t feel like I’m getting my full moneys worth. it’s turning out to be more trouble than it’s worth. Otherwise it’s a great widget.
+
+[1★ v5.2.0 2026-09-11] Latest update: Not allowing app to open.
+
+[1★ v5.1.3 2026-09-10] Doesn’t do what it says: I wanted an app for quick glances of note on my phone. The widget only shows the Enter Text Here, or the “New” screen. When I enter a note and close it, I have to open the app. To view the note. I might as well just use apple Notes.
+
+[3★ v5.1.3 2026-09-08] Great idea, buggy execution: I paid $19.99 for this app, and it glitches constantly. The note I pinned to the lock screen constantly comes unpinned. Sometimes all the buttons in the note go black. If you want people to pay money, your app should not be amateur hour!
+
+[1★ v5.1.3 2026-09-07] Awesome until….: This app was great until the widgets stopped updating to changes made within the note.
+
+[2★ v5.1.3 2026-09-07] Quite buggy: The widget and sometimes the app itself would not update if I made changes to a sticky note.
+
+[3★ v5.1.3 2026-09-02] No longer works: App support doesn’t go to any sort of help. This is the only way I can find to report an issue. I’m using iOS 26.6.1. Pinned widget will note change after editing and closing. I’ve uninstalled, rebooted, reinstalled, rebooted, to no avail.
+
+[1★ v5.1.3 2026-08-31] Frustrating updates: If you don’t hit “done” none of the changes made will be saved, they just disappear. Then, even when I do hit “done” most of the time the changes don’t update on the screen and only show when I open the widget. I used to love this app but now I’m more frustrated than not.
+
+[3★ v5.1.3 2026-08-31] Does not always update: Does not always update when I add to my widget. Sometimes I will have to create a separate in order to have it work as a widget. I still consider it pretty useful and I like that you can do multiple sizes. It would be nice if there were more selection of the fonts and the ability to change the color of the fonts.
+
+[3★ v5.1.2 2026-08-23] Great app, small issue: I love the sticky note format of this app and the convenient widget.  However, my buttons are black… just straight black. No words. They work but I have to test them to know what they do.   Also today, when I went to type a new note, I couldn’t see the words I was typing. The text cursor moved but the page stayed blank other than the red underline for some apparent mistype I made.  On top of that, where is the settings feature for the app? Am I dumb and just missing it? Is it because Im IOS?  Please help and your app will be my new best friend!
+
+[1★ v5.1.1 2026-08-15] Typing no longer does anything: I wrote lots of notes on my phone for my job and my therapist. Hard to do when typing doesn’t do anything. It’s like the app gave up
+
+[1★ v5.1.1 2026-08-10] Use to be amazing, now wont show on Home Screen: I’ve had this (paid version) for a while. It was amazing and then recently it dropped showing any words on the home screen (can see the widget but none of my typing). I’ve tried uninstalling and reinstalling, no changes.
+
+[3★ v5.1.0 2026-08-04] i know devs gotta eat but: even my sticky notes app has to be a subscription? 🫩 are you sure?
+
+[1★ v5.1.0 2026-08-04] SCAM!!!: This is NOT an app… it’s a SCAM! Users can NOT readily access notes! Users can NOT edit notes / lists! Users can NOT delete notes / lists! This “app” is utterly USELESS and has no functionality! All attempts to navigate and access note / list are frustratingly blocked by perpetual ad trying to get user to pay for service! Any note user creates is locked and inaccessible… held hostage as a means of EXTORTION! There is NO free service! It’s a FRAUD! Your personal data can NOT be accessed, edited, or deleted unless you PAY for service! This is TRASH!!!
+
+[2★ v5.1.0 2026-08-04] Clunky and Buggy: Widgets often become frozen and unresponsive, just sit there and take up space, sometimes with your work inaccessible within. Even when it does work as it should, the interface is very clunky and unintuitive. I've had it forever, am now trying to use it more than in the past but may need to look for something different. Love the concept, not sure about the execution.
+
+[1★ v5.0.6 2026-07-30] Terrible: It doesn’t save notes even when you click the check mark. Prompts you to pay for and upgrade every few minutes or for almost every feature.  It lost a very important set of notes twice and is not user friendly.
+
+[1★ v5.0.6 2026-07-25] Ceased to function again!: This has failed 3 times already in the last year. Wiping out all notes! No recovery. I want something that works, not fails!!!
+
+[2★ v5.0.6 2026-07-16] Can’t view first items of my do-list after created: Great feature to be able to post to lock screen and list to-do’s with check offs and offer different colors.  But it’s now not allowing me to scroll to the top of my list I made so I can’t see the whole list which is a problem- defeats the reason for making a do-list.  I’ve tried every which way to fix it to no avail.  Maybe a bug? Also can’t delete, only archive post its. If not for these few things, I would have rated app higher.
+
+[1★ v5.0.6 2026-07-15] Difficult: The push to make you spend money with pop-ups makes this app too much work to be worth it.
+
+[1★ v5.0.6 2026-07-04] Fix it: It’s not working anymore. Won’t update my edits on my widget
+
+[1★ v5.0.6 2026-06-30] Disappears: Notes randomly disappear. Disappointed
+
+[1★ v5.0.6 2026-06-14] Horrible: I can’t change the font color and it is invisible against the background.  Unusable
+
+[1★ v5.0.6 2026-06-13] Subscription trash DONT BUY: Trash app the requires a subscription to do the simplest of things like change fonts and add widgets to lock screen on iPhone.
+
+[1★ v5.0.6 2026-06-05] I use it a lot but…it’s broken.: I’ve tried to get help on this issue by directly reaching out but haven’t heard anything back in months so, this is my last resort.   I think overall that the app is better than one star and I’ll gladly update my review once they fix some of the issues.   The biggest one is that when you make a note into a checklist, you can no longer open the note or edit it beyond checking things off. I have a note that I have now effectively lost because I can’t see the note beyond the preview.   Another issue is that you sometimes lose info if you leave the app to do something like check text if you didn’t save the note because the app may refresh when you return.   Lastly, a few small things that I wish
+
+[2★ v5.0.6 2026-06-01] Bugs, bugs: pretty buggy app. On the pro version, deleting a listed item and then pressing "Close" causes another empty listed item to appear (repeatable), currently, adding a new note to a lockscreen widget slot 2 doesn't work, saying that slot is empty when added to the lockscreen. Homescreen seems to work okay.
+
+[1★ v5.0.6 2026-04-19] Useless without paying: I couldn’t even pin a note to my lock screen…? I kept getting prompts to upgrade. There are better free apps
+
+[1★ v5.0.6 2026-04-12] Difficult at best: This app is difficult to use. Despite having IOS and watching the video 10 times, I still could not get my note to populate on the lock screen but one time. The one time I did manage to do it; no text, only background. Love the gradient backgrounds tho. App deleted!
+
+[1★ v5.0.6 2026-03-25] Doesn’t Save Your Notes Sometimes: Sometimes you’ll write something down in it that’s very important and the next time you look at the widget the thing you wrote is not there anymore. This has been incredibly detrimental to me enough times for me to leave this one star review. I could have just used any other notes app and been fine but I chose this one and got screwed over. Don’t make my same mistake.
+
+[1★ v5.0.6 2026-02-28] Bug: When I try to set a reminder, it gives an error message, “Failed to save reminder. Please try again.”
+
+[1★ v5.0.6 2026-02-27] Bad update: Since updating today , each time I want to change the color, font  or anything for that matter, I must click on restore purchase for it to work. Please fix ASAP. I loved this app before and paid for the full functionality long ago. Now it has become a pain to use.
+
+[1★ v5.0.5 2026-02-26] Wipe out!!: Why does my paid for life subscription routinely wipe out all stickies I have open? I click with abandon but no avail on the restore link! Get in sync with the latest IOS!
+
+[1★ v5.0.5 2026-02-23] Doesn’t work: I don’t normally review apps, but for something so highly rated this app doesn’t work. When you create a list and stick it on your home screen it freezes up every time and won’t load. And when it does work for a few minutes, if you have too many reminders, it will not expand and allow you to click it. Would not recommend.
+
+[1★ v5.0.5 2026-02-23] Works sometimes: Notes in the widget stopped displaying. Pin to screen has never worked properly. Stays pinned for a day then disappears.
+
+[1★ v5.0.5 2026-02-11] Never stops promoting you to upgrade: Every time you open the widget you are prompted to upgrade to paid and then keeps popping up prompting you to upgrade with anything touched. I miss when free apps were free
+
+[1★ v5.0.5 2026-02-10] Broken… intentionally?: First, no dark mode support.   Second, hangs on my 17 regularly. When it finally comes back to life, puts up an uncloseable subscription popup.   Abandonware, it would seem.
+
+[3★ v5.0.5 2026-02-08] Pop every time I edit a sticky note: I get needing to promote paid options but having pop up every time I go to edit a sticky note makes for a terrible work flow. If I’m using a sticky note I want to jot something down quickly and having to exit out of a pop up is incredibly annoying in that scenario.
+
+[1★ v5.0.5 2026-02-07] They lock the full version 4 days earlier every time.: They lock the full version 4 days early every time, which means their subscription is one month minus 4 days, not a full month
+
+[1★ v5.0.5 2026-02-06] Hard to figure out: Very difficult to get the widget to post to your screen or the lock screen.
+
+[2★ v5.0.5 2026-02-06] Notes keep disappearing from widgets also why can’t we scroll through notes: Notes keep disappearing randomly and why can’t we scroll through notes, just made it hard to look through them especially if you have a lot of them
+
+[1★ v5.0.4 2026-01-28] Free version non-functional: That’s it. Unable to use in free version and no one should pay for this. Ever.
+
+[1★ v5.0.4 2026-01-20] Stopped working: Ever since iPhone update it’s awful
+
+[1★ v5.0.4 2026-01-17] no privacy: it retains everything so don’t trust it
+
+[3★ v5.0.4 2026-01-13] Dark mode: Obviously you guys didn’t check to see if anything would be visible on the black bars at the bottom of the screen in dark mode.    The bars are solid black 1/2 the day.   Fix this.  I have photos to prove it.
+
+[2★ v5.0.3 2026-01-11] Asks for me to pay for premium every time I open the widget: Makes it very inconvenient for me to use it (which was for convenient). At least be useful app so I can make a case for buying it… smh
+
+[1★ v5.0.3 2026-01-10] Horrible now, Updated to Bloat: I don’t understand why so many sticky note apps complicate their mission and defeat the purpose of sticky notes.   This ridiculous update now takes multiple clicks instead of one, no more taking a quick note.  You know the thing this was designed for!
+
+[2★ v5.0.2 2026-01-07] regularly doesnt save notes: if you dont properly save the note or switch apps for too long it just forgets that youve written anything down-very unhelpful for making grocery lists. the constant pop-up begging me to buy their upgrage is also incredibly irritating
+
+[1★ v5.0.2 2026-01-05] Unusable Recently: Unable to set sticky note widget on Lock Screen. When editing the note, I get a black screen and the app is unable to be used (even after closing the app). After reinstalling, I get the same behavior.   iPhone 11, iOS 18.5. Never had an issue with the app in the past.
+
+[2★ v5.0.2 2026-01-05] Was good: I was using this for a while and it was working great. I believe an update jacked it up. It now cycles through pinned notes when I unpin them. There’s also random notes that I’ve never created popping up with different languages. I unpin them and they automatically pin and pop up on their own randomly throughout the day.   I’ve been paying for this app, but will be uninstalling it now.
+
+[1★ v5.0.1 2025-12-23] Lockscreen widget: I set the slot my note but it doesn’t work on the widget
+
+[2★ v5.0.1 2025-12-21] Used to love this app: I used to love this app but ever since the new iOS 26 update I can’t get my deleted note to stay gone. I archived it, deleted it permanently, and it still keeps popping back up on my home and lock screen. Super frustrating because I’m having to clear it multiple times every day.
+
+[1★ v5.0.1 2025-12-19] unusable: when i open it, its a dark screen. not fully black, its black with an orange hue and a little green. and nothing, i cant do anything, i cant use this app. i bought the premium version too. can’t use it at all. it’s a shame, it was a good app
+
+[1★ v5.0.1 2025-12-09] Counterintuitive: It is difficult to change existing notes.  It’s great to have a list displayed on the home screen but that list needs to be easily edit able. Also how do I make it display the beginning of the list rather than the end?  Reordering tasks is difficult.   Overall hard to use and not enough instructions.  I want to see the first/top items displayed on the Home Screen. Tap a button to open the note/ list and then tap another a button to open the note in an editing screen. I want to be able to add, change, and remove tasks and then rearrange them in order the way I want.  If this app can do all of these things, then please make the instructions easy to find.  I’m signed up to pay for the app but c
+
+[3★ v5.0.1 2025-12-09] What happened?: Just updated my iPhone and now my Sticky Widgets are not working at all the way  they were. I can’t look at my other sticky notes unless I name the one on the front. Every time I erase/remove part of what I had on that note It still remains there.  Very frustrating.
+
+[2★ v5.0.1 2025-12-08] Update resets widget: Updates removes what I’ve typed even when I see the option for my saved notes I click on it and just ignores it an ask me to put my widget here message just fyi to anyone wanting something like this just never update
+
+[1★ v5.0.0 2025-11-30] Not free: Not free
+
+[1★ v5.0.0 2025-11-30] Locked screen: It does not put a note on my locked screen.
+
+[1★ v5.0.0 2025-11-10] App quit working: After the first sticky I pinned to my lock screen, I cannot pin another. I've looked everywhere to reach out to support, but cannot find how to connect with him.
+
+[2★ v5.0.0 2025-11-09] Uhhhh what?: Very confusing not intuitive. Once you get something going optically it is very appealing.
+
+[1★ v5.0.0 2025-11-08] How do I delete this app?: I want to delete this app. I can delete the widgets from the screens but the app is still installed.  Is there a way to delete the app and remove it completely from my phone?
+
+[1★ v5.0.0 2025-11-04] Buggy!: App is incredibly buggy. Won’t open or load, and the widgets on the lockscreen are very finicky. The app crashes frequently. Disappointing :(
+
+[2★ v5.0.0 2025-11-02] All my sticky notes are blank now 😫: I absolutely loved this app so much I  actually pay for it. I use it daily to save scriptures and things I want to share with others and help remind myself of things. I had so many important things saved and one day I went to open the app, and ALL my notes are there, but completely blank. I did nothing- so not sure what happened. I have searched for fixes, called apple support 3 times with no luck. I reached out to the app developer and am desperately hoping I will hear something back and my info can restored/recovered. Major bummer.
+
+[1★ v5.0.0 2025-11-02] Horrible: Doesn’t save previous notes and doesn’t let you find previous notes
+
+[2★ v5.0.0 2025-10-29] Subscription Issue: Paid $2.99 for 3 months, then I cancelled subscription which I always do so I don’t forget about unused subscriptions.  App Store says my current sub doesn’t expire until Jan 2026 but the app thinks I don’t have a sub at all now.  To restore full access I have to pay the fee again even though I just paid 2 weeks ago for 3 months.  Can’t find any support or way to ask through app or App Store.
+
+[3★ v5.0.0 2025-10-07] Won’t pin to screen: I really like the idea. The main reason for purchasing this app was so my to-do list would be pinned to my screen so it was always there for me to see.  Unfortunately after the first day it stopped pinning to locked screen on my iPhone.
+
+[2★ v5.0.0 2025-09-29] Quick notes no longer possible. Remove forced note naming.: The speed and simplicity of this app is what makes it great. I use the widget when I need to take a very quick note and put my phone away. The iOS 26 update inexplicably came with a requirement to name a note before it will save. It will NOT let you skip this step, and if you try, it will delete any changes you made to the note without warning you to save them. Not acceptable. There is no pragmatic purpose served by forcing a note to be named in order to save the content and thoroughly detracts from the fundamental purpose and function of using this app over something more full featured (like Notes). Please revert this change.
+
+[1★ v5.0.0 2025-09-25] The look of it on screen: I have the list and I love that you can do all of the different color in a text, but when I put the list on my screen, it cuts off at the top and the bottom which is super annoying and it won’t let me slide up or down to see what’s going on I’m going to get the other sticky notes app
+
+[3★ v5.0.0 2025-09-24] Almost Great: I would love to see an option to # each item and check boxes because it is satisfying to be able to check a box when you’ve completed a task. Also the ability to have different font for the title and the body. Bottom line I’d like to see more options for user customization, please!  P.S. I’ve also paid for the upgraded version to see if more options would be available and I have sent a direct message to the developer and have not heard back or seen updates🫤
+
+[1★ v5.0.0 2025-09-15] Upgrade the phone and all notes now empty: Had all notes sync to iCloud, Upgrade my phone and all notes now empty on the new phone,
+
+[1★ v5.0.0 2025-09-14] Too Buggy: App won’t work as it’s supposed to.
+
+[1★ v4.6.5 2025-09-11] Didn’t work at all - pointless app: It did nothing that it shows on the pictures. Note disappears as soon as you close the app with no obvious way to retrieve it. The widget version to be able to see it on home page just comes out blank and doesn’t show any words…. Literally a pointless app….
+
+[1★ v4.6.5 2025-09-10] Don’t even worry about it: Let me help you, there is no free trial. To top the glory off I was able to get the app to work once, to made one note, and it’s crashed every time since! Save yourself the time and brain space, try a different app!
+
+[1★ v4.6.5 2025-08-31] Used to be great: I’ve been using this app for years, it is (was) super helpful. Previously (2023) the app offered a one time cost of $2.99 to go premium - ad free, pinning widgets to Lock Screen, etc. Recently (2025) the app stopped working entirely on my phone. I emailed the developer, but received no response. As a last ditch effort, I attempted to delete and re-download the app to see if that might help. Now the app works, but there is no option to restore my previous “one time” purchase, because the option has instead been replaced by a monthly subscription. Seems intentional and opportunistic 👎🏻
+
+[3★ v4.6.5 2025-08-28] Great for reminders and to stay on top of things: Great app with a useful widget, thank you! But as a paying user, I expect better. ‘Live Activities’ and Lock Screen options often disappear, making it hard to quickly glance at my to-do list. Needs a bold option, custom font color/size for individual words, and a chart view with rows and columns. Developers should take reviews seriously and update accordingly.
+
+[2★ v4.6.5 2025-08-17] Notes got erased: I enjoyed this app until my notes got erased out of nowhere - twice. Had to unsubscribe.
+
+[1★ v4.6.5 2025-08-15] Stopped working: I use it extensively but it stopped working with the new update on my iPhone 12 with latest iOS. Lost all my notes.
+
+[1★ v4.6.5 2025-08-02] Not worth it: This app has always been a bit buggy but not enough to where it truly bothered me and I’ve been using it basically every day since I downloaded it. It wasn’t perfect but it worked perfectly for what I needed. There’s been a couple updates that I haven’t liked (like adding the ugly darker transparent background when using the list instead of just keeping it the same color), but I could get past that because I liked the app and it was more of an aesthetic preference and didn’t have any effect on the apps usefulness.  But I just updated the app the other day and it changed from fully crossing things off your list by putting a line through them to instead just have a small super buggy check next
+
+[1★ v4.6.5 2025-07-28] Second time I’ve lost all my notes: When the app works it’s great but this is the second time I’ve lost all my notes. I go to open the app and I get a black screen. I’ve tried to restart my phone and nothing. Can someone help?
+
+[1★ v4.6.5 2025-07-25] App is broken now: Unreliable app. For some reason over the past few days, I cannot access the app. When I open it, all I see is a dark blur of colors. I tried uninstalling and reinstalling the app, and tried to use my subscription to restore my notes, but everything is lost. And tapping on the “restore archived notes” just reveals the same dark blurred color screen. Tried to find any means of contacting developer for support and realise there was none. Use at your own risk of losing everything!
+
+[1★ v4.6.5 2025-07-24] Not Free: Need to pay. Deleted it. Too expensive for what it does!
+
+[1★ v4.6.5 2025-07-11] Glitches: I have had this app for a while now. Yesterday I turned off my iPad and forgot to turn it back on. I turn it back on today. The very first sticky note I have from this app is gone. The template to create a new sticky note is there. So I try to restore this note. But it won’t let me restore it. I have 3 other sticky notes from this app, they are all fine. I can see the note I want in the color I want in the list of notes. But when I choose it nothing is happening. What happened to cause the note to disappear? I know you all want me to upgrade, but I DO NOT need all the features the paid version offers. Is that why this happened?
+
+[1★ v4.6.5 2025-07-10] No longer works: I have the paid version. No longer works!
+
+[1★ v4.6.5 2025-07-08] Not work after update: Need paid to work , i delet it
+
+[1★ v4.6.5 2025-07-07] unclear how to use: can’t figure out how to use and stick this to my ipad 12  very disappointed
+
+[1★ v4.6.5 2025-07-06] Bad update: After this most recent update, this is not working. My note I’ve had for months is gone. It’s in the list of note but will not let me choose it for my Home Screen. It will not display. Only thing on my Home Screen is the instructions on how to choose a note. I did. Now where is it? Not on my Home Screen 🤣
+
+[1★ v4.6.5 2025-07-05] Using the app: It is clumsy and difficult to make notes easily.
+
+[2★ v4.6.3 2025-06-28] Constantly Crashing: I love the concept of this app, but updating lists is laggy and often has to be done multiple times. Also, it crashes pretty often on startup. :/
+
+[1★ v4.6.3 2025-06-24] Stopped working: Newest update has prevented me from being able to update.
+
+[1★ v4.6.3 2025-06-19] Will not load: The app will not load after the last update. I loved the app but this is disappointing.
+
+[1★ v4.6.3 2025-06-19] Update bricked the app: So, so so disappointed. This has been one of my favorite, top used apps for years - but the recent update broke it. It’s completely unusable. Truly hoping this gets fixed, but as of now I’m going to have to delete it. Have I said how disappointed I am?
+
+[1★ v4.6.3 2025-06-18] Not working: Please fix!!!
+
+[1★ v4.6.3 2025-06-18] Bummer: Was a great app. I used it for years, but it no longer works.
+
+[1★ v4.6.3 2025-06-18] Doesn’t work anymore: I loved this widget, I constantly used it to help me remember tasks and make lists. Now I cannot open any of my notes, the app crashes every time I try to open it. I’ll have to uninstall and find something else
+
+[1★ v4.6.3 2025-06-15] No iPad Widget: I updated sticky widgets and my widgets disappeared from my iPad Home Screen. When I try to add a new widget, Sticky Widgets is no longer in the list!
+
+[3★ v4.6.3 2025-06-14] stopped working, reinstalled, now works. why?: Widget stopped working on iPhone. It had latest update. After much frustrations, I deleted and reinstalled, and that fixed it, but why? I shouldn’t have to do this.
+
+[1★ v4.6.3 2025-06-13] App crashes: I’m so upset that the app keep crashing every time i open it. It has information I can’t retrieve. There’s no tech support to reach out to. This is terrible!!!!
+
+[1★ v4.6.3 2025-06-11] Was great: This was a great app that helped me stay organized but then I’d update a note and it wouldn’t save (the whole point was to help me remember things so obviously I forgot what I had updated the note with) and now it doesn’t work at all!
+
+[1★ v4.6.3 2025-06-10] New Setup: New setup is not ideal or user friendly. On the widget, i can only see a few task and I’m unable to scroll up or down. Unlike before where it showed me all the task. It doesn’t strike through once you’ve completed the task. This new update is aweful and I’ve since deleted the app
+
+[1★ v4.6.3 2025-06-10] Recent update broke the app: I can’t open my checklist widgets anymore. They just automatically crash when I try to open.
+
+[3★ v4.6.3 2025-06-08] App not working: App not working like usual. My notes don’t update to Lock Screen.
+
+[1★ v4.6.3 2025-06-08] What happened: This used to be a favorite app. Doesn’t work now. Weekly fee is way too expensive. I’d consider a one time purchase, but not going to pay a weekly fee.
+
+[3★ v4.6.3 2025-06-08] App does not work after update: I love this app and use it all of the time. After the latest update it will no longer open. Would like to be able to continue to use it again soon.
+
+[1★ v4.6.3 2025-06-08] Attention: on iphone 16 does not work
+
+[1★ v4.6.3 2025-06-08] Update lost all my information: Horrible…. Would give a  - minus 10 star if I could This update lost all my important notes for work that I use in a daily based . Updated it and it still doesn’t work wont even open … this is not good!
