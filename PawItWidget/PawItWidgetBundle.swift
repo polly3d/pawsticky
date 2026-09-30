@@ -48,14 +48,6 @@ struct PawItWidgetEntryView: View {
         return (try? store.firstNoteIsDone()) ?? false
     }
 
-    /// 零预算倒计时（D3 / PoC C）：`Text(timerInterval:)` 由系统按秒自绘，
-    /// 不 wake 扩展、不发起 reload、不消耗每日刷新预算。
-    private var countdownLabel: some View {
-        (Text("新的一天 ") + Text(timerInterval: entry.date...entry.slot.countdownTarget, countsDown: true))
-            .font(.caption2.monospacedDigit())
-            .foregroundStyle(.tertiary)
-    }
-
     var body: some View {
         Button(intent: ToggleItemIntent()) {
             VStack(spacing: 6) {
@@ -68,7 +60,6 @@ struct PawItWidgetEntryView: View {
                 Text("轻点切换")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                countdownLabel
             }
         }
         .buttonStyle(.plain)
