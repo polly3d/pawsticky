@@ -38,13 +38,13 @@ struct PawItProvider: TimelineProvider {
 struct PawItWidgetEntryView: View {
     var entry: PawItEntry
 
-    /// 进程内复用的共享库连接（首次渲染打开一次，避免每次重绘重连）。
-    /// 容器不可用（如缺 entitlement 的预览环境）时按未勾选渲染。
-    private static let store: SharedStore? = try? SharedStore.appGroup()
-
     /// 渲染时实时读取 App Group 数据库：intent perform 后系统重绘即拿到新值。
+    /// W2-1 评审项 1/3：走进程级单池缓存（每进程只开一次连接，hit 是字典查询），
+    /// 且失败零缓存——旧写法 `static let store = try? SharedStore.appGroup()` 会把
+    /// 一次瞬时失败永久缓存成 nil；现在每次重绘都有机会重试。容器持续不可用
+    /// （如缺 entitlement 的预览环境）时回退按未勾选渲染（最后兜底，保持不变）。
     private var isToggled: Bool {
-        guard let store = Self.store else { return false }
+        guard let store = SharedStore.cachedAppGroup() else { return false }
         return (try? store.firstNoteIsDone()) ?? false
     }
 

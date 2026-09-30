@@ -1,7 +1,14 @@
 import Foundation
 import Testing
 import GRDB
+import os
 @testable import Core
+
+/// W2-1 测试专用故障注入:模拟迁移竞态 / 瞬时打开失败(非 SQLITE_BUSY 类)。
+private enum StoreTestFault: Error, Equatable {
+    case simulatedMigrationRace
+    case simulatedTransientOpenFailure
+}
 
 /// Task 3 / PoC B：App Group GRDB 双进程读写验证（D2「零丢数据」存储基础）。
 /// 每个用例使用独立临时目录 + 独立连接，模拟 App / Widget 双进程隔离环境。
@@ -182,5 +189,170 @@ struct SharedStoreTests {
         #expect(path.contains("Application Support"))
         // 共享容器目录以 UUID 命名（不出现 group id 字面量），但固定位于 Shared/AppGroup 之下。
         #expect(path.contains("AppGroup"))
+    }
+
+    // MARK: - W2-1 评审项 1（+项 3）：进程级单池缓存（修 intent 每次开池 churn）
+
+    @Test func cachedStoreOpensPoolOncePerProcess() throws {
+        let path = makeDatabasePath()
+        let creations = OSAllocatedUnfairLock(initialState: 0)
+        let factory: @Sendable (String) throws -> SharedStore = { p in
+            creations.withLock { $0 += 1 }
+            return try SharedStore(databasePath: p)
+        }
+
+        let first = SharedStore.cachedStore(databasePath: path, factory: factory)
+        let second = SharedStore.cachedStore(databasePath: path, factory: factory)
+
+        #expect(first != nil)
+        #expect(second != nil)
+        #expect(creations.withLock { $0 } == 1)  // 第二次调用命中缓存，不再开池
+    }
+
+    /// 失败零缓存：瞬时失败后下次调用自动重试（评审项 3「不得永久缓存 nil」的同一规则）。
+    @Test func cachedStoreCachesNothingOnFailureAndRetriesNextCall() throws {
+        let path = makeDatabasePath()
+        let attempts = OSAllocatedUnfairLock(initialState: 0)
+        let flaky: @Sendable (String) throws -> SharedStore = { p in
+            attempts.withLock { $0 += 1 }
+            if attempts.withLock({ $0 }) == 1 {
+                throw StoreTestFault.simulatedTransientOpenFailure
+            }
+            return try SharedStore(databasePath: p)
+        }
+
+        #expect(SharedStore.cachedStore(databasePath: path, factory: flaky) == nil)  // 首败 → nil
+        #expect(SharedStore.cachedStore(databasePath: path, factory: flaky) != nil)  // 下次调用重试成功
+        #expect(SharedStore.cachedStore(databasePath: path, factory: flaky) != nil)  // 成功后命中缓存
+        #expect(attempts.withLock { $0 } == 2)  // 恰好两次真实创建：失败不入缓存，成功不重复创建
+    }
+
+    /// 并发冷启动 single-flight：并发调用方只允许一次真实开池。
+    @Test func cachedStoreIsSingleFlightUnderConcurrency() async throws {
+        let path = makeDatabasePath()
+        let creations = OSAllocatedUnfairLock(initialState: 0)
+        let factory: @Sendable (String) throws -> SharedStore = { p in
+            creations.withLock { $0 += 1 }
+            return try SharedStore(databasePath: p)
+        }
+
+        let results = try await withThrowingTaskGroup(of: SharedStore?.self) { group in
+            for _ in 0..<16 {
+                group.addTask { SharedStore.cachedStore(databasePath: path, factory: factory) }
+            }
+            var collected: [SharedStore?] = []
+            for try await result in group { collected.append(result) }
+            return collected
+        }
+
+        #expect(results.count == 16)
+        #expect(results.allSatisfy { $0 != nil })
+        #expect(creations.withLock { $0 } == 1)
+    }
+
+    // MARK: - W2-1 评审项 2：迁移竞态 retry-once（双进程冷启动撞表，非 BUSY）
+
+    @Test func migratorFailureRetriesOnceOnFreshPoolThenWorks() async throws {
+        let path = makeDatabasePath()
+        let runs = OSAllocatedUnfairLock(initialState: 0)
+        let runner: (DatabasePool, DatabaseMigrator) throws -> Void = { pool, migrator in
+            runs.withLock { $0 += 1 }
+            if runs.withLock({ $0 }) == 1 {
+                throw StoreTestFault.simulatedMigrationRace  // 首尝试：另一进程抢先建表
+            }
+            try migrator.migrate(pool)
+        }
+
+        let store = try SharedStore(databasePath: path, migratorRunner: runner)
+
+        #expect(runs.withLock { $0 } == 2)  // 恰好一次重试，非循环
+        try await store.insert(Note(text: "竞态恢复后写入"))
+        #expect(try store.countNotes() == 1)
+    }
+
+    @Test func migratorFailureThrowsAfterExactlyOneRetry() throws {
+        let path = makeDatabasePath()
+        let runs = OSAllocatedUnfairLock(initialState: 0)
+
+        do {
+            _ = try SharedStore(databasePath: path) { _, _ in
+                runs.withLock { $0 += 1 }
+                throw StoreTestFault.simulatedMigrationRace
+            }
+            Issue.record("两次迁移均失败时 init 必须抛错")
+        } catch {
+            #expect((error as? StoreTestFault) == .simulatedMigrationRace)
+        }
+        #expect(runs.withLock { $0 } == 2)  // 一次重试后放弃，不是无限循环
+    }
+
+    // MARK: - W2-1 评审项 4：DB + WAL 边车文件保护（锁屏 widget 首解前渲染）
+
+    /// 注入式断言：三个候选文件（主库 / -wal / -shm）全部施加保护，值正确、顺序确定。
+    /// 平台事实（本任务实测）：模拟器 setAttributes 成功但不持久化 protectionKey
+    /// （attributesOfItem 读不回该键）——属性「值正确」由注入断言钉死；
+    /// 真机才强制执行，「重启未解锁看锁屏」冒烟见《W1 架构备忘录》§6 待办。
+    @Test func fileProtectionTargetsMainDBAndBothSidecars() {
+        let candidates = [
+            "/fake/pawit.sqlite3", "/fake/pawit.sqlite3-wal", "/fake/pawit.sqlite3-shm",
+        ]
+        let protectedPaths = OSAllocatedUnfairLock<[String]>(initialState: [])
+        let applied = SharedStore.applyFileProtection(
+            toFilesOf: "/fake/pawit.sqlite3",
+            fileExists: { candidates.contains($0) },
+            setProtection: { path in
+                protectedPaths.withLock { $0.append(path) }
+            }
+        )
+        #expect(applied == candidates)  // 主库与两个边车全部覆盖，不多不少
+        #expect(protectedPaths.withLock { $0 } == candidates)  // 顺序：主库 → wal → shm
+    }
+
+    /// 边车首写才出现：尚不存在的 -wal/-shm 跳过（不报错、不误报）。
+    @Test func fileProtectionSkipsSidecarsThatDoNotExistYet() {
+        let applied = SharedStore.applyFileProtection(
+            toFilesOf: "/fake/pawit.sqlite3",
+            fileExists: { $0 == "/fake/pawit.sqlite3" },
+            setProtection: { _ in }
+        )
+        #expect(applied == ["/fake/pawit.sqlite3"])
+    }
+
+    /// 真实文件路径：建库 + 写入后，生产默认实现（真 FileManager）对三个已落盘文件
+    /// 全部发出保护调用（模拟器不持久化属性值，此处验证「调用了、没崩、覆盖全」）。
+    @Test func fileProtectionCoversRealFilesAfterFirstWrite() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)  // init 内部即走生产默认实现
+        try await store.insert(Note(text: "文件保护探针"))
+
+        let applied = SharedStore.applyFileProtection(toFilesOf: path)  // 生产默认实现
+        #expect(applied.count == 3)
+        #expect(applied.contains(path))
+        #expect(applied.contains(path + "-wal"))
+        #expect(applied.contains(path + "-shm"))
+        for file in applied {  // WAL 模式下连接打开 + 首写即创建边车，三个文件确实落盘
+            #expect(FileManager.default.fileExists(atPath: file))
+        }
+    }
+
+    // MARK: - W2-1 评审项 5：首条排序 id 决胜
+
+    @Test func firstNoteOrderingTiebreaksByIDWhenCreatedAtEqual() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let sameInstant = Date(timeIntervalSince1970: 1_000_000)
+        let laterID = UUID(uuidString: "FFFF0000-0000-0000-0000-000000000002")!
+        let earlierID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+        // 先插 id 大者：无 id 决胜时 SQLite 按扫描序返回首插行（id 大）→ 断言失败（red）。
+        try await store.insert(Note(id: laterID, text: "id 大，应排第二", createdAt: sameInstant))
+        try await store.insert(Note(id: earlierID, text: "id 小，应排第一", createdAt: sameInstant))
+
+        #expect(try store.firstNote()?.id == earlierID)
+
+        // toggleFirstItem 与 firstNote 用同一排序，同样受 id 决胜约束。
+        _ = try await store.toggleFirstItem()
+        #expect(try store.firstNote()?.id == earlierID)
+        #expect(try store.firstNote()?.done == true)
     }
 }

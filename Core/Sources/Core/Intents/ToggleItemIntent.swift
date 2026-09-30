@@ -11,8 +11,13 @@ public struct ToggleItemIntent: AppIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
-        // 读-改-写在同一事务内原子完成；busyTimeout 兜底跨进程写冲突。
-        try await SharedStore.appGroup().toggleFirstItem()
+        // 进程级单池（W2-1 评审项 1）：同一扩展进程的多次 tap 复用一个 DatabasePool，
+        // 修掉「每次 tap 重新开池」的 churn。失败零缓存（评审项 3）：本次 nil 不影响
+        // 下次 tap 自动重试。读-改-写在同一事务内原子完成；busyTimeout 兜底跨进程写冲突。
+        guard let store = SharedStore.cachedAppGroup() else {
+            throw SharedStoreError.appGroupContainerUnavailable(PawItInfo.appGroupID)
+        }
+        try await store.toggleFirstItem()
         // 返回后系统自动重绘发起调用的 Widget（交互式 Widget 内建行为）。
         return .result()
     }
