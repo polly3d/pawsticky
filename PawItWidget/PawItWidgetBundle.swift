@@ -24,13 +24,24 @@ struct PawItProvider: TimelineProvider {
 struct PawItWidgetEntryView: View {
     var entry: PawItEntry
 
+    /// 渲染时实时读取 App Group 状态：intent perform 后系统重绘即拿到新值。
+    private var isToggled: Bool { ToggleState.isToggled }
+
     var body: some View {
-        VStack(spacing: 4) {
-            Text("🐾")
-                .font(.system(size: 28))
-            Text("PawIt")
-                .font(.caption.bold())
+        Button(intent: ToggleItemIntent()) {
+            VStack(spacing: 6) {
+                Image(systemName: isToggled ? "checkmark.circle.fill" : "pawprint")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(isToggled ? Color.green : Color.secondary)
+                Text(isToggled ? "ON" : "OFF")
+                    .font(.system(.headline, design: .monospaced))
+                    .foregroundStyle(.primary)
+                Text("轻点切换")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .buttonStyle(.plain)
         .containerBackground(for: .widget) {
             Color.clear
         }
