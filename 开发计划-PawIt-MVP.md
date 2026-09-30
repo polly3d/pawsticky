@@ -68,7 +68,7 @@ PawIt.xcodeproj
 │   │   ├── CycleNoteIntent.swift       # Widget 内翻页
 │   │   └── AppendNoteIntent.swift      # Siri/快捷指令速记
 │   └── Paywall/Gate.swift              # 功能门控 + 弹窗频控
-└── PawItTests/                 # XCTest(Engine/Store 全覆盖)
+└── PawItTests/                 # Swift Testing(Engine/Store 全覆盖)
     ├── NoteEngineTests.swift
     ├── GrowthEngineTests.swift
     └── HistoryLogTests.swift
@@ -146,11 +146,13 @@ PawIt.xcodeproj
 - Create: `Core/`(SPM 本地包)
 - Create: `.gitignore`(`*.xcodeproj`、`DerivedData/`)
 
-- [ ] **Step 1.1:** `brew install xcodegen`;`swift package init --type library Core`(纯逻辑层,独立于 App 可测)
-- [ ] **Step 1.2:** 手写 `project.yml`:iOS App(SwiftUI,deploymentTarget 17.0)+ Widget Extension + watchOS App,三 target 均引用本地 `Core` 包并声明 App Group entitlement
-- [ ] **Step 1.3:** `xcodegen generate` 后 `xcodebuild -scheme PawIt -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build` 通过;Watch scheme 同样验证
-- [ ] **Step 1.4:** 真机跑通三 target 默认模板(App、含一个空 Widget、Watch App 各自运行)
-- [ ] **Step 1.5:** Commit:`chore: scaffold 3-target app via XcodeGen + SPM Core + App Group`(仅入库 project.yml 与源码,pbxproj 不入库)
+- [x] **Step 1.1:** `brew install xcodegen`;`swift package init --type library Core`(纯逻辑层,独立于 App 可测)
+- [x] **Step 1.2:** 手写 `project.yml`:iOS App(SwiftUI,deploymentTarget 17.0)+ Widget Extension + watchOS App,三 target 均引用本地 `Core` 包并声明 App Group entitlement
+- [x] **Step 1.3:** `xcodegen generate` 后 `xcodebuild -scheme PawIt -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build` 通过;Watch scheme 同样验证
+- [x] **Step 1.4:** 三 target 在模拟器跑通(App、空 Widget、Watch App;真机步骤待设备连接 + 签名配置后补验,见备忘)
+- [x] **Step 1.5:** Commit:`chore: scaffold 3-target app via XcodeGen + SPM Core + App Group`(仅入库 project.yml 与源码,pbxproj 不入库)
+
+> ✅ **Task 1 完成(2026-09-30)**:`c85a8c3` + 评审修复 `770f986`(Watch 嵌入 + CoreTests 挂入模拟器测试链)。规格评审与质量评审(两轮)均通过;零警告;3 测试全绿。遗留:真机验证待签名;PawItTests 宿主链接待 W2 App 逻辑出现时添加。
 
 ### Task 2: PoC A —— 交互式 Widget 数据闭环(风险:意图→落盘→重渲染)
 
@@ -236,6 +238,7 @@ import Testing
 **核心任务:** `Note`(**含 `dueDate` 字段**,§4.2 到期提醒的数据基础)/`NoteItem`/`PetProfile`/`GrowthState` 模型;`NoteRepository`(CRUD + 7 天 `HistoryLog` append-only 回滚 + 导出/导入:JSON,可选口令加密——统一口径,§7-P2);`NoteEngine` 勾选语义(经典划线样式保留——差评点 *"[1★ v4.6.3 2025-06-07] Liked it better before the update… able to cross the things on the list instead of a ✅"* `[reviews-1533254320-lows.txt]`)、排序、午夜翻转、到期语义;剩余 4 只宠物角色卡。
 **DoD:** Engine/Store 单测覆盖 ≥90%,全绿;`xcodebuild test` 通过;导出的 JSON 重新导入数据一致。
 **测试:** `NoteEngineTests`(勾选/划线/排序/午夜/**到期语义**),`HistoryLogTests`(回滚窗口),`SharedStoreTests`(GRDB `DatabaseMigrator` 迁移)。
+**注意事项:** GRDB 引入后提交 `Core/Package.resolved` 入库(工程级 resolved 随被忽略的 pbxproj 不入库,Core 的才是有效锁文件);为 PawItTests 增加 `- target: PawIt` 宿主链接,使 App 层逻辑可测(Task 1 评审遗留项)。
 
 ### W3 · 编辑器 UI
 **核心任务:** Widget 点击 → 编辑器**光标直达正文,无命名步骤**(差评点 *"[2★ v5.0.0 2025-09-29] requirement to name a note before it will save"*)；逐键防抖 300ms 落盘;`scenePhase=.background` 即时落盘;清单模式;字体/颜色/渐变选择器;**到期提醒设置 UI + 通知权限申请流 + `UNUserNotificationCenter` 调度引擎**(§4.2 到期提醒;本地通知零刷新预算,与 D3 协同);深色模式全元素对比度校验;Dynamic Type。
