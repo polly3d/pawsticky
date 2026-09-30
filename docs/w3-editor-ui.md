@@ -3,7 +3,7 @@
 > 提取自主计划 §6。完整任务卡见 `plan.md` §4。
 
 **日期:** 2026-10-19 ~ 10-25（实际于 2026-09-30 完成大部分）
-**状态:** ✅ 大体完成（W3-4 清单模式补做中）
+**状态:** ✅ 全部完成
 
 ---
 
@@ -15,7 +15,7 @@
 | **W3-1 w3.v1 schema + NoteStyle** ✅ | ALTER TABLE note ADD COLUMN style TEXT；`NoteStylePreset` enum（6 款预设色）| 迁移测试绿 |
 | **W3-2 便签列表 + 一秒速记** ✅ | `NoteListView`；"+"一键创建（deferred creation）；滑删；空状态 | 创建→编辑器光标在正文 |
 | **W3-3 编辑器 + 防抖落盘** ✅ | `NoteEditorView`；300ms 防抖；scenePhase 即时落盘；创建与编辑共用 sheet（`EditorMode` enum）| 杀进程零丢失 |
-| **W3-4 清单模式** 📋 | 编辑器内 NoteItem 列表；划线完成；添加/勾选/删除/拖拽排序 | 勾选即划线；项目持久化 |
+| **W3-4 清单模式** ✅ | 编辑器内 NoteItem 列表；划线完成；添加/勾选/删除/拖拽排序；空状态；进度计数 | 勾选即划线；项目持久化 |
 | **W3-5 到期提醒系统** ✅ | `NotificationScheduling` 协议；`ReminderManager`；due date picker；deep link（通知 tap → 打开便签）| 6 tests pass（FakeScheduler）|
 | **W3-6 样式选择器** ✅ | `StylePickerView` 6 色圈；应用于编辑器背景 + 列表行；`ExportNote` DTO backward-compatible | 选色即时变色 |
 | **W3-7 适配收口** ✅ | Accessibility labels；VoiceOver `.isSelected` trait | VoiceOver 走通 |
