@@ -272,7 +272,7 @@ enum ExportCrypto {
                         passwordLength,
                         saltBuf.bindMemory(to: UInt8.self).baseAddress,
                         salt.count,
-                        CCPBKDFAlgorithm(kCCPRFHmacAlgSHA256),  // prf 参数与 algorithm 同为 uint32 typedef
+                        CCPBKDFAlgorithm(kCCPRFHmacAlgSHA256),  // CCPseudoRandomAlgorithm: prf 参数与 algorithm 同为 uint32 typedef
                         iterations,
                         derivedBuf.bindMemory(to: UInt8.self).baseAddress,
                         derivedKeyLength

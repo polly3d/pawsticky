@@ -76,20 +76,24 @@ public struct NoteRepository: Sendable {
     // MARK: - Note
 
     /// 创建便签(正文 + 可选到期日),并落一条「创建」后像快照。
-    /// - Returns: 已持久化的便签(id 自动生成,position 0,createdAt 当前时刻)。
+    /// **position-on-create（W3-0③）**：新便签 position = MAX(现有 position) + 1，
+    /// 保证追加到队尾——拖拽排序上线后，新建不会插队到队首（旧行为 position=0 会在
+    /// 任何手动排序过的列表中跳到第一位）。空库首条 position = 0。
+    /// - Returns: 已持久化的便签(id 自动生成,createdAt 当前时刻)。
     ///   注意:返回值为**内存新值**,其 createdAt 亚毫秒精度不会被 GRDB 毫秒文本编码
     ///   保留——与库内行做全等比较时,以读回值(`allNotes()` 等)为基准。
     @discardableResult
     public func createNote(text: String, dueDate: Date? = nil) async throws -> Note {
-        let note = Note(text: text, dueDate: dueDate)
         try await store.write { db in
+            let maxPos = try Int.fetchOne(db, Note.select(max(Column("position")))) ?? -1
+            let note = Note(text: text, dueDate: dueDate, position: maxPos + 1)
             try note.insert(db)
             try HistoryLog.append(
                 in: db, entityType: .note, entityId: note.id.uuidString,
                 payload: try PayloadCodec.encode(note)
             )
+            return note
         }
-        return note
     }
 
     /// 更新便签(整行按传入值落库)。目标行不存在时抛错——**更新不做静默插入**,
@@ -134,6 +138,26 @@ public struct NoteRepository: Sendable {
         }
     }
 
+    /// 原子翻转指定便签的 done 标记（W3-0①，W2-3 评审移交的 per-note toggle）。
+    /// 委托 `SharedStore.toggleNote(id:)` 的单事务读-改-写本体，
+    /// 并在同一事务内落翻转前像。
+    /// - Throws: `SharedStoreError.noteNotFound` 目标便签不存在。
+    @discardableResult
+    public func toggleNote(id: UUID) async throws -> Bool {
+        try await store.write { db in
+            guard var note = try Note.fetchOne(db, key: id.uuidString) else {
+                throw SharedStoreError.noteNotFound(id)
+            }
+            try HistoryLog.append(
+                in: db, entityType: .note, entityId: id.uuidString,
+                payload: try PayloadCodec.encode(note)
+            )
+            note.done.toggle()
+            try note.update(db)
+            return note.done
+        }
+    }
+
     // MARK: - NoteItem
 
     /// 新增清单项(父便签必须存在),并落「创建」后像快照。
@@ -171,6 +195,26 @@ public struct NoteRepository: Sendable {
                 payload: try PayloadCodec.encode(current)
             )
             return try SharedStore.toggleNoteItem(db: db, noteId: noteId, itemId: itemId)
+        }
+    }
+
+    /// 更新清单项（整行覆盖：text/position/done 以传入值为准；W3-0②，W2-4 评审移交）。
+    /// 目标行不存在时抛错——**更新不做静默插入**（与 `updateNote` 同一纪律）。
+    /// 历史落 **PRE-change 前像**：恢复该条目即回到更新前状态。
+    public func updateItem(_ item: NoteItem) async throws {
+        try await store.write { db in
+            guard let current = try NoteItem
+                .filter(Column("id") == item.id.uuidString)
+                .filter(Column("noteId") == item.noteId.uuidString)
+                .fetchOne(db)
+            else {
+                throw SharedStoreError.noteItemNotFound(noteId: item.noteId, itemId: item.id)
+            }
+            try HistoryLog.append(
+                in: db, entityType: .noteItem, entityId: item.id.uuidString,
+                payload: try PayloadCodec.encode(current)
+            )
+            try item.update(db)
         }
     }
 

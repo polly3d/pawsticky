@@ -395,6 +395,114 @@ struct NoteRepositoryTests {
         #expect(NoteRepository.cachedAppGroup() != nil)
     }
 
+    // MARK: - W3-0①：toggleNote(id:) + 历史快照
+
+    @Test func toggleNoteByIdSnapshotsPreToggleState() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "即将翻转")
+        try await Task.sleep(nanoseconds: 5_000_000)
+
+        let flipped = try await repo.toggleNote(id: note.id)
+        #expect(flipped == true)
+
+        let fresh = try SharedStore(databasePath: path)
+        #expect(try fresh.allNotes().first?.done == true)
+
+        let entries = try makeRepository(path: path).history(entityType: .note, entityId: note.id.uuidString)
+        #expect(entries.count == 2)  // create + toggle 前像
+        let preToggle = try JSONDecoder().decode(ExportNote.self, from: Data(entries[0].payload.utf8))
+        #expect(preToggle.done == false)  // 前像：翻转前的 done
+    }
+
+    @Test func toggleNoteByIdThrowsForMissingNoteWithoutHistory() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let ghost = UUID()
+        let baseline = try totalHistoryRows(path)
+
+        do {
+            _ = try await repo.toggleNote(id: ghost)
+            Issue.record("翻转不存在的便签必须抛错")
+        } catch let error as SharedStoreError {
+            #expect(error == .noteNotFound(ghost))
+        }
+        #expect(try totalHistoryRows(path) == baseline)
+    }
+
+    // MARK: - W3-0②：updateItem + 历史快照
+
+    @Test func updateItemSnapshotsPreChangeState() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "清单")
+        let item = try await repo.addItem(to: note.id, text: "原文本")
+        try await Task.sleep(nanoseconds: 5_000_000)
+
+        var edited = try #require(try SharedStore(databasePath: path).noteItems(noteId: note.id).first)
+        edited.text = "改后文本"
+        edited.position = 3
+        try await repo.updateItem(edited)
+
+        let fresh = try SharedStore(databasePath: path)
+        let items = try fresh.noteItems(noteId: note.id)
+        #expect(items[0].text == "改后文本")
+        #expect(items[0].position == 3)
+
+        let entries = try makeRepository(path: path).history(entityType: .noteItem, entityId: item.id.uuidString)
+        #expect(entries.count == 2)  // addItem create + update 前像
+        let preChange = try JSONDecoder().decode(ExportNoteItem.self, from: Data(entries[0].payload.utf8))
+        #expect(preChange.text == "原文本")
+        #expect(preChange.position == 0)
+    }
+
+    @Test func updateItemThrowsForMissingItemWithoutHistory() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "正文")
+        let ghostItem = NoteItem(noteId: note.id, text: "幽灵")
+        let baseline = try totalHistoryRows(path)
+
+        do {
+            try await repo.updateItem(ghostItem)
+            Issue.record("更新不存在的清单项必须抛错")
+        } catch let error as SharedStoreError {
+            #expect(error == .noteItemNotFound(noteId: note.id, itemId: ghostItem.id))
+        }
+        #expect(try totalHistoryRows(path) == baseline)
+    }
+
+    // MARK: - W3-0③：position-on-create 语义（MAX+1 追加队尾）
+
+    @Test func createNoteAppendsToEndViaMaxPositionPlusOne() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let first = try await repo.createNote(text: "第一条")
+        let second = try await repo.createNote(text: "第二条")
+        let third = try await repo.createNote(text: "第三条")
+
+        #expect(first.position == 0)   // 空库首条 = 0
+        #expect(second.position == 1)
+        #expect(third.position == 2)
+
+        // 排序验证：allNotes 应该按 position 升序
+        let all = try SharedStore(databasePath: path).allNotes()
+        #expect(all.map(\.text) == ["第一条", "第二条", "第三条"])
+    }
+
+    /// 删除中间便签后，新便签 position 仍取 MAX+1（不回填空洞）。
+    @Test func createNotePositionDoesNotBackfillGaps() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        _ = try await repo.createNote(text: "pos 0")
+        let middle = try await repo.createNote(text: "pos 1")
+        _ = try await repo.createNote(text: "pos 2")
+
+        try await repo.deleteNote(id: middle.id)
+        let fourth = try await repo.createNote(text: "第四条")
+        #expect(fourth.position == 3)  // MAX(0,2)+1 = 3,不回填空洞 1
+    }
+
     // MARK: - 保留期:append 顺手清走 7 天前条目(retention,不是对记录的修订)
 
     @Test func appendPrunesOnlyEntriesOlderThanSevenDays() async throws {

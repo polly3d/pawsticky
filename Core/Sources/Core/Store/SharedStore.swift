@@ -305,6 +305,23 @@ public struct SharedStore: Sendable {
 
     // —— Note ——
 
+    /// 原子翻转指定便签的 done 标记（W3-0① per-note toggle）。
+    /// 读-改-写在同一写事务内原子完成（与 `toggleFirstItem()` 同一模式）。
+    /// - Throws: `SharedStoreError.noteNotFound` 目标便签不存在。
+    /// - Returns: 翻转后的 done 状态。
+    /// 不落历史;App 内变更请走 NoteRepository（其 toggleNote 在同一事务内补前像）。
+    @discardableResult
+    public func toggleNote(id: UUID) async throws -> Bool {
+        try await pool.write { db in
+            guard var note = try Note.fetchOne(db, key: id.uuidString) else {
+                throw SharedStoreError.noteNotFound(id)
+            }
+            note.done.toggle()
+            try note.update(db)
+            return note.done
+        }
+    }
+
     /// 插入或更新便签（按主键 upsert：存在则更新，不存在则插入）。
     ///
     /// **整行覆盖契约（W2-4 移交项⑥）**：`save` 对已存在的行执行整行 UPDATE——
@@ -365,6 +382,22 @@ public struct SharedStore: Sendable {
     public func addNoteItem(_ item: NoteItem) async throws {
         try await pool.write { db in
             try item.insert(db)
+        }
+    }
+
+    /// 更新清单项（整行覆盖;必须存在,不做静默插入）。
+    /// 不落历史;App 内变更请走 NoteRepository（其 updateItem 在同一事务内补前像）。
+    /// - Throws: `SharedStoreError.noteItemNotFound`（item 不存在或不属于该 note）。
+    public func updateNoteItem(_ item: NoteItem) async throws {
+        try await pool.write { db in
+            guard try NoteItem
+                .filter(Column("id") == item.id.uuidString)
+                .filter(Column("noteId") == item.noteId.uuidString)
+                .fetchOne(db) != nil
+            else {
+                throw SharedStoreError.noteItemNotFound(noteId: item.noteId, itemId: item.id)
+            }
+            try item.update(db)
         }
     }
 
@@ -497,4 +530,6 @@ public enum SharedStoreError: Error, Equatable, Sendable {
     case corruptHistoryEntityType(String)
     /// toggleNoteItem 的作用域错配：itemId 不存在，或不属于给定 noteId。
     case noteItemNotFound(noteId: UUID, itemId: UUID)
+    /// toggleNote(id:) 的目标便签不存在（W3-0 新增）。
+    case noteNotFound(UUID)
 }

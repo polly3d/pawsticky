@@ -291,6 +291,28 @@ import Testing
 **DoD:** 演示脚本——输入中途强杀 App,重开零丢失;设 2 分钟后到期的提醒,锁屏收到通知并点击跳回该便签;VoiceOver 走查编辑主流程。
 **测试:** 手测协议 §7-P1;`Repository` 落盘时机单测;提醒调度单测(schedule/cancel/编辑即替换——经协议封装注入 `UNUserNotificationCenter` 假实现)。
 
+**W3 任务拆解(2026-09-30 展开):**
+
+| 子任务 | 内容 | 验收 |
+|---|---|---|
+| **W3-0 Core API 补全** | ①`toggleNote(id:)` 原子 per-note toggle(W2-3 移交) ②`updateItem` 条目文本/position 编辑(W2-4 移交) ③position-on-create 语义:MAX(position)+1(新便签追加队尾,非插队队首) ④`CCPseudoRandomAlgorithm` 注释笔误修(W2-4 遗留) | 新 API 单测全绿;position-on-create pin 测试 |
+| **W3-1 w3.v1 schema + NoteStyle** | `w3.v1` 迁移:ALTER TABLE note ADD COLUMN style TEXT(nullable,nil=经典黄);`NoteStyle` 值类型(backgroundColor/textColor/fontWeight);预设色板(6 款);真实升级路径测试 w2→w3 | 迁移测试绿;NoteStyle round-trip 测试绿 |
+| **W3-2 便签列表 + 一秒速记** | `NoteListView`:全部便签列表(消费 `allNotes()` 排序);**"+"一键创建,光标直达正文**(差评反例:"must name before save");滑删;空状态("还没有便签,点+开始") | App 启动可见列表;创建→编辑器光标在正文;滑删后消失 |
+| **W3-3 编辑器 + 防抖落盘** | `NoteEditorView`:正文编辑(TextEditor);**300ms 防抖自动落盘**(Combine debounce);`scenePhase=.background` 即时全量落盘+`WidgetCenter.reloadTimelines`;返回列表亦触发落盘;**演示:输入中途强杀 App→重开→零丢失** | DoD 演示脚本通过;落盘时机单测绿 |
+| **W3-4 清单模式** | 编辑器内 NoteItem 列表;经典**划线完成样式**(NoteEngine.strikethrough);添加/勾选/删除/拖拽排序条目;空清单提示"添加你的第一个事项" | 勾选即划线;拖拽可排序;项目持久化 |
+| **W3-5 到期提醒系统** | `NotificationScheduler` 协议(注入式;真实+Fake 双实现);due date picker(DatePicker inline);schedule/cancel/**编辑即替换**;权限申请流(首次设到期时触发);通知 tap→deep link 回该便签 | 调度单测绿(Fake);2 分钟提醒→锁屏通知→点击跳回 |
+| **W3-6 样式选择器** | `StylePickerView`:6 款预设色(经典黄/薄荷/樱花/天蓝/薰衣草/深灰);应用于编辑器背景+列表卡片;style 随 note 持久化 | 选色→编辑器即时变色→退出重进保持 |
+| **W3-7 适配收口** | 深色模式全元素对比度(每款预设色×深/浅);Dynamic Type(最小到最大);VoiceOver 走查(列表→创建→编辑→勾选→返回);§7-P1 手测 | VoiceOver 主流程走通;Dynamic Type 不截断 |
+
+**W3 前置项消化清单(来自 W2 评审移交):**
+- ✅→W3-0①:`SharedStore.toggleNote(id:)` 原子对应物(W2-3 评审)
+- ✅→W3-0②:`updateItem`(W2-4 评审移交①)
+- ✅→W3-0③:`position-on-create` 语义决策(W2-4 评审移交②)
+- ✅→W3-0④:`CCPseudoRandomAlgorithm` 注释修(W2-4 遗留)
+- ✅→W3-1:`style` 列 ALTER TABLE(W2 "w3.v1 设计时"登记)
+- 📋→W3-3:「读回库值为全等基准」(W2-4 评审移交③)——编辑器 diff 逻辑遵守
+- 📋→W5 卡:widget 进程写入不落历史(W2-4 评审移交④——既定计划内,本周不做)
+
 ### W4 · Widget 家族(静态渲染)
 **核心任务:** `NoteWidgetFamily` 覆盖 systemSmall/Medium/Large + accessoryCircular/Rectangular/Inline(锁屏)+ StandBy;时间线预生成(午夜翻转);新旧便签切换布局。
 **DoD:** 全家族在 iPhone SE(最小屏)、16 Pro Max(最大屏)与 **iPad 10th**(§4.2 首条要求,提前 7 周暴露布局问题)截图入库无裁切遮挡;锁屏深色背景可读性人工校验(差评点 *"[3★ v5.0.4 2026-01-13] Dark mode"*);跨午夜真机验证翻转。

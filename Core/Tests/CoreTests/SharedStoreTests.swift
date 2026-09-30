@@ -395,6 +395,93 @@ struct SharedStoreTests {
         #expect(try fresh.firstNote()?.id == allNotesFirst.id)  // red：旧实现按 createdAt 选 A
     }
 
+    // MARK: - W3-0①：toggleNote(id:) 原子 per-note toggle
+
+    @Test func toggleNoteByIdFlipsSpecificNote() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let noteA = Note(text: "A")
+        let noteB = Note(text: "B")
+        try await store.insert(noteA)
+        try await store.insert(noteB)
+
+        let flipped = try await store.toggleNote(id: noteB.id)
+        #expect(flipped == true)
+
+        let fresh = try SharedStore(databasePath: path)
+        let all = try fresh.allNotes()
+        let a = try #require(all.first { $0.id == noteA.id })
+        let b = try #require(all.first { $0.id == noteB.id })
+        #expect(a.done == false)  // A untouched
+        #expect(b.done == true)   // only B toggled
+    }
+
+    @Test func toggleNoteByIdThrowsWhenNoteNotFound() async throws {
+        let store = try SharedStore(databasePath: makeDatabasePath())
+        let ghost = UUID()
+
+        do {
+            _ = try await store.toggleNote(id: ghost)
+            Issue.record("翻转不存在的便签必须抛 noteNotFound")
+        } catch let error as SharedStoreError {
+            #expect(error == .noteNotFound(ghost))
+        }
+    }
+
+    @Test func toggleNoteByIdIsAtomicUnderConcurrency() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let note = Note(text: "并发目标")
+        try await store.insert(note)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for _ in 0..<16 {
+                group.addTask { _ = try await store.toggleNote(id: note.id) }
+            }
+            try await group.waitForAll()
+        }
+
+        let fresh = try SharedStore(databasePath: path)
+        #expect(try fresh.allNotes().first?.done == false)  // 16 (even) toggles → back to false
+    }
+
+    // MARK: - W3-0②：updateNoteItem（条目文本/position 编辑）
+
+    @Test func updateNoteItemPersistsChanges() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let note = Note(text: "parent")
+        try await store.insert(note)
+        let item = NoteItem(noteId: note.id, text: "原文", position: 0)
+        try await store.addNoteItem(item)
+
+        var edited = item
+        edited.text = "改后文本"
+        edited.position = 5
+        try await store.updateNoteItem(edited)
+
+        let fresh = try SharedStore(databasePath: path)
+        let items = try fresh.noteItems(noteId: note.id)
+        #expect(items.count == 1)
+        #expect(items[0].text == "改后文本")
+        #expect(items[0].position == 5)
+    }
+
+    @Test func updateNoteItemThrowsWhenItemNotFound() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let note = Note(text: "parent")
+        try await store.insert(note)
+        let ghost = NoteItem(noteId: note.id, text: "幽灵")
+
+        do {
+            try await store.updateNoteItem(ghost)
+            Issue.record("更新不存在的清单项必须抛错")
+        } catch let error as SharedStoreError {
+            #expect(error == .noteItemNotFound(noteId: note.id, itemId: ghost.id))
+        }
+    }
+
     /// toggleFirstItem 与 firstNote 同一排序契约：翻的必须是 position 靠前的便签。
     @Test func toggleFirstItemFlipsUnifiedOrderingFirstNote() async throws {
         let path = makeDatabasePath()
