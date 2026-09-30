@@ -2,16 +2,21 @@ import SwiftUI
 import Combine
 import Core
 
-/// 便签编辑器（W3-3）——自动保存 + 零丢失的核心交互。
+/// 便签编辑器（W3-3）——sheet 呈现，创建与编辑共用。
+///
+/// **延迟创建 (deferred creation)**：
+/// - Create 模式：sheet 打开时只有内存状态，数据库零写入。
+///   用户首次输入后 300ms 防抖触发时才真正 createNote，之后切入 edit 模式。
+///   若用户未输入任何内容就关闭 sheet → 什么都不发生（数据库零污染）。
+/// - Edit 模式：从 DB 加载已有便签，300ms 防抖自动落盘。
 ///
 /// 保存策略（D3 刷新策略的 App 内编辑路径）：
-/// 1. 每次击键 → 300ms 防抖后自动落盘（逐键安全）
-/// 2. `scenePhase = .background` → 即时全量落盘 + `WidgetCenter.reloadTimelines`
-/// 3. 用户返回列表（dismiss）→ 即时落盘
-/// 演示脚本：输入中途强杀 App → 重开 → 零丢失（最多丢最后 300ms 的击键）
+/// 1. 每次击键 → 300ms 防抖后自动落盘
+/// 2. `scenePhase = .background` → 即时落盘
+/// 3. Dismiss → 即时落盘
 struct NoteEditorView: View {
 
-    let noteID: UUID
+    let mode: EditorMode
     let repository: NoteRepository?
     let onDismiss: () -> Void
 
@@ -22,37 +27,62 @@ struct NoteEditorView: View {
     @State private var isDone: Bool = false
     @State private var items: [NoteItem] = []
     @State private var newItemText: String = ""
+
+    /// 延迟创建追踪：create 模式下首次落盘后持有已创建的 noteID。
+    @State private var persistedNoteID: UUID?
     @State private var isLoaded = false
+    @FocusState private var isTextEditorFocused: Bool
 
     /// 防抖发布者：文本变更 → 300ms → 自动落盘
     @State private var saveSubject = PassthroughSubject<String, Never>()
     @State private var cancellables = Set<AnyCancellable>()
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                noteTextEditor
-                if !items.isEmpty || isLoaded {
-                    checklistSection
-                }
-            }
-            .padding()
+    /// 当前的有效 noteID（edit 模式下直接从 mode 取，create 模式下从 persistedNoteID 取）。
+    private var effectiveNoteID: UUID? {
+        switch mode {
+        case .create: return persistedNoteID
+        case .edit(let id): return id
         }
-        .navigationTitle(isDone ? "已完成" : "编辑便签")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { toolbarContent }
-        .task { loadNote(); setupDebounce() }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    noteTextEditor
+
+                    if effectiveNoteID != nil {
+                        checklistSection
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { toolbarContent }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .task { loadIfNeeded(); setupDebounce() }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background { flushSave() }
         }
         .onDisappear { flushSave(); onDismiss() }
     }
 
-    // MARK: - 正文编辑器
+    private var navigationTitle: String {
+        switch mode {
+        case .create: return "New Note"
+        case .edit: return isDone ? "Completed" : "Edit Note"
+        }
+    }
+
+    // MARK: - Text Editor
 
     private var noteTextEditor: some View {
         TextEditor(text: $text)
             .font(.body)
+            .focused($isTextEditorFocused)
             .frame(minHeight: 200)
             .scrollContentBackground(.hidden)
             .padding(12)
@@ -63,7 +93,7 @@ struct NoteEditorView: View {
             )
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
-                    Text("开始输入...")
+                    Text("Start typing...")
                         .foregroundStyle(.tertiary)
                         .padding(.leading, 16)
                         .padding(.top, 20)
@@ -75,11 +105,11 @@ struct NoteEditorView: View {
             }
     }
 
-    // MARK: - 清单区
+    // MARK: - Checklist
 
     private var checklistSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("清单")
+            Text("Checklist")
                 .font(.headline)
                 .padding(.top, 8)
 
@@ -92,7 +122,7 @@ struct NoteEditorView: View {
             }
 
             HStack {
-                TextField("添加事项...", text: $newItemText)
+                TextField("Add item...", text: $newItemText)
                     .textFieldStyle(.plain)
                     .onSubmit { addItem() }
                 Button(action: addItem) {
@@ -104,59 +134,91 @@ struct NoteEditorView: View {
         }
     }
 
-    // MARK: - 工具栏
+    // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                toggleNote()
-            } label: {
-                Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isDone ? .green : .secondary)
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Done") { dismiss() }
+        }
+        if effectiveNoteID != nil {
+            ToolbarItem(placement: .primaryAction) {
+                Button { toggleNote() } label: {
+                    Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isDone ? .green : .secondary)
+                }
+                .accessibilityLabel(isDone ? "Mark as incomplete" : "Mark as done")
             }
-            .accessibilityLabel(isDone ? "标记未完成" : "标记完成")
         }
     }
 
-    // MARK: - 数据操作
+    // MARK: - Data Operations
 
-    private func loadNote() {
-        guard let repository, let note = try? repository.note(id: noteID) else { return }
-        text = note.text
-        isDone = note.done
-        items = (try? repository.noteItems(noteId: noteID)) ?? []
-        isLoaded = true
+    private func loadIfNeeded() {
+        switch mode {
+        case .create:
+            isLoaded = true
+            isTextEditorFocused = true
+        case .edit(let id):
+            guard let repository, let note = try? repository.note(id: id) else { return }
+            text = note.text
+            isDone = note.done
+            items = (try? repository.noteItems(noteId: id)) ?? []
+            persistedNoteID = id
+            isLoaded = true
+        }
     }
 
     private func setupDebounce() {
         saveSubject
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-            .sink { [repository, noteID] newText in
+            .sink { [repository] newText in
                 guard let repository else { return }
-                Task {
-                    if var note = try? repository.note(id: noteID) {
-                        note.text = newText
-                        try? await repository.updateNote(note)
-                    }
-                }
+                Task { await debouncedSave(newText, repository: repository) }
             }
             .store(in: &cancellables)
     }
 
-    /// 立即落盘（background/dismiss 时调用,跳过防抖）。
+    /// 防抖触发的保存——处理 create 模式的延迟创建和 edit 模式的更新。
+    @MainActor
+    private func debouncedSave(_ newText: String, repository: NoteRepository) async {
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let noteID = effectiveNoteID {
+            // Edit 模式（或 create 模式下已创建）：更新已有便签
+            if var note = try? repository.note(id: noteID) {
+                note.text = newText
+                try? await repository.updateNote(note)
+            }
+        } else if !trimmed.isEmpty {
+            // Create 模式且首次有内容：延迟创建——此时才写入数据库
+            if let note = try? await repository.createNote(text: newText) {
+                persistedNoteID = note.id
+            }
+        }
+    }
+
+    /// 立即落盘（background/dismiss 时调用，跳过防抖）。
     private func flushSave() {
         guard let repository, isLoaded else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
         Task {
-            if var note = try? repository.note(id: noteID) {
-                note.text = text
-                try? await repository.updateNote(note)
+            if let noteID = effectiveNoteID {
+                if var note = try? repository.note(id: noteID) {
+                    note.text = text
+                    try? await repository.updateNote(note)
+                }
+            } else if !trimmed.isEmpty {
+                if let note = try? await repository.createNote(text: text) {
+                    persistedNoteID = note.id
+                }
             }
         }
     }
 
     private func toggleNote() {
-        guard let repository else { return }
+        guard let repository, let noteID = effectiveNoteID else { return }
         Task {
             if let result = try? await repository.toggleNote(id: noteID) {
                 isDone = result
@@ -165,7 +227,7 @@ struct NoteEditorView: View {
     }
 
     private func toggleItem(_ item: NoteItem) {
-        guard let repository else { return }
+        guard let repository, let noteID = effectiveNoteID else { return }
         Task {
             _ = try? await repository.toggleItem(noteId: noteID, itemId: item.id)
             items = (try? repository.noteItems(noteId: noteID)) ?? []
@@ -174,7 +236,7 @@ struct NoteEditorView: View {
 
     private func addItem() {
         let trimmed = newItemText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, let repository else { return }
+        guard !trimmed.isEmpty, let repository, let noteID = effectiveNoteID else { return }
         Task {
             _ = try? await repository.addItem(to: noteID, text: trimmed)
             newItemText = ""
@@ -183,7 +245,7 @@ struct NoteEditorView: View {
     }
 
     private func deleteItem(_ item: NoteItem) {
-        guard let repository else { return }
+        guard let repository, let noteID = effectiveNoteID else { return }
         Task {
             try? await repository.deleteItem(noteId: noteID, itemId: item.id)
             items = (try? repository.noteItems(noteId: noteID)) ?? []
@@ -191,7 +253,7 @@ struct NoteEditorView: View {
     }
 }
 
-// MARK: - 清单项行
+// MARK: - Checklist Item Row
 
 private struct ChecklistItemRow: View {
     let item: NoteItem

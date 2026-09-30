@@ -57,7 +57,7 @@ struct PawItWidgetEntryView: View {
                 Text(isToggled ? "ON" : "OFF")
                     .font(.system(.headline, design: .monospaced))
                     .foregroundStyle(.primary)
-                Text("轻点切换")
+                Text("Tap to toggle")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -75,7 +75,7 @@ struct PawItWidget: Widget {
             PawItWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("PawIt")
-        .description("由你的宠物帮你记住事情")
+        .description("Let your pet remember things for you")
         .supportedFamilies([.systemSmall])
     }
 }

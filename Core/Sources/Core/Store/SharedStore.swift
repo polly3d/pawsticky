@@ -295,7 +295,7 @@ public struct SharedStore: Sendable {
                 try note.update(db)
                 return note.done
             }
-            let seed = Note(text: "待办")
+            let seed = Note(text: "To-do")
             try seed.insert(db)
             return seed.done
         }
