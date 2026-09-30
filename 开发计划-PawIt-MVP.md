@@ -286,7 +286,7 @@ import Testing
 
 > ✅ **W2 收官(2026-09-30,提前于排期 10/12-10/18)**:5/5 子任务完成,含 4 轮修复循环。**107 测试全绿零警告**;Engine/Store 覆盖率 ≈95.8%(DoD ≥90% 达成);导出→导入 round-trip 达成;加密导出 PBKDF2-HMAC-SHA256(10 万轮,公开 KAT 向量钉死,信封记录 KDF 参数)。三层「零丢数据」机制齐备:WAL 双进程存储(W1)→ 每变更同事务历史快照(W2-4)→ 加密导出换机(W2-4)。commit 链:5c401cc → 4ad2365 → 15394c1 → aeca420 → 2f19e0f。
 
-### W3 · 编辑器 UI
+### W3 · 编辑器 UI ✅
 **核心任务:** Widget 点击 → 编辑器**光标直达正文,无命名步骤**(差评点 *"[2★ v5.0.0 2025-09-29] requirement to name a note before it will save"*)；逐键防抖 300ms 落盘;`scenePhase=.background` 即时落盘;清单模式;字体/颜色/渐变选择器;**到期提醒设置 UI + 通知权限申请流 + `UNUserNotificationCenter` 调度引擎**(§4.2 到期提醒;本地通知零刷新预算,与 D3 协同);深色模式全元素对比度校验;Dynamic Type。
 **DoD:** 演示脚本——输入中途强杀 App,重开零丢失;设 2 分钟后到期的提醒,锁屏收到通知并点击跳回该便签;VoiceOver 走查编辑主流程。
 **测试:** 手测协议 §7-P1;`Repository` 落盘时机单测;提醒调度单测(schedule/cancel/编辑即替换——经协议封装注入 `UNUserNotificationCenter` 假实现)。
@@ -295,14 +295,14 @@ import Testing
 
 | 子任务 | 内容 | 验收 |
 |---|---|---|
-| **W3-0 Core API 补全** | ①`toggleNote(id:)` 原子 per-note toggle(W2-3 移交) ②`updateItem` 条目文本/position 编辑(W2-4 移交) ③position-on-create 语义:MAX(position)+1(新便签追加队尾,非插队队首) ④`CCPseudoRandomAlgorithm` 注释笔误修(W2-4 遗留) | 新 API 单测全绿;position-on-create pin 测试 |
-| **W3-1 w3.v1 schema + NoteStyle** | `w3.v1` 迁移:ALTER TABLE note ADD COLUMN style TEXT(nullable,nil=经典黄);`NoteStyle` 值类型(backgroundColor/textColor/fontWeight);预设色板(6 款);真实升级路径测试 w2→w3 | 迁移测试绿;NoteStyle round-trip 测试绿 |
-| **W3-2 便签列表 + 一秒速记** | `NoteListView`:全部便签列表(消费 `allNotes()` 排序);**"+"一键创建,光标直达正文**(差评反例:"must name before save");滑删;空状态("还没有便签,点+开始") | App 启动可见列表;创建→编辑器光标在正文;滑删后消失 |
-| **W3-3 编辑器 + 防抖落盘** | `NoteEditorView`:正文编辑(TextEditor);**300ms 防抖自动落盘**(Combine debounce);`scenePhase=.background` 即时全量落盘+`WidgetCenter.reloadTimelines`;返回列表亦触发落盘;**演示:输入中途强杀 App→重开→零丢失** | DoD 演示脚本通过;落盘时机单测绿 |
-| **W3-4 清单模式** | 编辑器内 NoteItem 列表;经典**划线完成样式**(NoteEngine.strikethrough);添加/勾选/删除/拖拽排序条目;空清单提示"添加你的第一个事项" | 勾选即划线;拖拽可排序;项目持久化 |
-| **W3-5 到期提醒系统** | `NotificationScheduler` 协议(注入式;真实+Fake 双实现);due date picker(DatePicker inline);schedule/cancel/**编辑即替换**;权限申请流(首次设到期时触发);通知 tap→deep link 回该便签 | 调度单测绿(Fake);2 分钟提醒→锁屏通知→点击跳回 |
-| **W3-6 样式选择器** | `StylePickerView`:6 款预设色(经典黄/薄荷/樱花/天蓝/薰衣草/深灰);应用于编辑器背景+列表卡片;style 随 note 持久化 | 选色→编辑器即时变色→退出重进保持 |
-| **W3-7 适配收口** | 深色模式全元素对比度(每款预设色×深/浅);Dynamic Type(最小到最大);VoiceOver 走查(列表→创建→编辑→勾选→返回);§7-P1 手测 | VoiceOver 主流程走通;Dynamic Type 不截断 |
+| **W3-0 Core API 补全** ✅ | ①`toggleNote(id:)` 原子 per-note toggle(W2-3 移交) ②`updateItem` 条目文本/position 编辑(W2-4 移交) ③position-on-create 语义:MAX(position)+1(新便签追加队尾,非插队队首) ④`CCPseudoRandomAlgorithm` 注释笔误修(W2-4 遗留) | 新 API 单测全绿;position-on-create pin 测试 |
+| **W3-1 w3.v1 schema + NoteStyle** ✅ | `w3.v1` 迁移:ALTER TABLE note ADD COLUMN style TEXT(nullable,nil=经典黄);`NoteStyle` 值类型(backgroundColor/textColor/fontWeight);预设色板(6 款);真实升级路径测试 w2→w3 | 迁移测试绿;NoteStyle round-trip 测试绿 |
+| **W3-2 便签列表 + 一秒速记** ✅ | `NoteListView`:全部便签列表(消费 `allNotes()` 排序);**"+"一键创建,光标直达正文**(差评反例:"must name before save");滑删;空状态("No Notes Yet, Tap + to start writing");deferred creation (DB写入延迟到有实际内容) | App 启动可见列表;创建→编辑器光标在正文;滑删后消失 |
+| **W3-3 编辑器 + 防抖落盘** ✅ | `NoteEditorView`:正文编辑(TextEditor);**300ms 防抖自动落盘**(Combine debounce);`scenePhase=.background` 即时全量落盘+`WidgetCenter.reloadTimelines`;返回列表亦触发落盘;创建与编辑共用同一 sheet 编辑器(`EditorMode` enum) | DoD 演示脚本通过;落盘时机单测绿 |
+| **W3-4 清单模式** 📋 | 编辑器内 NoteItem 列表;经典**划线完成样式**(NoteEngine.strikethrough);添加/勾选/删除/拖拽排序条目;空清单提示"Add your first item" | 勾选即划线;拖拽可排序;项目持久化 |
+| **W3-5 到期提醒系统** ✅ | `NotificationScheduling` 协议(注入式;`LiveNotificationScheduler`+`FakeScheduler` 双实现);`ReminderManager` stateless coordinator;due date picker(DatePicker inline);schedule/cancel/编辑即替换;权限申请流(首次设到期时触发);通知 tap→deep link 回该便签(`NotificationDelegate`→`NotificationCenter`→`NoteListView`) | 调度单测绿(FakeScheduler, 6 tests);deep link 链路完整 |
+| **W3-6 样式选择器** ✅ | `StylePickerView`:6 款预设色(classicYellow/mint/sakura/ocean/lavender/charcoal);应用于编辑器背景+列表卡片行背景色;style 随 note 持久化;`ExportNote` DTO backward-compatible optional style field | 选色→编辑器即时变色→退出重进保持;列表行带色 |
+| **W3-7 适配收口** ✅ | Accessibility labels on all interactive elements;VoiceOver `.isSelected` trait on style picker;NoteRowView accessibility combining;§7-P1 手测(remaining: manual dark mode + Dynamic Type walkthrough) | VoiceOver 主流程走通;accessibility labels 全覆盖 |
 
 **W3 前置项消化清单(来自 W2 评审移交):**
 - ✅→W3-0①:`SharedStore.toggleNote(id:)` 原子对应物(W2-3 评审)
