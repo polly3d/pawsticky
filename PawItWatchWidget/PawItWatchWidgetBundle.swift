@@ -48,10 +48,10 @@ struct WatchRectangularWidget: View {
                         Image("pet-\(pet.species)-front")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 14, height: 14)
+                            .frame(width: 18, height: 18)
                     } else {
                         Image(systemName: "pawprint.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 12))
                     }
                     Text(note.text.isEmpty ? "Untitled" : note.text)
                         .font(.system(.caption, weight: .bold))
