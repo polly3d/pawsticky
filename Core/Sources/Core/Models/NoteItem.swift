@@ -38,17 +38,13 @@ public struct NoteItem: Equatable, Sendable, FetchableRecord, PersistableRecord 
 
 extension NoteItem {
     /// GRDB 手工列映射:id/noteId 以 TEXT(uuidString)持久化,日期列 `.datetime` 文本编码。
+    /// 两列均经 `UUID.parseStorage`(W2-4 移交项⑧ DRY;noteId 非主键同样复用
+    /// `corruptNoteID` 错误)。
     public init(row: Row) throws {
         let rawID: String = row["id"]
-        guard let parsedID = UUID(uuidString: rawID) else {
-            throw SharedStoreError.corruptNoteID(rawID)
-        }
+        id = try UUID.parseStorage(rawID)
         let rawNoteID: String = row["noteId"]
-        guard let parsedNoteID = UUID(uuidString: rawNoteID) else {
-            throw SharedStoreError.corruptNoteID(rawNoteID)
-        }
-        id = parsedID
-        noteId = parsedNoteID
+        noteId = try UUID.parseStorage(rawNoteID)
         text = row["text"]
         done = row["done"]
         position = row["position"]

@@ -10,9 +10,7 @@ struct SchemaTests {
 
     /// 全新独立数据库路径（每次调用新临时目录,保证跨运行确定性）。
     private func makeDatabasePath() -> String {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("pawit-w22-\(UUID().uuidString)", isDirectory: true)
-        return dir.appendingPathComponent("pawit.sqlite3").path
+        TestSupport.makeDatabasePath(prefix: "w22-schema")  // W2-3 Minor:共享 helper 去重
     }
 
     /// 造一个「只跑到 w1.v1」的旧版数据库:复用生产迁移注册（单一事实源）,
@@ -58,11 +56,11 @@ struct SchemaTests {
         #expect(notes[0].position == 0)
         #expect(notes[0].dueDate == nil)
 
-        // 迁移记录精确为两步、顺序正确（w2.v1 是 w1.v1 之后唯一新增迁移）。
+        // 迁移记录精确为三步、顺序正确（w2.v2/W2-4 HistoryLog 是 w2.v1 之后唯一新增迁移）。
         let migrations = try DatabasePool(path: path).read { db in
             try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid")
         }
-        #expect(migrations == ["w1.v1", "w2.v1"])
+        #expect(migrations == ["w1.v1", "w2.v1", "w2.v2"])
     }
 
     // MARK: - PRAGMA table_info:四表列集精确钉死

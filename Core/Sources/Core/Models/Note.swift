@@ -40,12 +40,10 @@ extension Note {
     /// GRDB 手工列映射:id 以 TEXT(uuidString)持久化,与 schema 的 `id TEXT PK` 对齐;
     /// 日期列全部为 GRDB `.datetime`(GRDB 默认把 Date 持久化为
     /// "YYYY-MM-DD HH:MM:SS.SSS" 文本,与 w1 的 createdAt 同族编码)。
+    /// id 解析走 `UUID.parseStorage`(W2-4 移交项⑧ DRY)。
     public init(row: Row) throws {
         let rawID: String = row["id"]
-        guard let parsedID = UUID(uuidString: rawID) else {
-            throw SharedStoreError.corruptNoteID(rawID)
-        }
-        id = parsedID
+        id = try UUID.parseStorage(rawID)
         text = row["text"]
         createdAt = row["createdAt"]
         done = row["done"]

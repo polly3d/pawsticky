@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-import GRDB
 @testable import Core
 
 /// W2-3:NoteEngine 纯逻辑验证。引擎零 Foundation 之外的依赖(不 import GRDB),
@@ -11,9 +10,7 @@ struct NoteEngineTests {
     // MARK: - 固定日期构造(显式时区,与设备设置无关;仿 TimelinePlannerTests)
 
     private func makeCalendar(timeZoneID: String) -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: timeZoneID)!
-        return calendar
+        TestSupport.makeCalendar(timeZoneID: timeZoneID)  // W2-3 Minor:共享 helper 去重
     }
 
     private func date(
@@ -41,9 +38,7 @@ struct NoteEngineTests {
 
     /// 全新独立数据库路径(引擎↔store 同序契约用例;每次调用新临时目录保证确定性)。
     private func makeDatabasePath() -> String {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("pawit-w23-engine-\(UUID().uuidString)", isDirectory: true)
-        return dir.appendingPathComponent("pawit.sqlite3").path
+        TestSupport.makeDatabasePath(prefix: "w23-engine")  // W2-3 Minor:共享 helper 去重
     }
 
     // MARK: - 勾选语义:值语义的 toggled(_:) + 经典划线

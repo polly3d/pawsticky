@@ -16,9 +16,7 @@ struct SharedStoreTests {
 
     /// 全新独立数据库路径（每次调用新临时目录，保证跨运行确定性）。
     private func makeDatabasePath() -> String {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("pawit-pocb-\(UUID().uuidString)", isDirectory: true)
-        return dir.appendingPathComponent("pawit.sqlite3").path
+        TestSupport.makeDatabasePath(prefix: "pocb")  // W2-3 Minor:共享 helper 去重
     }
 
     // MARK: - Step 3.1 跨连接可见性（独立连接 = 模拟 Widget 进程）
@@ -333,6 +331,22 @@ struct SharedStoreTests {
         for file in applied {  // WAL 模式下连接打开 + 首写即创建边车，三个文件确实落盘
             #expect(FileManager.default.fileExists(atPath: file))
         }
+    }
+
+    // MARK: - W2-4 移交项⑩：对活库重设文件保护（大事务重建边车后的 hook）
+
+    /// 实例级 reapplyFileProtection 必须覆盖本库自己的主库 + 两个边车——
+    /// 导入（replace-all）等大事务会重写 -wal 边车，保护属性需补设（iOS）。
+    @Test func reapplyFileProtectionCoversOwnLiveFiles() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        try await store.insert(Note(text: "保护重设探针"))
+
+        let applied = store.reapplyFileProtection()
+        #expect(applied.count == 3)
+        #expect(applied.contains(path))
+        #expect(applied.contains(path + "-wal"))
+        #expect(applied.contains(path + "-shm"))
     }
 
     // MARK: - W2-1 评审项 5：首条排序 id 决胜

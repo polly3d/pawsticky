@@ -12,6 +12,9 @@ import os
 public struct SharedStore: Sendable {
     private let pool: DatabasePool
 
+    /// 存储诊断日志（W2-4 移交项⑨）：初始化失败/容器不可用不再静默。
+    static let storeLogger = Logger(subsystem: "com.pawit.app", category: "store")
+
     // MARK: - 进程级单池缓存（W2-1 评审项 1 / 3）
 
     /// 进程级缓存：路径 → 已打开的库。
@@ -25,23 +28,37 @@ public struct SharedStore: Sendable {
     /// 供 ToggleItemIntent（每次 tap）与 Widget 渲染复用同一 DatabasePool。
     /// 失败零缓存（W2-1 评审项 3）：返回 nil 时不缓存任何状态，下次调用自动重试——
     /// 瞬时故障（容器暂不可用等）自愈，永久故障（缺 entitlement）每次 cheap 失败。
+    /// W2-4 移交项⑨：失败路径经 os_log（subsystem com.pawit.app / category store）
+    /// 输出诊断，不再静默——容器不可用记 error，开池异常记 fault（含底层错误描述）。
     public static func cachedAppGroup() -> SharedStore? {
-        guard let path = appGroupDatabasePath() else { return nil }
+        guard let path = appGroupDatabasePath() else {
+            storeLogger.error(
+                "cachedAppGroup: App Group 容器不可用 (\(PawItInfo.appGroupID, privacy: .public))"
+            )
+            return nil
+        }
         return cachedStore(databasePath: path)
     }
 
     /// 按路径的进程级缓存访问（internal：测试可注入临时路径与工厂）。
     /// 锁内创建（single-flight）：并发冷启动也只允许一次真实开池；
-    /// 失败（`factory` 抛错）不入缓存，直接返回 nil——下次调用自动重试。
+    /// 失败（`factory` 抛错）不入缓存，直接返回 nil——下次调用自动重试（⑨：异常经 os_log 输出）。
     static func cachedStore(
         databasePath path: String,
         factory: @Sendable (String) throws -> SharedStore = { try SharedStore(databasePath: $0) }
     ) -> SharedStore? {
         cache.withLock { cached in
             if let hit = cached[path] { return hit }
-            guard let store = try? factory(path) else { return nil }
-            cached[path] = store
-            return store
+            do {
+                let store = try factory(path)
+                cached[path] = store
+                return store
+            } catch {
+                storeLogger.fault(
+                    "cachedStore: 数据库开池失败 (\(path, privacy: .public)): \(String(describing: error), privacy: .public)"
+                )
+                return nil
+            }
         }
     }
 
@@ -145,17 +162,28 @@ public struct SharedStore: Sendable {
         }
         return applied
     }
+
+    /// W2-4 移交项⑩（自 W2-1 遗留）：对**本库当前**的主库 + WAL/-shm 边车重新施加
+    /// 文件保护。必要性：导入（replace-all）等大批量写事务会重写/重建 `-wal` 边车
+    /// （checkpoint 后截断、或长事务换新文件），新边车不继承保护属性——主库与边车
+    /// 级别不一致正是锁屏首解前 SQLITE_IOERR 的经典来源。调用点：`NoteRepository.import`
+    /// 完成后；其余大事务如有需要同理补调（best-effort，见 `applyFileProtection`）。
+    @discardableResult
+    public func reapplyFileProtection() -> [String] {
+        Self.applyFileProtection(toFilesOf: pool.path)
+    }
     #endif
 
     // MARK: - Schema
 
-    /// 全量迁移：w1.v1 → w2.v1。迁移是 append-only 的——已发布迁移体一经上线即冻结
+    /// 全量迁移：w1.v1 → w2.v1 → w2.v2。迁移是 append-only 的——已发布迁移体一经上线即冻结
     /// （改动它 = 已装机走旧体、新装机走新体，语义漂移且难排查），演进 schema 只能
     /// 追加新迁移，这正是选 GRDB 规避 SwiftData 类「schema hash brick」失败的纪律。
     private static func makeMigrator() -> DatabaseMigrator {
         var migrator = DatabaseMigrator()
         registerW1V1(on: &migrator)
         registerW2V1(on: &migrator)
+        registerW2V2(on: &migrator)
         return migrator
     }
 
@@ -215,6 +243,31 @@ public struct SharedStore: Sendable {
         }
     }
 
+    /// W2-4 迁移（additive）：history_log 回滚日志表。
+    ///
+    /// **Append-only 写入纪律**（本表的正确性契约，写入方为 `HistoryLog`）：
+    /// 本表只有两种写——`INSERT`（每次实体变更落一条整行快照）与 `DELETE`
+    /// （仅限保留期清理：`changedAt` 早于 7 天前的条目，由每次 append 顺手执行）。
+    /// **永不 UPDATE**：条目一经落盘不可变，否则「回滚依据」本身可被篡改，
+    /// 审计链断言失效。保留期清理是 retention（数据治理），不是对记录的修订。
+    ///
+    /// - `entityId` 一律 TEXT：便签/清单项存 `uuidString`，宠物/养成状态存其 String id。
+    /// - `payload` 为整行快照的 JSON 字符串（编码走导出 DTO，单一编码路径，见 `ExportFormat`）。
+    /// - `changedAt` 与其余日期列同族：GRDB `.datetime` 文本编码，字典序 == 时间序。
+    /// - 索引 (entityType, entityId)：`history(for:)` 按实体取数是唯一查询模式。
+    static func registerW2V2(on migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("w2.v2") { db in
+            try db.create(table: "history_log") { t in
+                t.column("id", .text).primaryKey()
+                t.column("entityType", .text).notNull()
+                t.column("entityId", .text).notNull()
+                t.column("payload", .text).notNull()
+                t.column("changedAt", .datetime).notNull()
+            }
+            try db.create(indexOn: "history_log", columns: ["entityType", "entityId"])
+        }
+    }
+
     // MARK: - 写入（async，协作式）
 
     /// 插入一条便签。
@@ -252,6 +305,13 @@ public struct SharedStore: Sendable {
     // —— Note ——
 
     /// 插入或更新便签（按主键 upsert：存在则更新，不存在则插入）。
+    ///
+    /// **整行覆盖契约（W2-4 移交项⑥）**：`save` 对已存在的行执行整行 UPDATE——
+    /// 冲突时以**传入值的全部列为准**（text/createdAt/done/dueDate/position 一律覆盖，
+    /// 不会保留库内旧值）。因此调用方必须携带完整读回的对象（先 `allNotes()`/
+    /// `firstNote()` 读出、修改目标列后再 upsert），直接拿凭空构造的同 id 对象调用
+    /// 会把其余列打回传入值。需要「读-改-写必须基于库内现值」的语义时请用
+    /// `NoteRepository.updateNote`（行不存在抛错、且落历史前像）。
     public func upsertNote(_ note: Note) async throws {
         try await pool.write { db in
             try note.save(db)
@@ -277,8 +337,10 @@ public struct SharedStore: Sendable {
     /// **nil-last 决策**：SQLite 中 `dueDate IS NULL` 对非 NULL 行取 0、对 NULL 行取 1，
     /// 升序时 0 在 1 前——即有日期者按时间升序打头、未设到期者殿后。（裸
     /// `ORDER BY dueDate ASC` 会把 NULL 排在最前，与「先看什么时候到期」的直觉相反。）
-    /// 同一 `dueDate` 内沿用 position → id 决胜，与 `allNotes()` 同族。引擎侧的
-    /// 到期语义（today/overdue 判定）见 `NoteEngine.dueStatus`。
+    /// W2-3 评审修正（措辞收敛）：本序与 `allNotes()` 的 (position, createdAt, id) **前缀
+    /// 规则相近但非同族**——本查询无 createdAt 决胜列（到期场景下 dueDate 已区分
+    /// 先后，position 是次级锚点）；「同族」仅指同以 (position, id) 做末级决胜。
+    /// 引擎侧的到期语义（today/overdue 判定）见 `NoteEngine.dueStatus`。
     public func notesOrderedByDueDate() throws -> [Note] {
         try pool.read { db in
             try Note
@@ -310,17 +372,24 @@ public struct SharedStore: Sendable {
     @discardableResult
     public func toggleNoteItem(noteId: UUID, itemId: UUID) async throws -> Bool {
         try await pool.write { db in
-            guard var item = try NoteItem
-                .filter(Column("id") == itemId.uuidString)
-                .filter(Column("noteId") == noteId.uuidString)
-                .fetchOne(db)
-            else {
-                throw SharedStoreError.noteItemNotFound(noteId: noteId, itemId: itemId)
-            }
-            item.done.toggle()
-            try item.update(db)
-            return item.done
+            try Self.toggleNoteItem(db: db, noteId: noteId, itemId: itemId)
         }
+    }
+
+    /// toggleNoteItem 的事务本体（W2-4 重构）：public API 与 NoteRepository 共用——
+    /// 仓库在自身事务作用域内调用本函数，保证「原子读-改-写 + 历史快照」同一事务。
+    @discardableResult
+    static func toggleNoteItem(db: Database, noteId: UUID, itemId: UUID) throws -> Bool {
+        guard var item = try NoteItem
+            .filter(Column("id") == itemId.uuidString)
+            .filter(Column("noteId") == noteId.uuidString)
+            .fetchOne(db)
+        else {
+            throw SharedStoreError.noteItemNotFound(noteId: noteId, itemId: itemId)
+        }
+        item.done.toggle()
+        try item.update(db)
+        return item.done
     }
 
     /// 指定便签的清单项，排序 (position ASC, id ASC)——position 同值以 id 决胜。
@@ -392,16 +461,34 @@ public struct SharedStore: Sendable {
     public func firstNoteIsDone() throws -> Bool {
         try firstNote()?.done ?? false
     }
+
+    // MARK: - 事务作用域（W2-4：NoteRepository 原子性契约的使能点；internal）
+
+    /// 写事务作用域：块内全部语句同事务提交/回滚。NoteRepository 用它把
+    /// 「实体变更 + HistoryLog 快照」绑定为不可分割单元（历史与变更同生共死）。
+    func write<T: Sendable>(_ body: @Sendable (Database) throws -> T) async throws -> T {
+        try await pool.write(body)
+    }
+
+    /// 读作用域（WAL 读不阻塞写）。
+    func read<T: Sendable>(_ body: @Sendable (Database) throws -> T) throws -> T {
+        try pool.read(body)
+    }
 }
 
 /// SharedStore 专属错误。
 public enum SharedStoreError: Error, Equatable, Sendable {
     /// App Group 容器不可用（宿主 target 缺少对应 entitlement 时发生）。
     case appGroupContainerUnavailable(String)
-    /// 主键列不是合法 UUID 文本（正常写入路径不可能出现，防御性兜底）。
+    /// 存储中的 UUID 文本列损坏（正常写入路径不可能出现，防御性兜底）。
+    /// W2-4 移交项⑧文档修正：**不限主键**——Note.id、NoteItem.id、NoteItem.noteId
+    /// 均经 `UUID.parseStorage` 解析并复用本错误（命名沿用 w1 冻结值，语义即
+    /// 「应为 UUID 的 TEXT 列损坏」）。
     case corruptNoteID(String)
     /// pet_profile.species 不是首发六宠的合法 rawValue（脏数据/未知版本写入，防御性兜底）。
     case corruptPetSpecies(String)
+    /// history_log.entityType 不是合法的 HistoryEntityType rawValue（W2-4 新增，防御性兜底）。
+    case corruptHistoryEntityType(String)
     /// toggleNoteItem 的作用域错配：itemId 不存在，或不属于给定 noteId。
     case noteItemNotFound(noteId: UUID, itemId: UUID)
 }

@@ -9,9 +9,7 @@ struct ModelRoundTripTests {
 
     /// 全新独立数据库路径（每次调用新临时目录,保证跨运行确定性）。
     private func makeDatabasePath() -> String {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("pawit-w22-model-\(UUID().uuidString)", isDirectory: true)
-        return dir.appendingPathComponent("pawit.sqlite3").path
+        TestSupport.makeDatabasePath(prefix: "w22-model")  // W2-3 Minor:共享 helper 去重
     }
 
     /// 整秒级固定日期:GRDB Date 以毫秒精度文本持久化,整秒可精确相等比较。
@@ -62,6 +60,70 @@ struct ModelRoundTripTests {
         #expect(notes[0].text == "新文本")
         #expect(notes[0].done == true)
         #expect(notes[0].position == 5)
+    }
+
+    // MARK: - W2-4 移交项⑥:upsertNote 整行覆盖契约 pin
+    //
+    // 契约(见 SharedStore.upsertNote 文档):主键冲突时以传入值的**全部列**为准
+    // (text/createdAt/done/dueDate/position 一并覆盖),不会保留库内旧值——
+    // 调用方必须携带完整读回对象。本测试把「哪些列会被覆盖」逐列钉死,防契约漂移。
+
+    @Test func upsertNoteOverwritesEveryColumnWithGivenValues() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+
+        let id = UUID()
+        try await store.upsertNote(Note(
+            id: id, text: "旧文本", createdAt: fixedDate(1_000), done: true,
+            dueDate: fixedDate(1_800_000_000), position: 7
+        ))
+        // 传入对象携带了与库内完全不同的全列值(createdAt 不同刻、done 翻转、dueDate 清空)。
+        try await store.upsertNote(Note(
+            id: id, text: "新文本", createdAt: fixedDate(2_000), done: false,
+            dueDate: nil, position: 2
+        ))
+
+        let fresh = try SharedStore(databasePath: path)
+        let notes = try fresh.allNotes()
+        #expect(notes.count == 1)
+        #expect(notes[0].text == "新文本")
+        #expect(notes[0].createdAt == fixedDate(2_000))  // createdAt 以传入值为准,不保留库内旧值
+        #expect(notes[0].done == false)
+        #expect(notes[0].dueDate == nil)                 // 可空列同样被传入值(nil)覆盖
+        #expect(notes[0].position == 2)
+    }
+
+    // MARK: - W2-4 移交项⑧:UUID→TEXT 解析 DRY,corruptNoteID 不限主键
+
+    /// `UUID.parseStorage` 是 Note.id / NoteItem.id / NoteItem.noteId 的共用解析入口,
+    /// 非法文本统一抛 corruptNoteID(错误名沿用 w1 冻结值,语义为「UUID TEXT 列损坏」)。
+    @Test func parseStorageThrowsCorruptNoteIDForBadText() throws {
+        #expect(throws: SharedStoreError.corruptNoteID("不是UUID")) {
+            try UUID.parseStorage("不是UUID")
+        }
+        #expect(try UUID.parseStorage("00000000-0000-0000-0000-000000000001")
+            == UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+    }
+
+    /// 行解码路径同样经 parseStorage:note_item 行的 UUID 列损坏时读取显式抛错,
+    /// 不静默跳过(脏行不可见性比崩溃更危险——那是丢数据的另一种形式)。
+    @Test func corruptUUIDColumnInNoteItemRowThrowsSameError() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let note = Note(text: "宿主便签", createdAt: fixedDate(1))
+        try await store.upsertNote(note)
+        try await store.addNoteItem(NoteItem(noteId: note.id, text: "事项", createdAt: fixedDate(2)))
+        // UPDATE 主键不受外键约束(note_item.id 未被引用),可直改产生脏行。
+        try await DatabasePool(path: path).write { db in
+            try db.execute(sql: "UPDATE note_item SET id = '不是UUID'")
+        }
+
+        do {
+            _ = try store.noteItems(noteId: note.id)
+            Issue.record("UUID 列损坏必须抛 corruptNoteID")
+        } catch {
+            #expect((error as? SharedStoreError) == .corruptNoteID("不是UUID"))
+        }
     }
 
     // MARK: - 排序语义落库:(position, createdAt, id) 三级排序

@@ -87,10 +87,13 @@ targets:
       - PawItTests
     dependencies:
       - package: Core
+      - target: PawIt   # W2 卡:宿主链接,App 层(ContentView/PawItApp)可测
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.tests
         GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/PawIt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PawIt
+        BUNDLE_LOADER: $(TEST_HOST)
 schemes:
   PawIt:
     build:

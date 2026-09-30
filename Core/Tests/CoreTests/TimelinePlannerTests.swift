@@ -17,8 +17,7 @@ struct TimelinePlannerTests {
         _ hour: Int = 0, _ minute: Int = 0, _ second: Int = 0,
         timeZoneID: String
     ) -> Date {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: timeZoneID)!
+        let calendar = TestSupport.makeCalendar(timeZoneID: timeZoneID)  // W2-3 Minor:共享 helper 去重
         var components = DateComponents()
         components.year = year
         components.month = month
@@ -30,9 +29,7 @@ struct TimelinePlannerTests {
     }
 
     private func makePlanner(timeZoneID: String) -> TimelinePlanner {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: timeZoneID)!
-        return TimelinePlanner(calendar: calendar)
+        TimelinePlanner(calendar: TestSupport.makeCalendar(timeZoneID: timeZoneID))
     }
 
     // MARK: - Step 4.1 主路径：两条目 + 唯一预算内刷新点
