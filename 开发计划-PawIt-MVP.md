@@ -173,9 +173,9 @@ struct ToggleItemIntent: AppIntent {
 }
 ```
 
-- [ ] **Step 2.2:** 真机验证:点击勾选 → **不打开 App** → 勾选状态即时变化;秒表记录延迟(待手动/真机:模拟器 springboard 加 widget 无法自动化,已备 4 步指引)
-- [ ] **Step 2.3:** 验证杀 App 场景:强杀主 App 后重复 Step 2.2(intent 仍在 Widget 进程执行)(同上,待手动)
-- [ ] **Step 2.4:** 在备忘录记录实测延迟(预期 <100ms)与任何异常 → 这是 D2/D3 的决策证据(待 2.2/2.3)
+- [x] **Step 2.2:** 真机验证:点击勾选 → **不打开 App** → 勾选状态即时变化(2026-09-30 用户在模拟器实测通过:不打开 App 即翻转,体感即时)
+- [x] **Step 2.3:** 验证杀 App 场景:强杀主 App 后重复 Step 2.2(intent 仍在 Widget 进程执行)(2026-09-30 用户实测通过)
+- [ ] **Step 2.4:** 在备忘录记录实测延迟(预期 <100ms)与任何异常 → 体感即时已确认,秒表级数字待真机(Task 1 遗留的设备连接后一并补)
 - [x] **Step 2.5:** Commit:`poc: interactive widget toggle loop`(`dede00d`;真机项未做,如实去掉 on device 后缀)
 
 > ✅ **Task 2 实现完成(2026-09-30)**:`dede00d`,规格评审✅ + 质量评审✅(Yes,0 Critical/Important)。单测证明 intent→App Group 套件闭环(模拟器不强制权利,设备级验证随 2.2/2.3)。评审 Minor 项移交 Task 3:删除 ToggleState 并 grep `poc.isToggled` 归零;W1 备忘录(Task 6)记录计划内 SharedStore 时序笔误。
