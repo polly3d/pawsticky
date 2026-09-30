@@ -281,6 +281,7 @@ import Testing
 - **→ W2-3**:①`firstNote`/`toggleFirstItem` 排序补 `position` 列(与 `allNotes` 统一,防 W3 拖拽排序后 widget 与编辑器"第一条"分裂);②dueDate NULL 排序显式决策——SQLite ASC 下 NULL 在前,需 `ORDER BY dueDate IS NULL, dueDate ASC` 且加 SQL 时序 pin 测试;③午夜翻转语义决策(**默认:done 持久保留,日界只影响"今日"分组与喂养结算,不自动重置 done、不新增 doneAt 列**;w3.v1 设计时复核);④补测试:pet→growth 级联行为、假 noteId FK 拒绝;⑤Package.swift 注释:`swift test`(macOS 宿主)会因 `OSAllocatedUnfairLock`(macOS 13+)编译失败,DoD 路径是 xcodebuild
 - **→ W2-4**:⑥`upsertNote` 整行覆盖契约(冲突时 createdAt/done/position 以传入值为准)文档化 + pin 测试;⑦export 防 `unlockedOutfits` JSON 双重编码;⑧UUID→TEXT parse DRY helper + `corruptNoteID` 文档修正(noteId 非主键也复用它);⑨os_log 诊断(自 W2-1);⑩WAL 边车重建后文件保护重设 hook(自 W2-1)
 - **→ W3(来自 W2-3 质量评审)**:`SharedStore.toggleNote(id:)` 原子对应物必须随编辑器落地(引擎有 `toggled(Note)` 但 store 只有 toggleFirstItem 原子版,编辑器用 upsert 实现 per-note 勾选会与 widget intent 竞态);可选:CI 固化 xcodebuild DoD 路径
+- **→ W3(来自 W2-4 质量评审)**:①`updateItem`(条目文本/position 编辑)——现在只有 add/toggle/delete;②move/reorder API + **position-on-create 语义决策**(createNote 现硬编码 position 0,拖拽排序后新便签会插队到队首而非追加——MAX+1 或插入索引语义,拖拽 UI 设计前定);③「读回库值为全等基准」约定(内存对象 createdAt 亚毫秒 vs 库内毫秒截断)已写入 API doc,W3 编辑器 diff 逻辑必须遵守;④W5 卡补一行:widget 进程写入(toggleFirstItem 等)在 W5 接入真实 Repository 前**不落历史**(审计链缺口,既定计划内,防遗忘)
 - **→ w3.v1 设计时**:style 列(字体/颜色/渐变)追加 ALTER TABLE 即可,勿提前;HistoryLog 表在 W2-4
 
 ### W3 · 编辑器 UI
