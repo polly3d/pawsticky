@@ -298,6 +298,7 @@ struct NoteListView: View {
     func reloadNotes() {
         guard let repository else { return }
         notes = (try? repository.allNotes()) ?? []
+        PhoneSessionManager.shared.syncToWatch()
     }
 }
 

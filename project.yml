@@ -69,6 +69,7 @@ targets:
       - PawItWatch
     dependencies:
       - package: Core
+      - target: PawItWatchWidget
     entitlements:
       path: PawItWatch/PawItWatch.entitlements
       properties:
@@ -83,6 +84,28 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.watchkitapp
+  PawItWatchWidget:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - PawItWatchWidget
+    dependencies:
+      - package: Core
+    entitlements:
+      path: PawItWatchWidget/PawItWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.pawit.shared
+    info:
+      path: PawItWatchWidget/Info.plist
+      properties:
+        CFBundleDisplayName: PawIt Widget
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.watchkitapp.widgets
+        SKIP_INSTALL: true
   PawItTests:
     type: bundle.unit-test
     platform: iOS

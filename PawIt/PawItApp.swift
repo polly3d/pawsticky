@@ -13,6 +13,13 @@ struct PawItApp: App {
     /// 通知代理（必须在 App 初始化时设置，否则 willPresent/didReceive 不触发）。
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    /// WatchConnectivity 会话管理（App 生命周期持有）。
+    private let phoneSession = PhoneSessionManager.shared
+
+    init() {
+        phoneSession.activate()
+    }
+
     var body: some Scene {
         WindowGroup {
             NoteListView()
@@ -26,6 +33,9 @@ struct PawItApp: App {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
                 WidgetCenter.shared.reloadAllTimelines()
+            }
+            if newPhase == .active {
+                phoneSession.syncToWatch()
             }
         }
     }
