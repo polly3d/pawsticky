@@ -5,14 +5,16 @@ import Core
 ///
 /// 设计原则（来自竞品差评的反面教训）：
 /// - "+" 一键创建，sheet 弹出编辑器，光标直达正文，无命名步骤
-///   *"[2★ v5.0.0 2025-09-29] requirement to name a note before it will save"*
 /// - 创建与编辑共用同一 sheet 编辑器
 /// - 排序消费 `allNotes()`——与 Widget/store 同族同序
+/// - deep link：通知 tap → 自动打开对应便签（W3-5）
 struct NoteListView: View {
 
     @State private var notes: [Note] = []
-    /// 当前编辑器 sheet 的模式：nil = 未展示, .create = 新建, .edit(id) = 编辑已有便签
     @State private var editorMode: EditorMode?
+
+    /// Deep link 入口：通知 tap 后的目标 noteID（W3-5）。
+    @State var deepLinkNoteID: UUID?
 
     let repository: NoteRepository?
 
@@ -46,6 +48,16 @@ struct NoteListView: View {
             }
         }
         .task { reloadNotes() }
+        .onChange(of: deepLinkNoteID) { _, noteID in
+            guard let noteID else { return }
+            editorMode = .edit(noteID)
+            deepLinkNoteID = nil
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pawItOpenNote)) { notif in
+            if let noteID = notif.userInfo?["noteID"] as? UUID {
+                editorMode = .edit(noteID)
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -68,6 +80,7 @@ struct NoteListView: View {
                     NoteRowView(note: note)
                 }
                 .tint(.primary)
+                .listRowBackground(presetFor(note).backgroundColor.opacity(0.25))
             }
             .onDelete(perform: deleteNotes)
         }
@@ -75,14 +88,22 @@ struct NoteListView: View {
         .refreshable { reloadNotes() }
     }
 
+    // MARK: - Helpers
+
+    private func presetFor(_ note: Note) -> NoteStylePreset {
+        note.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+    }
+
     // MARK: - Actions
 
     private func deleteNotes(at offsets: IndexSet) {
         guard let repository else { return }
         let toDelete = offsets.map { notes[$0] }
+        let reminderManager = ReminderManager()
         Task {
             for note in toDelete {
                 try? await repository.deleteNote(id: note.id)
+                await reminderManager.cancelReminder(noteID: note.id)
             }
             reloadNotes()
         }
@@ -94,9 +115,8 @@ struct NoteListView: View {
     }
 }
 
-// MARK: - EditorMode（sheet 展示的 Identifiable 包装）
+// MARK: - EditorMode
 
-/// 编辑器模式：创建 vs 编辑已有便签。遵循 Identifiable 以供 `.sheet(item:)` 使用。
 enum EditorMode: Identifiable {
     case create
     case edit(UUID)
@@ -109,10 +129,14 @@ enum EditorMode: Identifiable {
     }
 }
 
-// MARK: - 便签行
+// MARK: - Note Row
 
 struct NoteRowView: View {
     let note: Note
+
+    private var preset: NoteStylePreset {
+        note.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -129,10 +153,10 @@ struct NoteRowView: View {
                 }
                 if let due = note.dueDate {
                     Label(due.formatted(.dateTime.month().day().hour().minute()),
-                          systemImage: "clock")
+                          systemImage: "bell")
                         .font(.caption)
                         .foregroundStyle(
-                            NoteEngine.isOverdue(note, now: .now) ? .red : .secondary
+                            NoteEngine.isOverdue(note, now: .now) ? .red : .orange
                         )
                 }
                 Spacer()
@@ -142,11 +166,23 @@ struct NoteRowView: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
     }
 
     private var displayTitle: String {
         let trimmed = note.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return "Untitled" }
         return String(trimmed.prefix(80))
+    }
+
+    private var accessibilityDescription: String {
+        var parts = [displayTitle]
+        if note.done { parts.append("completed") }
+        if let due = note.dueDate {
+            let status = NoteEngine.isOverdue(note, now: .now) ? "overdue" : "due"
+            parts.append("\(status) \(due.formatted(.dateTime.month().day()))")
+        }
+        return parts.joined(separator: ", ")
     }
 }

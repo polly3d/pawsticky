@@ -18,6 +18,8 @@ public struct Note: Equatable, Sendable, FetchableRecord, PersistableRecord {
     public var dueDate: Date?
     /// 手动排序键,小者在前;同值时依 (createdAt, id) 决胜(见 `SharedStore.allNotes()`)。
     public var position: Int
+    /// 颜色预设（W3-1）;nil = classicYellow 默认。存 `NoteStylePreset.rawValue`。
+    public var style: String?
 
     public init(
         id: UUID = UUID(),
@@ -25,7 +27,8 @@ public struct Note: Equatable, Sendable, FetchableRecord, PersistableRecord {
         createdAt: Date = .now,
         done: Bool = false,
         dueDate: Date? = nil,
-        position: Int = 0
+        position: Int = 0,
+        style: String? = nil
     ) {
         self.id = id
         self.text = text
@@ -33,6 +36,7 @@ public struct Note: Equatable, Sendable, FetchableRecord, PersistableRecord {
         self.done = done
         self.dueDate = dueDate
         self.position = position
+        self.style = style
     }
 }
 
@@ -49,6 +53,7 @@ extension Note {
         done = row["done"]
         dueDate = row["dueDate"]
         position = row["position"]
+        style = row["style"]
     }
 
     public func encode(to container: inout PersistenceContainer) {
@@ -58,6 +63,7 @@ extension Note {
         container["done"] = done
         container["dueDate"] = dueDate
         container["position"] = position
+        container["style"] = style
     }
 }
 

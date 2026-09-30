@@ -54,8 +54,8 @@ struct SharedStoreTests {
                 row["name"]
             }
         }
-        // W2 schema：W1 四列之上 additive 增加 dueDate（可空）与 position（手动排序）。
-        #expect(Set(columns) == ["id", "text", "createdAt", "done", "dueDate", "position"])
+        // W3 schema：W2 六列之上 additive 增加 style（可空，便签颜色预设）。
+        #expect(Set(columns) == ["id", "text", "createdAt", "done", "dueDate", "position", "style"])
     }
 
     // MARK: - Step 3.4 并发写冲突：多条独立连接并发插入，零丢失

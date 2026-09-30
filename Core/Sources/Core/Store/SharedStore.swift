@@ -184,6 +184,7 @@ public struct SharedStore: Sendable {
         registerW1V1(on: &migrator)
         registerW2V1(on: &migrator)
         registerW2V2(on: &migrator)
+        registerW3V1(on: &migrator)
         return migrator
     }
 
@@ -265,6 +266,15 @@ public struct SharedStore: Sendable {
                 t.column("changedAt", .datetime).notNull()
             }
             try db.create(indexOn: "history_log", columns: ["entityType", "entityId"])
+        }
+    }
+
+    /// W3-1 迁移（additive）：note 增列 style（颜色预设，nullable，nil = classicYellow 默认）。
+    static func registerW3V1(on migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("w3.v1") { db in
+            try db.alter(table: "note") { t in
+                t.add(column: "style", .text)
+            }
         }
     }
 

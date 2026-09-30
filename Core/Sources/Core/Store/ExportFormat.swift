@@ -85,6 +85,7 @@ public struct ExportNote: Codable, Equatable, Sendable {
     public var done: Bool
     public var dueDate: Date?
     public var position: Int
+    public var style: String?
 
     public init(_ note: Note) {
         id = note.id.uuidString
@@ -93,6 +94,7 @@ public struct ExportNote: Codable, Equatable, Sendable {
         done = note.done
         dueDate = note.dueDate
         position = note.position
+        style = note.style
     }
 
     /// 还原为存储行。id 必须是合法 UUID 文本——导入路径在事务前已做
@@ -103,7 +105,7 @@ public struct ExportNote: Codable, Equatable, Sendable {
             Note(
                 id: try UUID.parseStorage(id),
                 text: text, createdAt: createdAt, done: done,
-                dueDate: dueDate, position: position
+                dueDate: dueDate, position: position, style: style
             )
         }
     }

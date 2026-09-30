@@ -28,15 +28,15 @@ struct HistoryLogTests {
         #expect(columns == ["id", "entityType", "entityId", "payload", "changedAt"])
     }
 
-    /// 迁移序列钉子:append-only 纪律的可证形式——w2.v2 只能是第三步,已发布迁移永不改写。
-    @Test func migrationSequencePinsW2V2AsThirdStep() throws {
+    /// 迁移序列钉子:append-only 纪律——w3.v1 追加 style 列，第四步，已发布迁移永不改写。
+    @Test func migrationSequencePinsW3V1AsFourthStep() throws {
         let path = makeDatabasePath()
         _ = try SharedStore(databasePath: path)
 
         let migrations = try DatabasePool(path: path).read { db in
             try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid")
         }
-        #expect(migrations == ["w1.v1", "w2.v1", "w2.v2"])
+        #expect(migrations == ["w1.v1", "w2.v1", "w2.v2", "w3.v1"])
     }
 
     /// (entityType, entityId) 索引:history(for:) 按实体取数是唯一查询模式,免全表扫描。

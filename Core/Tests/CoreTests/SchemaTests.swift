@@ -56,11 +56,11 @@ struct SchemaTests {
         #expect(notes[0].position == 0)
         #expect(notes[0].dueDate == nil)
 
-        // 迁移记录精确为三步、顺序正确（w2.v2/W2-4 HistoryLog 是 w2.v1 之后唯一新增迁移）。
+        // 迁移记录精确为四步、顺序正确。
         let migrations = try DatabasePool(path: path).read { db in
             try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid")
         }
-        #expect(migrations == ["w1.v1", "w2.v1", "w2.v2"])
+        #expect(migrations == ["w1.v1", "w2.v1", "w2.v2", "w3.v1"])
     }
 
     // MARK: - PRAGMA table_info:四表列集精确钉死
@@ -78,7 +78,7 @@ struct SchemaTests {
             }
         }
 
-        #expect(try columnNames("note") == ["id", "text", "createdAt", "done", "dueDate", "position"])
+        #expect(try columnNames("note") == ["id", "text", "createdAt", "done", "dueDate", "position", "style"])
         #expect(try columnNames("note_item") == ["id", "noteId", "text", "done", "position", "createdAt"])
         #expect(try columnNames("pet_profile") == ["id", "species", "displayName", "isSelected", "acquiredAt"])
         #expect(try columnNames("growth_state") == ["petId", "fedLevel", "streakDays", "lastActiveDay", "unlockedOutfits"])

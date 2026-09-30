@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 import Core
 
-/// 便签编辑器（W3-3）——sheet 呈现，创建与编辑共用。
+/// 便签编辑器（W3-3/5/6/7）——sheet 呈现，创建与编辑共用。
 ///
 /// **延迟创建 (deferred creation)**：
 /// - Create 模式：sheet 打开时只有内存状态，数据库零写入。
@@ -10,10 +10,12 @@ import Core
 ///   若用户未输入任何内容就关闭 sheet → 什么都不发生（数据库零污染）。
 /// - Edit 模式：从 DB 加载已有便签，300ms 防抖自动落盘。
 ///
-/// 保存策略（D3 刷新策略的 App 内编辑路径）：
+/// **保存策略**（D3 刷新策略的 App 内编辑路径）：
 /// 1. 每次击键 → 300ms 防抖后自动落盘
 /// 2. `scenePhase = .background` → 即时落盘
 /// 3. Dismiss → 即时落盘
+///
+/// **提醒调度**（W3-5）：每次保存后调用 `ReminderManager.syncReminder` 自动排程/取消。
 struct NoteEditorView: View {
 
     let mode: EditorMode
@@ -23,26 +25,38 @@ struct NoteEditorView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
 
+    // 便签字段
     @State private var text: String = ""
     @State private var isDone: Bool = false
+    @State private var dueDate: Date?
+    @State private var style: String?
     @State private var items: [NoteItem] = []
     @State private var newItemText: String = ""
 
-    /// 延迟创建追踪：create 模式下首次落盘后持有已创建的 noteID。
+    // UI 状态
+    @State private var showDueDatePicker = false
+    @State private var showStylePicker = false
     @State private var persistedNoteID: UUID?
     @State private var isLoaded = false
     @FocusState private var isTextEditorFocused: Bool
 
-    /// 防抖发布者：文本变更 → 300ms → 自动落盘
-    @State private var saveSubject = PassthroughSubject<String, Never>()
+    // 防抖
+    @State private var saveSubject = PassthroughSubject<Void, Never>()
     @State private var cancellables = Set<AnyCancellable>()
 
-    /// 当前的有效 noteID（edit 模式下直接从 mode 取，create 模式下从 persistedNoteID 取）。
+    private let reminderManager = ReminderManager()
+
+    /// 当前的有效 noteID（edit 模式直接取，create 模式从 persistedNoteID 取）。
     private var effectiveNoteID: UUID? {
         switch mode {
         case .create: return persistedNoteID
         case .edit(let id): return id
         }
+    }
+
+    /// 当前预设色（nil 回退 classicYellow）。
+    private var currentPreset: NoteStylePreset {
+        style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
 
     var body: some View {
@@ -51,12 +65,22 @@ struct NoteEditorView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     noteTextEditor
 
+                    if showDueDatePicker || dueDate != nil {
+                        dueDateSection
+                    }
+
+                    if showStylePicker {
+                        StylePickerView(selectedStyle: $style)
+                            .onChange(of: style) { _, _ in triggerSave() }
+                    }
+
                     if effectiveNoteID != nil {
                         checklistSection
                     }
                 }
                 .padding()
             }
+            .background(currentPreset.backgroundColor.opacity(0.3).ignoresSafeArea())
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
@@ -82,27 +106,59 @@ struct NoteEditorView: View {
     private var noteTextEditor: some View {
         TextEditor(text: $text)
             .font(.body)
+            .foregroundStyle(currentPreset.textColor)
             .focused($isTextEditorFocused)
             .frame(minHeight: 200)
             .scrollContentBackground(.hidden)
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                    .fill(currentPreset.backgroundColor)
+                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
             )
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
                     Text("Start typing...")
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(currentPreset.textColor.opacity(0.4))
                         .padding(.leading, 16)
                         .padding(.top, 20)
                         .allowsHitTesting(false)
                 }
             }
-            .onChange(of: text) { _, newValue in
-                saveSubject.send(newValue)
+            .onChange(of: text) { _, _ in triggerSave() }
+            .accessibilityLabel("Note text")
+    }
+
+    // MARK: - Due Date（W3-5）
+
+    private var dueDateSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Reminder", systemImage: "bell")
+                    .font(.headline)
+                Spacer()
+                if dueDate != nil {
+                    Button("Clear") {
+                        withAnimation { dueDate = nil; showDueDatePicker = false }
+                        triggerSave()
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+                }
             }
+
+            DatePicker(
+                "Due date",
+                selection: Binding(
+                    get: { dueDate ?? Date.now.addingTimeInterval(3600) },
+                    set: { dueDate = $0; triggerSave() }
+                ),
+                in: Date.now...,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .datePickerStyle(.graphical)
+            .labelsHidden()
+        }
     }
 
     // MARK: - Checklist
@@ -114,7 +170,7 @@ struct NoteEditorView: View {
                 .padding(.top, 8)
 
             ForEach(items, id: \.id) { item in
-                ChecklistItemRow(item: item) {
+                ChecklistItemRow(item: item, preset: currentPreset) {
                     toggleItem(item)
                 } onDelete: {
                     deleteItem(item)
@@ -141,8 +197,27 @@ struct NoteEditorView: View {
         ToolbarItem(placement: .cancellationAction) {
             Button("Done") { dismiss() }
         }
-        if effectiveNoteID != nil {
-            ToolbarItem(placement: .primaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button {
+                withAnimation { showStylePicker.toggle() }
+            } label: {
+                Image(systemName: "paintpalette")
+                    .foregroundStyle(showStylePicker ? Color.accentColor : .secondary)
+            }
+            .accessibilityLabel("Color picker")
+
+            Button {
+                Task {
+                    await reminderManager.ensureAuthorization()
+                    withAnimation { showDueDatePicker.toggle() }
+                }
+            } label: {
+                Image(systemName: dueDate != nil ? "bell.fill" : "bell")
+                    .foregroundStyle(dueDate != nil ? .orange : .secondary)
+            }
+            .accessibilityLabel(dueDate != nil ? "Edit reminder" : "Set reminder")
+
+            if effectiveNoteID != nil {
                 Button { toggleNote() } label: {
                     Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle(isDone ? .green : .secondary)
@@ -163,42 +238,54 @@ struct NoteEditorView: View {
             guard let repository, let note = try? repository.note(id: id) else { return }
             text = note.text
             isDone = note.done
+            dueDate = note.dueDate
+            style = note.style
             items = (try? repository.noteItems(noteId: id)) ?? []
             persistedNoteID = id
             isLoaded = true
+            showDueDatePicker = note.dueDate != nil
         }
+    }
+
+    private func triggerSave() {
+        saveSubject.send()
     }
 
     private func setupDebounce() {
         saveSubject
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-            .sink { [repository] newText in
+            .sink { [repository] in
                 guard let repository else { return }
-                Task { await debouncedSave(newText, repository: repository) }
+                Task { @MainActor in await debouncedSave(repository: repository) }
             }
             .store(in: &cancellables)
     }
 
-    /// 防抖触发的保存——处理 create 模式的延迟创建和 edit 模式的更新。
     @MainActor
-    private func debouncedSave(_ newText: String, repository: NoteRepository) async {
-        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func debouncedSave(repository: NoteRepository) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let noteID = effectiveNoteID {
-            // Edit 模式（或 create 模式下已创建）：更新已有便签
             if var note = try? repository.note(id: noteID) {
-                note.text = newText
+                note.text = text
+                note.dueDate = dueDate
+                note.style = style
                 try? await repository.updateNote(note)
+                await reminderManager.syncReminder(for: note)
             }
         } else if !trimmed.isEmpty {
-            // Create 模式且首次有内容：延迟创建——此时才写入数据库
-            if let note = try? await repository.createNote(text: newText) {
+            if let note = try? await repository.createNote(text: text, dueDate: dueDate) {
                 persistedNoteID = note.id
+                if style != nil {
+                    var styled = note
+                    styled.style = style
+                    try? await repository.updateNote(styled)
+                }
+                await reminderManager.syncReminder(for: note)
             }
         }
     }
 
-    /// 立即落盘（background/dismiss 时调用，跳过防抖）。
     private func flushSave() {
         guard let repository, isLoaded else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -207,11 +294,15 @@ struct NoteEditorView: View {
             if let noteID = effectiveNoteID {
                 if var note = try? repository.note(id: noteID) {
                     note.text = text
+                    note.dueDate = dueDate
+                    note.style = style
                     try? await repository.updateNote(note)
+                    await reminderManager.syncReminder(for: note)
                 }
             } else if !trimmed.isEmpty {
-                if let note = try? await repository.createNote(text: text) {
+                if let note = try? await repository.createNote(text: text, dueDate: dueDate) {
                     persistedNoteID = note.id
+                    await reminderManager.syncReminder(for: note)
                 }
             }
         }
@@ -257,6 +348,7 @@ struct NoteEditorView: View {
 
 private struct ChecklistItemRow: View {
     let item: NoteItem
+    let preset: NoteStylePreset
     let onToggle: () -> Void
     let onDelete: () -> Void
 
@@ -268,6 +360,7 @@ private struct ChecklistItemRow: View {
                     .font(.title3)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(item.done ? "Completed: \(item.text)" : "Incomplete: \(item.text)")
 
             Text(item.text)
                 .strikethrough(NoteEngine.strikethrough(isDone: item.done))
@@ -281,7 +374,9 @@ private struct ChecklistItemRow: View {
                     .font(.caption)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Delete \(item.text)")
         }
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 }
