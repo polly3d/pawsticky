@@ -355,4 +355,56 @@ struct SharedStoreTests {
         #expect(try store.firstNote()?.id == earlierID)
         #expect(try store.firstNote()?.done == true)
     }
+
+    // MARK: - W2-3 移交项 ①：firstNote / toggleFirstItem 排序与 allNotes 统一（position 优先）
+
+    /// 创建更早但 position 大 vs 创建更晚但 position 0：allNotes 以 position 决胜选后者，
+    /// firstNote 必须给出同一条——否则 W3 拖拽排序上线后，widget 与编辑器的「第一条」分裂。
+    @Test func firstNoteMatchesAllNotesFirstWhenPositionDiffers() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let early = Date(timeIntervalSince1970: 1_000_000)
+        let noteA = Note(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!,
+            text: "A 创建早 position 9", createdAt: early, position: 9
+        )
+        let noteB = Note(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!,
+            text: "B 创建晚 position 0", createdAt: early.addingTimeInterval(60), position: 0
+        )
+        try await store.upsertNote(noteA)
+        try await store.upsertNote(noteB)
+
+        let fresh = try SharedStore(databasePath: path)
+        let allNotesFirst = try #require(try fresh.allNotes().first)
+        #expect(allNotesFirst.id == noteB.id)  // 基线：allNotes 由 position 决胜 → B
+        #expect(try fresh.firstNote()?.id == allNotesFirst.id)  // red：旧实现按 createdAt 选 A
+    }
+
+    /// toggleFirstItem 与 firstNote 同一排序契约：翻的必须是 position 靠前的便签。
+    @Test func toggleFirstItemFlipsUnifiedOrderingFirstNote() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let early = Date(timeIntervalSince1970: 1_000_000)
+        let noteA = Note(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!,
+            text: "A 创建早 position 9", createdAt: early, position: 9
+        )
+        let noteB = Note(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!,
+            text: "B 创建晚 position 0", createdAt: early.addingTimeInterval(60), position: 0
+        )
+        try await store.upsertNote(noteA)
+        try await store.upsertNote(noteB)
+
+        let flipped = try await store.toggleFirstItem()
+        #expect(flipped == true)
+
+        // 原始状态核对：翻的是 position 0 的 B（red：旧实现翻 createdAt 更早的 A），A 不被牵连。
+        let fresh = try SharedStore(databasePath: path)
+        #expect(try fresh.firstNote()?.id == noteB.id)
+        #expect(try fresh.firstNote()?.done == true)
+        let noteAAfter = try #require(try fresh.allNotes().first { $0.id == noteA.id })
+        #expect(noteAAfter.done == false)
+    }
 }

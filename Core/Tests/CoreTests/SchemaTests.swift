@@ -122,4 +122,43 @@ struct SchemaTests {
         #expect(try fresh.noteItems(noteId: noteN.id).isEmpty)   // 级联清空
         #expect(try fresh.noteItems(noteId: noteM.id).count == 1)  // 他签事项不受牵连
     }
+
+    // MARK: - W2-3 移交项 ④：pet_profile → growth_state 级联（note→note_item 级联的镜像钉子）
+
+    @Test func deletePetCascadesGrowthStateAcrossConnections() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        try await store.upsertPet(PetProfile(id: "cat", species: .cat, displayName: "橘猫"))
+        try await store.upsertPet(PetProfile(id: "shiba", species: .shiba, displayName: "柴犬"))
+        try await store.upsertGrowthState(GrowthState(petId: "cat", fedLevel: 2, streakDays: 3))
+        try await store.upsertGrowthState(GrowthState(petId: "shiba", fedLevel: 1))
+
+        // 独立连接裸删 pet 行（store 刻意不设 deletePet API；删除即另一进程的直接写）。
+        try await DatabasePool(path: path).write { db in
+            _ = try PetProfile.deleteOne(db, key: "cat")
+        }
+
+        // 全新独立连接核对原始 DB：被删宠物的养成状态级联清空，他宠不受牵连。
+        let fresh = try SharedStore(databasePath: path)
+        #expect(try fresh.growthState(petId: "cat") == nil)
+        #expect(try fresh.growthState(petId: "shiba") == GrowthState(petId: "shiba", fedLevel: 1))
+    }
+
+    // MARK: - W2-3 移交项 ④：假 noteId 的清单项被外键拒绝（throws + 零副作用）
+
+    @Test func noteItemWithBogusNoteIdRejectedByForeignKey() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+        let ghostNoteID = UUID()
+
+        do {
+            try await store.addNoteItem(NoteItem(noteId: ghostNoteID, text: "孤儿事项"))
+            Issue.record("指向不存在便签的清单项必须被外键拒绝")
+        } catch {
+            #expect((error as? DatabaseError)?.message?.contains("FOREIGN KEY") == true)
+        }
+        // 零副作用：库里不得留下孤儿行。
+        let fresh = try SharedStore(databasePath: path)
+        #expect(try fresh.noteItems(noteId: ghostNoteID).isEmpty)
+    }
 }

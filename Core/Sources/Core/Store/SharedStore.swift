@@ -226,13 +226,17 @@ public struct SharedStore: Sendable {
 
     /// 翻转「第一条」便签的 done 标记；库里为空则先插入一条种子便签（done=false）。
     /// 读-改-写在同一写事务内原子完成，跨连接并发调用不丢失更新。
-    /// 排序同 `firstNote()`：createdAt 同值时以 id ASC 决胜（W2-1 评审项 5），
-    /// 避免 SQLite 同值扫描序随机化导致「第一条」漂移。
+    /// 排序与 `allNotes()`/`firstNote()` 完全同族：(position, createdAt, id) ASC
+    /// （W2-3 移交项 ①：补上 position，防 W3 拖拽排序后 widget 与编辑器的「第一条」分裂；
+    /// createdAt 同值时以 id ASC 决胜是 W2-1 评审项 5 的延续——避免 SQLite 同值扫描序
+    /// 随机化导致「第一条」漂移。存量 w1 行 position 全 0，行为不变）。
     /// - Returns: 本次操作后的 done 状态。
     @discardableResult
     public func toggleFirstItem() async throws -> Bool {
         try await pool.write { db in
-            if var note = try Note.order(Column("createdAt").asc, Column("id").asc).fetchOne(db) {
+            if var note = try Note
+                .order(Column("position").asc, Column("createdAt").asc, Column("id").asc)
+                .fetchOne(db) {
                 note.done.toggle()
                 try note.update(db)
                 return note.done
@@ -254,13 +258,31 @@ public struct SharedStore: Sendable {
         }
     }
 
-    /// 全部便签，排序 (position ASC, createdAt ASC, id ASC)：
+    /// 全部便签，排序 (position ASC, createdAt ASC, id ASC)。
+    /// 这是便签排序的**权威定义**（store 是 SQL 排序的单一事实源）：
     /// position 是手动排序键；同 position 时保留 w1 的 createdAt → id 决胜
-    /// （与 `firstNote()` 同族规则，排序确定性是 W2-1 评审项 5 的延续）。
+    /// （排序确定性是 W2-1 评审项 5 的延续）。
+    /// `firstNote()`/`toggleFirstItem()` 与 `NoteEngine.sortedNotes(_:)` 同族同序
+    /// （W2-3 移交项 ①：三处统一，防 W3 拖拽排序后 widget 与编辑器「第一条」分裂）。
     public func allNotes() throws -> [Note] {
         try pool.read { db in
             try Note
                 .order(Column("position").asc, Column("createdAt").asc, Column("id").asc)
+                .fetchAll(db)
+        }
+    }
+
+    /// 按到期日排序的全部便签（W2-3 移交项 ②）：(dueDate IS NULL, dueDate ASC,
+    /// position ASC, id ASC)。
+    /// **nil-last 决策**：SQLite 中 `dueDate IS NULL` 对非 NULL 行取 0、对 NULL 行取 1，
+    /// 升序时 0 在 1 前——即有日期者按时间升序打头、未设到期者殿后。（裸
+    /// `ORDER BY dueDate ASC` 会把 NULL 排在最前，与「先看什么时候到期」的直觉相反。）
+    /// 同一 `dueDate` 内沿用 position → id 决胜，与 `allNotes()` 同族。引擎侧的
+    /// 到期语义（today/overdue 判定）见 `NoteEngine.dueStatus`。
+    public func notesOrderedByDueDate() throws -> [Note] {
+        try pool.read { db in
+            try Note
+                .order(sql: "dueDate IS NULL, dueDate ASC, position ASC, id ASC")
                 .fetchAll(db)
         }
     }
@@ -353,11 +375,16 @@ public struct SharedStore: Sendable {
         }
     }
 
-    /// 「第一条」便签（createdAt 最早；同值以 id ASC 决胜，W2-1 评审项 5——
-    /// createdAt 为毫秒/微秒级时间戳，同刻插入的两条必须有确定性的稳定顺序）。
+    /// 「第一条」便签，排序与 `allNotes()` 统一：(position, createdAt, id) ASC
+    /// （W2-3 移交项 ①：补上 position 列——W3 拖拽排序后 widget 的「第一条」
+    /// 必须与编辑器列表首位一致；存量 w1 行 position 全 0，行为不变。
+    /// createdAt 同值以 id ASC 决胜是 W2-1 评审项 5——同刻插入的两条必须有
+    /// 确定性的稳定顺序）。
     public func firstNote() throws -> Note? {
         try pool.read { db in
-            try Note.order(Column("createdAt").asc, Column("id").asc).fetchOne(db)
+            try Note
+                .order(Column("position").asc, Column("createdAt").asc, Column("id").asc)
+                .fetchOne(db)
         }
     }
 

@@ -4,6 +4,10 @@ import PackageDescription
 let package = Package(
     name: "Core",
     platforms: [
+        // 工具链坑（W2 评审移交⑤）：包只声明 iOS/watchOS；在 macOS 宿主直接 `swift test`
+        // 会因 SharedStore 的 OSAllocatedUnfairLock（需 macOS 13+，而包未声明 macOS 平台）
+        // 编译失败。刻意不加 .macOS（未测试面不声明）——测试/DoD 路径是 xcodebuild
+        // （scheme PawIt，iOS Simulator destination）。
         .iOS(.v17),
         .watchOS(.v10),
     ],

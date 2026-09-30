@@ -77,8 +77,24 @@ public struct TimelinePlanner: Sendable {
     }
 
     /// 下一个本地午夜（00:00）。`now` 恰为午夜时返回次日午夜（倒计时满 24 小时）。
+    /// 午夜跳变类时区（圣地亚哥/哈瓦那/开罗/亚松森类）返回真实次日 00:00
+    /// （跳变日当天即 01:00）。
     public func nextMidnight(after now: Date) -> Date {
         startOfNextDay(after: now)
+    }
+
+    /// 「同一天」判定（W2-3 NoteEngine 消费）：两个时刻落在同一本地日区间。
+    /// 与 `nextMidnight`/`entries` 同一日界真相（下方 `dayInterval` 单点派生），
+    /// DST 跳变日（午夜无 00:00 的日子，起点 01:00）也保持一致。
+    public func isSameDay(_ a: Date, _ b: Date) -> Bool {
+        dayInterval(for: a) == dayInterval(for: b)
+    }
+
+    /// 本地日起点（日界区间的 start 端点）。常态日即 00:00；午夜跳变日是真实
+    /// 首时刻（如圣地亚哥 2026-09-06 的 01:00）——历法事实，而非保号午夜。
+    /// NoteEngine 的到期语义（overdue 分界）经由 `DayBoundary.startOfToday` 消费此处。
+    public func startOfDay(for date: Date) -> Date {
+        dayInterval(for: date).start
     }
 
     // MARK: - 私有日算术（全部经 Calendar，DST 安全）
@@ -95,10 +111,16 @@ public struct TimelinePlanner: Sendable {
         // 加一天把「当日 01:00」保号成「次日 01:00」，越过真实日界 1 小时。
         // dateInterval 的 end 在此类日子给出真实次日 00:00；25h/23h 日（纽约
         // 双向往证）与常态日结果不变。
-        guard let dayInterval = calendar.dateInterval(of: .day, for: date) else {
+        dayInterval(for: date).end
+    }
+
+    /// 本地日区间——全部「日」算术的唯一取值点（单一事实源，W1 备忘录 W4 顺手项：
+    /// NoteEngine 的午夜语义必须消费此处定义，防两处漂移）。
+    private func dayInterval(for date: Date) -> DateInterval {
+        guard let interval = calendar.dateInterval(of: .day, for: date) else {
             fatalError("TimelinePlanner: 日历算术对可表示日期不可能返回 nil（本地日区间）")
         }
-        return dayInterval.end
+        return interval
     }
 
     /// Calendar 算术仅对「不可表示的日期」返回 nil（系统时钟不可能给出）；

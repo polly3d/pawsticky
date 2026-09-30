@@ -89,6 +89,46 @@ struct ModelRoundTripTests {
         #expect(try fresh.allNotes().map(\.id) == [idSmall, idLarge, noteB.id, noteC.id])
     }
 
+    // MARK: - W2-3 移交项 ②:dueDate 排序决策钉子——有日期升序在前,未设到期殿后
+
+    /// nil-last 决策:SQLite `ORDER BY dueDate ASC` 下 NULL 排在最前(NULL 最小),
+    /// 不合用户直觉;`ORDER BY dueDate IS NULL, dueDate ASC, ...` 中 `dueDate IS NULL`
+    /// 对非 NULL 行取 0、对 NULL 行取 1,0 排在 1 前 → 有日期者按时间升序打头,无日期殿后。
+    /// (用户先看「什么时候到期」,未设到期的自由便签垫底。)
+    /// 原始 TEXT 断言把「GRDB .datetime 文本编码下字典序 == 时间序」冻结——防未来
+    /// GRDB 存储编码变化(如改 DOUBLE epoch)悄悄破坏 SQL 排序假设。
+    @Test func notesOrderedByDueDateIsChronologicalWithUndatedLast() async throws {
+        let path = makeDatabasePath()
+        let store = try SharedStore(databasePath: path)
+
+        let dueEarly = fixedDate(1_790_000_000)                    // 早到期
+        let dueLater = fixedDate(1_790_000_000 + 30 * 86_400)      // 晚整整一个月(时序 pin 的两个到期日)
+
+        // 乱序插入:先月底、再无到期、再两个同到期的月中行(position 决胜)。
+        let late = Note(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, text: "月底到期", createdAt: fixedDate(2), dueDate: dueLater, position: 5)
+        let undated = Note(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, text: "无到期垫底", createdAt: fixedDate(1))
+        let earlyPosHigh = Note(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, text: "月中到期 pos2", createdAt: fixedDate(3), dueDate: dueEarly, position: 2)
+        let earlyPosLow = Note(id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!, text: "月中到期 pos0", createdAt: fixedDate(4), dueDate: dueEarly, position: 0)
+        for note in [late, undated, earlyPosHigh, earlyPosLow] {
+            try await store.upsertNote(note)
+        }
+
+        let fresh = try SharedStore(databasePath: path)
+        // 期望序:月中(pos0 → pos2) → 月底 → 未设到期殿后;同 dueDate 内 position 决胜。
+        let ordered = try fresh.notesOrderedByDueDate()
+        #expect(ordered.map(\.id) == [earlyPosLow.id, earlyPosHigh.id, late.id, undated.id])
+        #expect(ordered.map(\.dueDate) == [dueEarly, dueEarly, dueLater, nil])
+
+        // 原始 TEXT 钉子:库里 .datetime 文本按字典序排列必须等于检索出的时间升序——
+        // 「字典序 == 时间序」这一 SQL 排序假设被显式冻结。
+        let rawDueDates = try await DatabasePool(path: path).read { db in
+            try String.fetchAll(db, sql: "SELECT dueDate FROM note WHERE dueDate IS NOT NULL ORDER BY dueDate IS NULL, dueDate ASC")
+        }
+        #expect(rawDueDates.count == 3)
+        #expect(rawDueDates == rawDueDates.sorted())          // 检索序 == 文本字典序
+        #expect(rawDueDates.first! < rawDueDates.last!)       // 相距一个月:早 < 晚
+    }
+
     // MARK: - NoteItem:排序 + Note.items(in:) 取数助手
 
     @Test func noteItemsOrdersByPositionThenIDAndNoteFetchHelperAgrees() async throws {
