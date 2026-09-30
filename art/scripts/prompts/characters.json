@@ -1,0 +1,20 @@
+[
+  {
+    "id": "b-cat-sheet",
+    "name": "角色卡 · 橘猫三视图(B 扁平矢量)",
+    "prompt": "Character reference sheet of a cute orange tabby cat, three full-body views arranged in one horizontal row: front view, side view, back view, consistent proportions and colors across all three views, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, chibi proportions with head-to-body ratio about 1:1, plain white background, no text, no letters, no watermark",
+    "aspect_ratio": "16:9",
+    "resize": "1536x864",
+    "output_dir": "art/characters/cat",
+    "filename": "cat-character-sheet"
+  },
+  {
+    "id": "b-corgi-sheet",
+    "name": "角色卡 · 柯基三视图(B 扁平矢量)",
+    "prompt": "Character reference sheet of a cute corgi dog, three full-body views arranged in one horizontal row: front view, side view, back view, consistent proportions and colors across all three views, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, chibi proportions with head-to-body ratio about 1:1, plain white background, no text, no letters, no watermark",
+    "aspect_ratio": "16:9",
+    "resize": "1536x864",
+    "output_dir": "art/characters/corgi",
+    "filename": "corgi-character-sheet"
+  }
+]

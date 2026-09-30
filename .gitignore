@@ -11,3 +11,7 @@ DerivedData/
 .build/
 xcuserdata/
 *.xcuserstate
+
+# art pipeline
+art/scripts/.tmp/
+art/scripts/failed.log

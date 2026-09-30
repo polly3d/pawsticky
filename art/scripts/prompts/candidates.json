@@ -1,0 +1,110 @@
+[
+  {
+    "id": "a-cat-sitting",
+    "name": "风格A 厚涂贴纸 · 橘猫坐姿",
+    "prompt": "A cute orange tabby cat sitting upright, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, thick-paint digital sticker illustration, bold rounded outlines, soft sculpted shading, warm saturated palette of amber cream and coral, die-cut sticker look with thin white border, playful friendly mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/A-sticker",
+    "filename": "A_cat-sitting"
+  },
+  {
+    "id": "a-cat-standing",
+    "name": "风格A 厚涂贴纸 · 橘猫站姿",
+    "prompt": "A cute orange tabby cat standing on hind legs, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, thick-paint digital sticker illustration, bold rounded outlines, soft sculpted shading, warm saturated palette of amber cream and coral, die-cut sticker look with thin white border, playful friendly mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/A-sticker",
+    "filename": "A_cat-standing"
+  },
+  {
+    "id": "a-corgi-sitting",
+    "name": "风格A 厚涂贴纸 · 柯基坐姿",
+    "prompt": "A cute corgi dog sitting upright, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, thick-paint digital sticker illustration, bold rounded outlines, soft sculpted shading, warm saturated palette of amber cream and coral, die-cut sticker look with thin white border, playful friendly mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/A-sticker",
+    "filename": "A_corgi-sitting"
+  },
+  {
+    "id": "a-corgi-standing",
+    "name": "风格A 厚涂贴纸 · 柯基站姿",
+    "prompt": "A cute corgi dog standing on hind legs, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, thick-paint digital sticker illustration, bold rounded outlines, soft sculpted shading, warm saturated palette of amber cream and coral, die-cut sticker look with thin white border, playful friendly mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/A-sticker",
+    "filename": "A_corgi-standing"
+  },
+  {
+    "id": "b-cat-sitting",
+    "name": "风格B 扁平矢量 · 橘猫坐姿",
+    "prompt": "A cute orange tabby cat sitting upright, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, calm tidy mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/B-flat-vector",
+    "filename": "B_cat-sitting"
+  },
+  {
+    "id": "b-cat-standing",
+    "name": "风格B 扁平矢量 · 橘猫站姿",
+    "prompt": "A cute orange tabby cat standing on hind legs, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, calm tidy mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/B-flat-vector",
+    "filename": "B_cat-standing"
+  },
+  {
+    "id": "b-corgi-sitting",
+    "name": "风格B 扁平矢量 · 柯基坐姿",
+    "prompt": "A cute corgi dog sitting upright, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, calm tidy mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/B-flat-vector",
+    "filename": "B_corgi-sitting"
+  },
+  {
+    "id": "b-corgi-standing",
+    "name": "风格B 扁平矢量 · 柯基站姿",
+    "prompt": "A cute corgi dog standing on hind legs, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, calm tidy mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/B-flat-vector",
+    "filename": "B_corgi-standing"
+  },
+  {
+    "id": "c-cat-sitting",
+    "name": "风格C 手绘水彩 · 橘猫坐姿",
+    "prompt": "A cute orange tabby cat sitting upright, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, hand-drawn watercolor illustration, soft wet edges, gentle paper texture, loose expressive linework, warm muted palette of peach sage and sand, cozy storybook mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/C-watercolor",
+    "filename": "C_cat-sitting"
+  },
+  {
+    "id": "c-cat-standing",
+    "name": "风格C 手绘水彩 · 橘猫站姿",
+    "prompt": "A cute orange tabby cat standing on hind legs, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, hand-drawn watercolor illustration, soft wet edges, gentle paper texture, loose expressive linework, warm muted palette of peach sage and sand, cozy storybook mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/C-watercolor",
+    "filename": "C_cat-standing"
+  },
+  {
+    "id": "c-corgi-sitting",
+    "name": "风格C 手绘水彩 · 柯基坐姿",
+    "prompt": "A cute corgi dog sitting upright, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, hand-drawn watercolor illustration, soft wet edges, gentle paper texture, loose expressive linework, warm muted palette of peach sage and sand, cozy storybook mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/C-watercolor",
+    "filename": "C_corgi-sitting"
+  },
+  {
+    "id": "c-corgi-standing",
+    "name": "风格C 手绘水彩 · 柯基站姿",
+    "prompt": "A cute corgi dog standing on hind legs, full body, front paws holding up a blank sticky note sign facing the viewer, the note occupies the lower third of the frame and is completely blank, plain white background, no text, no letters, no watermark, no realistic photo style, chibi proportions with head-to-body ratio about 1:1, clean silhouette suitable for cutout, hand-drawn watercolor illustration, soft wet edges, gentle paper texture, loose expressive linework, warm muted palette of peach sage and sand, cozy storybook mood",
+    "aspect_ratio": "1:1",
+    "resize": "1024x1024",
+    "output_dir": "art/style-pack/candidates/C-watercolor",
+    "filename": "C_corgi-standing"
+  }
+]
