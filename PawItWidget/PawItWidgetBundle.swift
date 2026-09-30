@@ -4,20 +4,34 @@ import Core
 
 struct PawItEntry: TimelineEntry {
     let date: Date
+    /// 预计算时间线条目（Core 的 TimelinePlanner 产出，widget 侧仅做映射）。
+    let slot: TimelineSlot
 }
 
 struct PawItProvider: TimelineProvider {
+    /// 纯逻辑的时间线规划器；渲染侧（此处）是 `Date.now` 的唯一使用点（组合根）。
+    private let planner = TimelinePlanner()
+
+    private func makeEntry(at date: Date) -> PawItEntry {
+        PawItEntry(date: date, slot: planner.entries(now: date)[0])
+    }
+
     func placeholder(in context: Context) -> PawItEntry {
-        PawItEntry(date: .now)
+        makeEntry(at: .now)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PawItEntry) -> Void) {
-        completion(PawItEntry(date: .now))
+        completion(makeEntry(at: .now))
     }
 
+    /// D3 / PoC C：时间线只含预计算条目（今天 + 明日 00:01 跨午夜兜底），
+    /// `policy: .after(明日 00:01)` 是全天唯一一次预算内刷新请求——
+    /// 即使它缺席，00:01 条目也正确渲染新的一天。勾选重绘走 intent perform
+    /// 的交互式内建行为，与本时间线策略互相独立（见 Core《刷新策略表》）。
     func getTimeline(in context: Context, completion: @escaping (Timeline<PawItEntry>) -> Void) {
-        let entry = PawItEntry(date: .now)
-        completion(Timeline(entries: [entry], policy: .never))
+        let now = Date.now
+        let entries = planner.entries(now: now).map { PawItEntry(date: $0.date, slot: $0) }
+        completion(Timeline(entries: entries, policy: .after(planner.nextReloadDate(after: now))))
     }
 }
 
@@ -34,6 +48,14 @@ struct PawItWidgetEntryView: View {
         return (try? store.firstNoteIsDone()) ?? false
     }
 
+    /// 零预算倒计时（D3 / PoC C）：`Text(timerInterval:)` 由系统按秒自绘，
+    /// 不 wake 扩展、不发起 reload、不消耗每日刷新预算。
+    private var countdownLabel: some View {
+        (Text("新的一天 ") + Text(timerInterval: entry.date...entry.slot.countdownTarget, countsDown: true))
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.tertiary)
+    }
+
     var body: some View {
         Button(intent: ToggleItemIntent()) {
             VStack(spacing: 6) {
@@ -46,6 +68,7 @@ struct PawItWidgetEntryView: View {
                 Text("轻点切换")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                countdownLabel
             }
         }
         .buttonStyle(.plain)
