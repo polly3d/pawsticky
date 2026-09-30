@@ -2,32 +2,28 @@ import WidgetKit
 import SwiftUI
 import Core
 
+// MARK: - Timeline Entry
+
 struct PawItEntry: TimelineEntry {
     let date: Date
-    /// 预计算时间线条目（Core 的 TimelinePlanner 产出，widget 侧仅做映射）。
     let slot: TimelineSlot
 }
 
+// MARK: - Timeline Provider
+
 struct PawItProvider: TimelineProvider {
-    /// 纯逻辑的时间线规划器；渲染侧（此处）是 `Date.now` 的唯一使用点（组合根）。
     private let planner = TimelinePlanner()
 
-    private func makeEntry(at date: Date) -> PawItEntry {
-        PawItEntry(date: date, slot: planner.entries(now: date)[0])
-    }
-
     func placeholder(in context: Context) -> PawItEntry {
-        makeEntry(at: .now)
+        PawItEntry(date: .now, slot: planner.entries(now: .now)[0])
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PawItEntry) -> Void) {
-        completion(makeEntry(at: .now))
+        completion(PawItEntry(date: .now, slot: planner.entries(now: .now)[0]))
     }
 
-    /// D3 / PoC C：时间线只含预计算条目（今天 + 明日 00:01 跨午夜兜底），
-    /// `policy: .after(明日 00:01)` 是全天唯一一次预算内刷新请求——
-    /// 即使它缺席，00:01 条目也正确渲染新的一天。勾选重绘走 intent perform
-    /// 的交互式内建行为，与本时间线策略互相独立（见 Core《刷新策略表》）。
+    /// D3 时间线策略：预计算双条目（今天 + 明日 00:01 午夜翻转），
+    /// 每日至多 1 次预算内刷新。数据在 body 内实时读取（不在此处缓存）。
     func getTimeline(in context: Context, completion: @escaping (Timeline<PawItEntry>) -> Void) {
         let now = Date.now
         let entries = planner.entries(now: now).map { PawItEntry(date: $0.date, slot: $0) }
@@ -35,50 +31,456 @@ struct PawItProvider: TimelineProvider {
     }
 }
 
+// MARK: - Widget Entry View（路由到各家族渲染器）
+
 struct PawItWidgetEntryView: View {
+    @Environment(\.widgetFamily) var family
     var entry: PawItEntry
 
-    /// 渲染时实时读取 App Group 数据库：intent perform 后系统重绘即拿到新值。
-    /// W2-1 评审项 1/3：走进程级单池缓存（每进程只开一次连接，hit 是字典查询），
-    /// 且失败零缓存——旧写法 `static let store = try? SharedStore.appGroup()` 会把
-    /// 一次瞬时失败永久缓存成 nil；现在每次重绘都有机会重试。容器持续不可用
-    /// （如缺 entitlement 的预览环境）时回退按未勾选渲染（最后兜底，保持不变）。
-    private var isToggled: Bool {
-        guard let store = SharedStore.cachedAppGroup() else { return false }
-        return (try? store.firstNoteIsDone()) ?? false
-    }
+    private let data = WidgetDataProvider()
 
     var body: some View {
-        Button(intent: ToggleItemIntent()) {
-            VStack(spacing: 6) {
-                Image(systemName: isToggled ? "checkmark.circle.fill" : "pawprint")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(isToggled ? Color.green : Color.secondary)
-                Text(isToggled ? "ON" : "OFF")
-                    .font(.system(.headline, design: .monospaced))
-                    .foregroundStyle(.primary)
-                Text("Tap to toggle")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .buttonStyle(.plain)
-        .containerBackground(for: .widget) {
-            Color.clear
+        switch family {
+        case .systemSmall:
+            SmallNoteWidget(data: data, entry: entry)
+        case .systemMedium:
+            MediumNoteWidget(data: data, entry: entry)
+        case .systemLarge:
+            LargeNoteWidget(data: data, entry: entry)
+        case .accessoryCircular:
+            CircularLockScreenWidget(data: data)
+        case .accessoryRectangular:
+            RectangularLockScreenWidget(data: data)
+        case .accessoryInline:
+            InlineLockScreenWidget(data: data)
+        default:
+            SmallNoteWidget(data: data, entry: entry)
         }
     }
 }
+
+// MARK: - System Small（便签卡片风格）
+
+struct SmallNoteWidget: View {
+    let data: WidgetDataProvider
+    let entry: PawItEntry
+
+    private var note: Note? { data.firstNote() }
+    private var preset: NoteStylePreset {
+        note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let note {
+                noteContent(note)
+            } else {
+                emptyState
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(12)
+        .containerBackground(for: .widget) {
+            preset.backgroundColor
+        }
+    }
+
+    private func noteContent(_ note: Note) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(note.text.isEmpty ? "Untitled" : note.text)
+                .font(.system(.subheadline, weight: .medium))
+                .foregroundStyle(preset.textColor)
+                .lineLimit(4)
+                .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 4) {
+                if note.done {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption2)
+                }
+                if let due = note.dueDate {
+                    Image(systemName: "bell.fill")
+                        .font(.caption2)
+                        .foregroundStyle(
+                            NoteEngine.isOverdue(note, now: entry.date) ? .red : .orange
+                        )
+                    Text(due, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(
+                            NoteEngine.isOverdue(note, now: entry.date)
+                                ? Color.red : preset.textColor.opacity(0.7)
+                        )
+                }
+                Spacer()
+                let items = data.noteItems(noteId: note.id)
+                if !items.isEmpty {
+                    Text("\(items.filter(\.done).count)/\(items.count)")
+                        .font(.caption2)
+                        .foregroundStyle(preset.textColor.opacity(0.6))
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "note.text")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("Tap to add a note")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - System Medium（便签 + 清单预览）
+
+struct MediumNoteWidget: View {
+    let data: WidgetDataProvider
+    let entry: PawItEntry
+
+    private var note: Note? { data.firstNote() }
+    private var preset: NoteStylePreset {
+        note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if let note {
+                leftColumn(note)
+                rightColumn(note)
+            } else {
+                emptyState
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(14)
+        .containerBackground(for: .widget) {
+            preset.backgroundColor
+        }
+    }
+
+    private func leftColumn(_ note: Note) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(note.text.isEmpty ? "Untitled" : note.text)
+                .font(.system(.subheadline, weight: .medium))
+                .foregroundStyle(preset.textColor)
+                .lineLimit(5)
+                .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+
+            Spacer(minLength: 0)
+
+            if let due = note.dueDate {
+                HStack(spacing: 3) {
+                    Image(systemName: "bell.fill")
+                        .font(.caption2)
+                    Text(due, style: .relative)
+                        .font(.caption2)
+                }
+                .foregroundStyle(
+                    NoteEngine.isOverdue(note, now: entry.date) ? .red : .orange
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private func rightColumn(_ note: Note) -> some View {
+        let items = data.noteItems(noteId: note.id)
+        return VStack(alignment: .leading, spacing: 3) {
+            if items.isEmpty {
+                Text("No items")
+                    .font(.caption)
+                    .foregroundStyle(preset.textColor.opacity(0.5))
+            } else {
+                ForEach(items.prefix(4), id: \.id) { item in
+                    HStack(spacing: 4) {
+                        Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                            .font(.caption2)
+                            .foregroundStyle(item.done ? .green : preset.textColor.opacity(0.5))
+                        Text(item.text)
+                            .font(.caption)
+                            .foregroundStyle(preset.textColor)
+                            .lineLimit(1)
+                            .strikethrough(NoteEngine.strikethrough(isDone: item.done))
+                    }
+                }
+                if items.count > 4 {
+                    Text("+\(items.count - 4) more")
+                        .font(.caption2)
+                        .foregroundStyle(preset.textColor.opacity(0.5))
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "note.text")
+                .font(.title)
+                .foregroundStyle(.secondary)
+            Text("Tap to add a note")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - System Large（完整便签）
+
+struct LargeNoteWidget: View {
+    let data: WidgetDataProvider
+    let entry: PawItEntry
+
+    private var note: Note? { data.firstNote() }
+    private var preset: NoteStylePreset {
+        note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let note {
+                fullNoteContent(note)
+            } else {
+                emptyState
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(16)
+        .containerBackground(for: .widget) {
+            preset.backgroundColor
+        }
+    }
+
+    private func fullNoteContent(_ note: Note) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 标题区
+            HStack {
+                Text(note.text.isEmpty ? "Untitled" : note.text)
+                    .font(.system(.body, weight: .medium))
+                    .foregroundStyle(preset.textColor)
+                    .lineLimit(3)
+                    .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+                Spacer()
+                if note.done {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+            }
+
+            // 到期信息
+            if let due = note.dueDate {
+                HStack(spacing: 4) {
+                    Image(systemName: "bell.fill")
+                        .font(.caption)
+                    Text(due.formatted(.dateTime.month().day().hour().minute()))
+                        .font(.caption)
+                }
+                .foregroundStyle(
+                    NoteEngine.isOverdue(note, now: entry.date) ? .red : .orange
+                )
+            }
+
+            Divider()
+                .background(preset.textColor.opacity(0.2))
+
+            // 清单项
+            let items = data.noteItems(noteId: note.id)
+            if items.isEmpty {
+                Text("No checklist items")
+                    .font(.caption)
+                    .foregroundStyle(preset.textColor.opacity(0.5))
+                    .padding(.top, 4)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(items.prefix(8), id: \.id) { item in
+                        HStack(spacing: 6) {
+                            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                .font(.subheadline)
+                                .foregroundStyle(item.done ? .green : preset.textColor.opacity(0.4))
+                            Text(item.text)
+                                .font(.subheadline)
+                                .foregroundStyle(preset.textColor)
+                                .lineLimit(1)
+                                .strikethrough(NoteEngine.strikethrough(isDone: item.done))
+                        }
+                    }
+                    if items.count > 8 {
+                        Text("+\(items.count - 8) more")
+                            .font(.caption)
+                            .foregroundStyle(preset.textColor.opacity(0.5))
+                    }
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            // 底部信息
+            HStack {
+                Text(note.createdAt.formatted(.dateTime.month().day()))
+                    .font(.caption2)
+                    .foregroundStyle(preset.textColor.opacity(0.5))
+                Spacer()
+                if !items.isEmpty {
+                    Text("\(items.filter(\.done).count)/\(items.count) done")
+                        .font(.caption2)
+                        .foregroundStyle(preset.textColor.opacity(0.5))
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "note.text")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No notes yet")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Text("Open PawIt to create your first note")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Lock Screen: Circular
+
+struct CircularLockScreenWidget: View {
+    let data: WidgetDataProvider
+
+    private var note: Note? { data.firstNote() }
+
+    var body: some View {
+        if let note {
+            ZStack {
+                AccessoryWidgetBackground()
+                VStack(spacing: 2) {
+                    Image(systemName: note.done ? "checkmark.circle.fill" : "pawprint.fill")
+                        .font(.title3)
+                    if let due = note.dueDate {
+                        Text(due, style: .timer)
+                            .font(.system(.caption2, design: .monospaced))
+                            .multilineTextAlignment(.center)
+                    }
+                }
+            }
+        } else {
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "pawprint")
+                    .font(.title2)
+            }
+        }
+    }
+}
+
+// MARK: - Lock Screen: Rectangular
+
+struct RectangularLockScreenWidget: View {
+    let data: WidgetDataProvider
+
+    private var note: Note? { data.firstNote() }
+
+    var body: some View {
+        if let note {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: note.done ? "checkmark.circle.fill" : "pawprint.fill")
+                        .font(.caption)
+                    Text(note.text.isEmpty ? "Untitled" : note.text)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+                }
+                let items = data.noteItems(noteId: note.id)
+                if !items.isEmpty {
+                    ForEach(items.prefix(2), id: \.id) { item in
+                        HStack(spacing: 3) {
+                            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                .font(.caption2)
+                            Text(item.text)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .strikethrough(NoteEngine.strikethrough(isDone: item.done))
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                } else if let due = note.dueDate {
+                    Text(due, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "pawprint")
+                        .font(.caption)
+                    Text("PawIt")
+                        .font(.headline)
+                }
+                Text("No notes yet")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - Lock Screen: Inline
+
+struct InlineLockScreenWidget: View {
+    let data: WidgetDataProvider
+
+    private var note: Note? { data.firstNote() }
+
+    var body: some View {
+        if let note {
+            let items = data.noteItems(noteId: note.id)
+            if !items.isEmpty {
+                let done = items.filter(\.done).count
+                Text("📝 \(note.text.prefix(20)) (\(done)/\(items.count))")
+            } else {
+                Text("📝 \(note.text.prefix(30))")
+            }
+        } else {
+            Text("🐾 PawIt — No notes")
+        }
+    }
+}
+
+// MARK: - Widget Configuration
 
 struct PawItWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "PawItWidget", provider: PawItProvider()) { entry in
             PawItWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("PawIt")
-        .description("Let your pet remember things for you")
-        .supportedFamilies([.systemSmall])
+        .configurationDisplayName("PawIt Note")
+        .description("Your pet remembers things for you")
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .systemLarge,
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline,
+        ])
     }
 }
+
+// MARK: - Widget Bundle
 
 @main
 struct PawItWidgetBundle: WidgetBundle {
