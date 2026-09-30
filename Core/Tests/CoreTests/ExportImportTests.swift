@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import GRDB
+import CryptoKit
 @testable import Core
 
 /// W2-4:导出/导入——「零丢数据」的用户可见半边(plan §7-P2 换机协议)。
@@ -129,9 +130,11 @@ struct ExportImportTests {
 
         let data = try await repo.export(passphrase: "喵呜123!")
 
-        // 信封:有盐、payload 是 base64 密文(不是明文 JSON)。
+        // 信封:有盐、KDF 参数在案、payload 是 base64 密文(不是明文 JSON)。
         let envelope = try JSONDecoder().decode(ExportEnvelope.self, from: data)
         #expect(envelope.salt != nil)
+        #expect(envelope.kdf?.algorithm == "pbkdf2-hmac-sha256")  // KDF 参数入信封
+        #expect(envelope.kdf?.iterations == 100_000)
         #expect(Data(base64Encoded: envelope.payload) != nil)  // payload 是 base64 密文
         #expect(!envelope.payload.hasPrefix("{"))
 
@@ -197,7 +200,7 @@ struct ExportImportTests {
         )
         let mutatedEnvelope = ExportEnvelope(
             format: envelope.format, version: envelope.version,
-            salt: nil, payload: String(data: mutatedPayloadData, encoding: .utf8)!
+            salt: nil, kdf: nil, payload: String(data: mutatedPayloadData, encoding: .utf8)!
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
@@ -307,8 +310,8 @@ struct ExportImportTests {
 
     @Test func unknownFormatOrVersionRejected() async throws {
         let repo = try makeRepository(path: makePath("version"))
-        let wrongFormat = try JSONEncoder().encode(ExportEnvelope(format: "other.app", version: 1, salt: nil, payload: "{}"))
-        let wrongVersion = try JSONEncoder().encode(ExportEnvelope(format: "pawit.export", version: 999, salt: nil, payload: "{}"))
+        let wrongFormat = try JSONEncoder().encode(ExportEnvelope(format: "other.app", version: 1, salt: nil, kdf: nil, payload: "{}"))
+        let wrongVersion = try JSONEncoder().encode(ExportEnvelope(format: "pawit.export", version: 999, salt: nil, kdf: nil, payload: "{}"))
 
         do {
             try await repo.`import`(data: wrongFormat, passphrase: nil)
@@ -398,6 +401,117 @@ struct ExportImportTests {
         } catch let error as NoteRepositoryError {
             #expect(error == .restoreParentMissing(parentType: .petProfile, parentId: "shiba"))
         }
+    }
+
+    // MARK: - 评审修复(Important):非法 UUID 文本的 typed-reject(替代静默重铸)
+
+    /// 便签 id 为非法 UUID 文本 → `.malformedEntityID` 整包拒绝,目标库原样
+    /// (此前 `asRow` 会 `?? UUID()` 静默重铸新 id——数据被无声改写,零丢数据红线)。
+    @Test func garbageNoteIDInImportRejectedTyped() async throws {
+        let source = makePath("uuid-src")
+        let target = makePath("uuid-dst")
+        try await seed(source)
+        try await seed(target)  // 目标库非空:被拒导入不得清场
+        let data = try await makeRepository(path: source).export(passphrase: nil)
+
+        let poisoned = try mutatePayload(data) { payload in
+            var notes = payload["notes"] as! [[String: Any]]
+            notes[0]["id"] = "不是UUID"
+            payload["notes"] = notes
+        }
+
+        do {
+            try await makeRepository(path: target).`import`(data: poisoned, passphrase: nil)
+            Issue.record("非法 UUID 便签 id 必须整包拒绝")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .malformedEntityID("不是UUID"))
+        }
+        #expect(try fullState(target).notes.count == 2)  // 零副作用
+    }
+
+    /// 清单项 noteId 为非法 UUID 文本 → `.malformedEntityID`(先于孤儿校验:
+    /// 「格式非法」与「指向缺失」是两种错误,前者更早)。
+    @Test func garbageItemNoteIDInImportRejectedTyped() async throws {
+        let source = makePath("uuid-item-src")
+        let target = makePath("uuid-item-dst")
+        try await seed(source)
+        let data = try await makeRepository(path: source).export(passphrase: nil)
+
+        let poisoned = try mutatePayload(data) { payload in
+            var items = payload["noteItems"] as! [[String: Any]]
+            items[0]["noteId"] = "垃圾ID"
+            payload["noteItems"] = items
+        }
+
+        do {
+            try await makeRepository(path: target).`import`(data: poisoned, passphrase: nil)
+            Issue.record("非法 UUID 清单项 noteId 必须整包拒绝")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .malformedEntityID("垃圾ID"))
+        }
+        #expect(try fullState(target).notes.isEmpty)  // 目标库本来为空:未落一行
+    }
+
+    // MARK: - 评审修复(Important):PBKDF2 口令拉伸 + 空口令早拒 + KDF 参数入信封
+
+    @Test func emptyPassphraseRejectedOnBothExportAndImport() async throws {
+        let source = makePath("emptypw")
+        try await seed(source)
+        let repo = try makeRepository(path: source)
+
+        do {
+            _ = try await repo.export(passphrase: "")
+            Issue.record("空口令必须拒绝,不得以空 IKM 加密")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .emptyPassphrase)
+        }
+
+        // 导入侧同口径:加密信封 + 空口令 → 早拒,不做无谓的 10 万轮推导。
+        let data = try await repo.export(passphrase: "真口令")
+        do {
+            try await makeRepository(path: makePath("emptypw-dst")).`import`(data: data, passphrase: "")
+            Issue.record("空口令在导入侧同样必须早拒")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .emptyPassphrase)
+        }
+    }
+
+    @Test func unknownKDFAlgorithmRejected() async throws {
+        let source = makePath("kdf-src")
+        try await seed(source)
+        let data = try await makeRepository(path: source).export(passphrase: "口令")
+
+        var envelope = try JSONDecoder().decode(ExportEnvelope.self, from: data)
+        envelope.kdf?.algorithm = "scrypt"  // 密文未动,仅 KDF 标注被改 → 必须拒推
+        let poisoned = try JSONEncoder().encode(envelope)
+
+        do {
+            try await makeRepository(path: makePath("kdf-dst")).`import`(data: poisoned, passphrase: "口令")
+            Issue.record("未知 KDF 算法必须拒绝")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .unsupportedKDF("scrypt"))
+        }
+    }
+
+    /// PBKDF2 已知答案向量(RFC/公开测试向量,SHA-256 族):
+    /// 钉死「派生链真的是 PBKDF2-HMAC-SHA256」——信封 kdf 字段只是声明,
+    /// 向量才是算法正确性的直接证据(防参数换位/实现漂移)。
+    @Test func pbkdf2DerivationMatchesKnownVectors() throws {
+        func bytes(_ key: SymmetricKey) -> [UInt8] {
+            key.withUnsafeBytes { Array($0) }
+        }
+        // P="password", S="salt", c=1, dkLen=32
+        let c1 = try ExportCrypto.deriveKey(passphrase: "password", salt: Data("salt".utf8), iterations: 1)
+        #expect(bytes(c1) == [
+            0x12, 0x0f, 0xb6, 0xcf, 0xfc, 0xf8, 0xb3, 0x2c, 0x43, 0xe7, 0x22, 0x52, 0x56, 0xc4, 0xf8, 0x37,
+            0xa8, 0x65, 0x48, 0xc9, 0x2c, 0xcc, 0x35, 0x48, 0x08, 0x05, 0x98, 0x7c, 0xb7, 0x0b, 0xe1, 0x7b,
+        ])
+        // 同输入,c=2
+        let c2 = try ExportCrypto.deriveKey(passphrase: "password", salt: Data("salt".utf8), iterations: 2)
+        #expect(bytes(c2) == [
+            0xae, 0x4d, 0x0c, 0x95, 0xaf, 0x6b, 0x46, 0xd3, 0x2d, 0x0a, 0xdf, 0xf9, 0x28, 0xf0, 0x6d, 0xd0,
+            0x2a, 0x30, 0x3f, 0x8e, 0xf3, 0xc2, 0x51, 0xdf, 0xd6, 0xe2, 0xd8, 0x5a, 0x95, 0x47, 0x4c, 0x43,
+        ])
     }
 
     // MARK: - 移交项⑦:unlockedOutfits 导出为解析后的 JSON 数组,不是双重编码

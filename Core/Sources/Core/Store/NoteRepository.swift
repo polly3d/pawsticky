@@ -21,22 +21,34 @@ public enum NoteRepositoryError: Error, Equatable, Sendable {
     case restoreParentMissing(parentType: HistoryEntityType, parentId: String)
     /// history_log.payload 不是合法 JSON 或字段损坏(防御性,正常写入不可能)。
     case corruptHistoryPayload(String)
+    /// 快照 JSON 编码失败(产出侧故障,理论不可达;与读入侧损坏分开报)。
+    case snapshotEncodingFailed
     /// 顶层不是合法的导出信封 JSON。
     case malformedEnvelope
     /// format 不是 "pawit.export"。
     case unsupportedFormat(String)
-    /// version 高于本实现支持的版本。
+    /// version 不是本实现支持的版本(当前仅 v1;语义即 `!= 1`,
+    /// 未来支持多版本读入时收窄为「高于实现」)。
     case unsupportedVersion(Int)
     /// 解密失败(口令错误或密文被篡改;统一报错,不区分两者以防探测)。
     case decryptionFailed
+    /// 加密侧故障(PBKDF2 派生失败/nonce 缺失,理论不可达)。
+    case encryptionFailed
     /// 信封是加密的但未提供口令。
     case passphraseRequired
     /// 信封是明文的但提供了口令(口径错配,直接拒绝而非猜测)。
     case unexpectedPassphrase
+    /// 空口令——空 IKM 会给出「看似成功」的零强度加密,两侧 API 均早拒。
+    case emptyPassphrase
+    /// 信封声明的 KDF 算法本实现不支持(拒绝按错误参数推导)。
+    case unsupportedKDF(String)
     /// payload 不是合法的导出数据体 JSON。
     case malformedPayload
     /// 导入数据含未知的宠物 species(整包拒绝)。
     case unknownSpecies(String)
+    /// 导入数据的 UUID 字段(便签 id/清单项 id/noteId)不是合法 UUID 文本
+    /// (评审修复:typed 拒绝,绝不静默重铸新 id 改写数据)。
+    case malformedEntityID(String)
     /// 清单项指向导入集中不存在的便签(整包拒绝)。
     case orphanedNoteItem(noteId: String)
     /// 养成状态指向导入集中不存在的宠物(整包拒绝)。
@@ -65,6 +77,8 @@ public struct NoteRepository: Sendable {
 
     /// 创建便签(正文 + 可选到期日),并落一条「创建」后像快照。
     /// - Returns: 已持久化的便签(id 自动生成,position 0,createdAt 当前时刻)。
+    ///   注意:返回值为**内存新值**,其 createdAt 亚毫秒精度不会被 GRDB 毫秒文本编码
+    ///   保留——与库内行做全等比较时,以读回值(`allNotes()` 等)为基准。
     @discardableResult
     public func createNote(text: String, dueDate: Date? = nil) async throws -> Note {
         let note = Note(text: text, dueDate: dueDate)
@@ -123,6 +137,7 @@ public struct NoteRepository: Sendable {
     // MARK: - NoteItem
 
     /// 新增清单项(父便签必须存在),并落「创建」后像快照。
+    /// - Returns: 内存新值(createdAt 亚毫秒精度,库内为毫秒截断)——全等比较以读回值为基准。
     @discardableResult
     public func addItem(to noteId: UUID, text: String) async throws -> NoteItem {
         let item = NoteItem(noteId: noteId, text: text)
@@ -201,16 +216,16 @@ public struct NoteRepository: Sendable {
                 let restored = try PayloadCodec.decode(ExportNote.self, from: entry.payload).asRow
                 if let current = try Note.fetchOne(db, key: restored.id.uuidString) {
                     try HistoryLog.append(
-                in: db, entityType: .note, entityId: entityId,
-                payload: try PayloadCodec.encode(current)
-            )
+                        in: db, entityType: .note, entityId: entityId,
+                        payload: try PayloadCodec.encode(current)
+                    )
                     try restored.update(db)
                 } else {
                     try restored.insert(db)
                     try HistoryLog.append(
-                in: db, entityType: .note, entityId: entityId,
-                payload: try PayloadCodec.encode(restored)
-            )
+                        in: db, entityType: .note, entityId: entityId,
+                        payload: try PayloadCodec.encode(restored)
+                    )
                 }
             case .noteItem:
                 let restored = try PayloadCodec.decode(ExportNoteItem.self, from: entry.payload).asRow
@@ -219,16 +234,16 @@ public struct NoteRepository: Sendable {
                 }
                 if let current = try NoteItem.fetchOne(db, key: restored.id.uuidString) {
                     try HistoryLog.append(
-                in: db, entityType: .noteItem, entityId: entityId,
-                payload: try PayloadCodec.encode(current)
-            )
+                        in: db, entityType: .noteItem, entityId: entityId,
+                        payload: try PayloadCodec.encode(current)
+                    )
                     try restored.update(db)
                 } else {
                     try restored.insert(db)
                     try HistoryLog.append(
-                in: db, entityType: .noteItem, entityId: entityId,
-                payload: try PayloadCodec.encode(restored)
-            )
+                        in: db, entityType: .noteItem, entityId: entityId,
+                        payload: try PayloadCodec.encode(restored)
+                    )
                 }
             case .petProfile:
                 let dto = try PayloadCodec.decode(ExportPetProfile.self, from: entry.payload)
@@ -241,16 +256,16 @@ public struct NoteRepository: Sendable {
                 )
                 if let current = try PetProfile.fetchOne(db, key: restored.id) {
                     try HistoryLog.append(
-                in: db, entityType: .petProfile, entityId: entityId,
-                payload: try PayloadCodec.encode(current)
-            )
+                        in: db, entityType: .petProfile, entityId: entityId,
+                        payload: try PayloadCodec.encode(current)
+                    )
                     try restored.update(db)
                 } else {
                     try restored.insert(db)
                     try HistoryLog.append(
-                in: db, entityType: .petProfile, entityId: entityId,
-                payload: try PayloadCodec.encode(restored)
-            )
+                        in: db, entityType: .petProfile, entityId: entityId,
+                        payload: try PayloadCodec.encode(restored)
+                    )
                 }
             case .growthState:
                 let restored = try PayloadCodec.decode(ExportGrowthState.self, from: entry.payload).asRow
@@ -261,16 +276,16 @@ public struct NoteRepository: Sendable {
                 }
                 if let current = try GrowthState.fetchOne(db, key: restored.petId) {
                     try HistoryLog.append(
-                in: db, entityType: .growthState, entityId: entityId,
-                payload: try PayloadCodec.encode(current)
-            )
+                        in: db, entityType: .growthState, entityId: entityId,
+                        payload: try PayloadCodec.encode(current)
+                    )
                     try restored.update(db)
                 } else {
                     try restored.insert(db)
                     try HistoryLog.append(
-                in: db, entityType: .growthState, entityId: entityId,
-                payload: try PayloadCodec.encode(restored)
-            )
+                        in: db, entityType: .growthState, entityId: entityId,
+                        payload: try PayloadCodec.encode(restored)
+                    )
                 }
             }
         }
@@ -287,10 +302,15 @@ public struct NoteRepository: Sendable {
 
     // MARK: - 导出 / 导入
 
-    /// 导出全部数据。无口令 → 明文 JSON;有口令 → AES-GCM 加密(随机盐入信封)。
-    /// 导出顺序经引擎排序(`NoteEngine.sortedNotes`/`sortedItems`,与 store SQL 同序契约),
-    /// 保证同一数据多次导出字节级稳定。
+    /// 导出全部数据。无口令 → 明文 JSON;有口令 → AES-GCM 加密(随机盐 + PBKDF2
+    /// 参数入信封)。空口令早拒(`emptyPassphrase`)——空 IKM 会给出「看似成功」
+    /// 的零强度加密。
+    /// 导出顺序经引擎排序(`NoteEngine.sortedNotes`/`sortedItems`,与 store SQL 同序契约):
+    /// **明文导出**对同一数据字节级稳定;密文导出含随机盐/nonce,不保证字节稳定。
     public func export(passphrase: String?) async throws -> Data {
+        if let passphrase, passphrase.isEmpty {
+            throw NoteRepositoryError.emptyPassphrase
+        }
         let payload: ExportPayload = try store.read { db in
             let notes = NoteEngine.sortedNotes(try Note.fetchAll(db))
             var items: [NoteItem] = []
@@ -321,6 +341,10 @@ public struct NoteRepository: Sendable {
                 format: Self.exportFormat,
                 version: Self.exportVersion,
                 salt: salt.base64EncodedString(),
+                kdf: ExportKDFParams(
+                    algorithm: ExportCrypto.kdfAlgorithmName,
+                    iterations: Int(ExportCrypto.kdfIterations)
+                ),
                 payload: sealed.base64EncodedString()
             )
             return try encoder.encode(envelope)
@@ -329,6 +353,7 @@ public struct NoteRepository: Sendable {
             format: Self.exportFormat,
             version: Self.exportVersion,
             salt: nil,
+            kdf: nil,
             payload: String(decoding: payloadData, as: UTF8.self)
         )
         return try encoder.encode(envelope)
@@ -365,12 +390,24 @@ public struct NoteRepository: Sendable {
         let payloadData: Data
         switch (envelope.salt, passphrase) {
         case (.some(let saltText), .some(let passphraseText)):
-            guard let salt = Data(base64Encoded: saltText),
+            // 空口令早拒:不做无谓的 10 万轮推导(与导出侧同口径)。
+            guard !passphraseText.isEmpty else { throw NoteRepositoryError.emptyPassphrase }
+            // KDF 参数必须匹配本实现(评审修复:拒绝按未知算法/缺失参数推导)。
+            guard let kdf = envelope.kdf else { throw NoteRepositoryError.malformedEnvelope }
+            guard kdf.algorithm == ExportCrypto.kdfAlgorithmName else {
+                throw NoteRepositoryError.unsupportedKDF(kdf.algorithm)
+            }
+            guard kdf.iterations > 0, let salt = Data(base64Encoded: saltText),
                   let combined = Data(base64Encoded: envelope.payload) else {
                 throw NoteRepositoryError.malformedEnvelope
             }
             do {
-                payloadData = try ExportCrypto.open(combined, passphrase: passphraseText, salt: salt)
+                payloadData = try ExportCrypto.open(
+                    combined, passphrase: passphraseText, salt: salt,
+                    iterations: UInt32(clamping: kdf.iterations)
+                )
+            } catch let error as NoteRepositoryError {
+                throw error
             } catch {
                 throw NoteRepositoryError.decryptionFailed
             }
@@ -390,9 +427,21 @@ public struct NoteRepository: Sendable {
             throw NoteRepositoryError.malformedPayload
         }
 
-        // —— 校验(全部通过才动库)——
+        // —— 校验(全部通过才动库;UUID 格式先行,再查引用与重复)——
         for pet in payload.petProfiles where PetSpecies(rawValue: pet.species) == nil {
             throw NoteRepositoryError.unknownSpecies(pet.species)
+        }
+        // 评审修复:UUID 字段 typed 校验,替代 asRow 里的 `?? UUID()` 静默重铸。
+        for note in payload.notes where UUID(uuidString: note.id) == nil {
+            throw NoteRepositoryError.malformedEntityID(note.id)
+        }
+        for item in payload.noteItems {
+            if UUID(uuidString: item.id) == nil {
+                throw NoteRepositoryError.malformedEntityID(item.id)
+            }
+            if UUID(uuidString: item.noteId) == nil {
+                throw NoteRepositoryError.malformedEntityID(item.noteId)
+            }
         }
         let noteIds = Set(payload.notes.map(\.id))
         if noteIds.count != payload.notes.count {
@@ -417,12 +466,16 @@ public struct NoteRepository: Sendable {
             throw NoteRepositoryError.duplicateEntityInImport("growthState")
         }
 
-        let notes = payload.notes.map(\.asRow)
-        let items = payload.noteItems.map(\.asRow)
-        let pets: [PetProfile] = payload.petProfiles.map { dto in
-            PetProfile(
-                id: dto.id,
-                species: PetSpecies(rawValue: dto.species) ?? .cat,  // 校验已兜底,防御默认
+        // 以下转换的 throws 分支是校验后的防御兜底(正常流不可达)。
+        let notes = try payload.notes.map { try $0.asRow }
+        let items = try payload.noteItems.map { try $0.asRow }
+        let pets: [PetProfile] = try payload.petProfiles.map { dto in
+            guard let species = PetSpecies(rawValue: dto.species) else {
+                // 与 restore 的 corrupt-species 同纪律:宁可抛错,不做防御默认值。
+                throw NoteRepositoryError.unknownSpecies(dto.species)
+            }
+            return PetProfile(
+                id: dto.id, species: species,
                 displayName: dto.displayName, isSelected: dto.isSelected, acquiredAt: dto.acquiredAt
             )
         }

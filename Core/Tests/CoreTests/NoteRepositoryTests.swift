@@ -241,6 +241,7 @@ struct NoteRepositoryTests {
 
     // MARK: - addItem / toggleItem / deleteItem:原子契约 + 前像
 
+    /// 早守卫零副作用:父便签不存在时在插入前抛错。
     @Test func addItemToGhostNoteThrowsWithoutAnyHistory() async throws {
         let path = makePath()
         let repo = try makeRepository(path: path)
@@ -274,9 +275,9 @@ struct NoteRepositoryTests {
         #expect(preToggle.done == false)  // 前像:翻转前的 done
     }
 
-    /// 原子性钉子:翻转失败(item 不存在)必须连同历史一起回滚——历史与变更同事务,
-    /// 若历史被写进了独立事务,这里的总行数会 +1。
-    @Test func failedToggleRollsBackHistoryWithMutation() async throws {
+    /// 原子性守卫:翻转失败(item 不存在)在**任何写入发生前**早退——零副作用。
+    /// (真正的「事务中途失败必须回滚」由 midTransactionFailureRollsBackHistoryAndDataTogether 钉死。)
+    @Test func failedToggleLeavesNoHistoryViaEarlyGuard() async throws {
         let path = makePath()
         let repo = try makeRepository(path: path)
         let note = try await repo.createNote(text: "正文")
@@ -317,6 +318,7 @@ struct NoteRepositoryTests {
         #expect(try after.noteItems(noteId: note.id) == [persistedBefore])
     }
 
+    /// 早守卫零副作用:目标行不存在时在任何写入前抛错(非回滚路径,回滚见真回滚钉子)。
     @Test func deleteItemOnMissingItemThrowsWithoutHistory() async throws {
         let path = makePath()
         let repo = try makeRepository(path: path)
@@ -353,6 +355,34 @@ struct NoteRepositoryTests {
             try JSONDecoder().decode(ExportNote.self, from: Data(entry.payload.utf8)).text
         }
         #expect(payloads == ["二", "一", "一"])  // 最新前像(二轮前) → 一轮前像 → create 后像
+    }
+
+    // MARK: - 真回滚钉子:事务中途失败必须把历史与数据一起回滚
+
+    /// 注入失败的事务形状与 import 相同:先落快照 → 再落数据 → 中途上抛。
+    /// 上面的守卫类测试只证明「早退零写」;本用例证明 GRDB 事务的全量回滚语义——
+    /// 已执行的 INSERT(历史条目 + 便签行)不得残留,这是「历史与变更同生共死」
+    /// 契约的直接证据。
+    private struct InjectedBoom: Error {}
+
+    @Test func midTransactionFailureRollsBackHistoryAndDataTogether() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "存活便签")
+        let baseline = try totalHistoryRows(path)
+
+        do {
+            try await SharedStore(databasePath: path).write { db in
+                try HistoryLog.append(in: db, entityType: .note, entityId: "sim-old", payload: "{}")
+                try Note(id: UUID(), text: "半途插入", createdAt: fixed(1)).insert(db)
+                throw InjectedBoom()
+            }
+            Issue.record("注入失败必须上抛")
+        } catch is InjectedBoom {}
+
+        #expect(try totalHistoryRows(path) == baseline)       // 中途已落的前像被回滚
+        let fresh = try SharedStore(databasePath: path)
+        #expect(try fresh.allNotes().map(\.id) == [note.id])  // 半途插入被回滚,原数据无损
     }
 
     // MARK: - 生产接入点

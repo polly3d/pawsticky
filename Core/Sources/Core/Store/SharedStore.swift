@@ -270,7 +270,7 @@ public struct SharedStore: Sendable {
 
     // MARK: - 写入（async，协作式）
 
-    /// 插入一条便签。
+    /// 插入一条便签。不落历史;App 内变更请走 NoteRepository。
     public func insert(_ note: Note) async throws {
         try await pool.write { db in
             try note.insert(db)
@@ -284,6 +284,7 @@ public struct SharedStore: Sendable {
     /// createdAt 同值时以 id ASC 决胜是 W2-1 评审项 5 的延续——避免 SQLite 同值扫描序
     /// 随机化导致「第一条」漂移。存量 w1 行 position 全 0，行为不变）。
     /// - Returns: 本次操作后的 done 状态。
+    /// 不落历史;App 内变更请走 NoteRepository(Widget intent 直写是 W5 的已登记迁移项)。
     @discardableResult
     public func toggleFirstItem() async throws -> Bool {
         try await pool.write { db in
@@ -312,6 +313,7 @@ public struct SharedStore: Sendable {
     /// `firstNote()` 读出、修改目标列后再 upsert），直接拿凭空构造的同 id 对象调用
     /// 会把其余列打回传入值。需要「读-改-写必须基于库内现值」的语义时请用
     /// `NoteRepository.updateNote`（行不存在抛错、且落历史前像）。
+    /// 不落历史;App 内变更请走 NoteRepository。
     public func upsertNote(_ note: Note) async throws {
         try await pool.write { db in
             try note.save(db)
@@ -350,6 +352,7 @@ public struct SharedStore: Sendable {
     }
 
     /// 删除便签；其清单项经外键 `ON DELETE CASCADE` 连带清空（同事务内数据库侧完成）。
+    /// 不落历史;App 内变更请走 NoteRepository。
     public func deleteNote(id: UUID) async throws {
         try await pool.write { db in
             _ = try Note.deleteOne(db, key: id.uuidString)
@@ -358,7 +361,7 @@ public struct SharedStore: Sendable {
 
     // —— NoteItem ——
 
-    /// 新增清单项。
+    /// 新增清单项。不落历史;App 内变更请走 NoteRepository。
     public func addNoteItem(_ item: NoteItem) async throws {
         try await pool.write { db in
             try item.insert(db)
@@ -369,6 +372,7 @@ public struct SharedStore: Sendable {
     /// 读-改-写在同一写事务内原子完成（与 `toggleFirstItem()` 同一模式）；
     /// WHERE 同时钉死 noteId 与 itemId——跨便签的 item 翻不到（作用域错配抛错零副作用）。
     /// - Throws: `SharedStoreError.noteItemNotFound`（item 不存在或不属于该 note）。
+    /// 不落历史;App 内变更请走 NoteRepository(其 toggleItem 在同一事务内补前像)。
     @discardableResult
     public func toggleNoteItem(noteId: UUID, itemId: UUID) async throws -> Bool {
         try await pool.write { db in
@@ -405,6 +409,7 @@ public struct SharedStore: Sendable {
     // —— PetProfile / GrowthState ——
 
     /// 插入或更新宠物档案（按主键 upsert）。多选中的「互斥去选」是引擎语义（W2-3/W6），本层不代劳。
+    /// 不落历史;App 内变更请走 NoteRepository。
     public func upsertPet(_ pet: PetProfile) async throws {
         try await pool.write { db in
             try pet.save(db)
@@ -422,6 +427,7 @@ public struct SharedStore: Sendable {
     }
 
     /// 插入或更新养成状态（按主键 upsert；纯存储，逻辑归 W2-3/W7）。
+    /// 不落历史;App 内变更请走 NoteRepository。
     public func upsertGrowthState(_ state: GrowthState) async throws {
         try await pool.write { db in
             try state.save(db)

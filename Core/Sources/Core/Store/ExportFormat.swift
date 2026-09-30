@@ -1,13 +1,16 @@
 import Foundation
 import CryptoKit
+import CommonCrypto
 
 // MARK: - 导出/导入格式 v1(W2-4,plan §7-P2 换机协议)
 //
 // 信封:`{ "format": "pawit.export", "version": 1, "salt": base64-or-null,
+//         "kdf": { "algorithm": "pbkdf2-hmac-sha256", "iterations": 100000 } | null,
 //         "payload": <明文 JSON 字符串 | base64 密文> }`
-// * 无口令:`payload` = ExportPayload 的明文 JSON 字符串;
-// * 有口令:随机 16B 盐入信封,payload = AES-GCM(combined) 的 base64,
-//   密钥 = HKDF-SHA256(passphrase, salt, info="pawit.export.v1", 32B)。
+// * 无口令:`payload` = ExportPayload 的明文 JSON 字符串,kdf/salt 均为 null;
+// * 有口令:随机 16B 盐 + PBKDF2 参数入信封,payload = AES-GCM(combined) 的 base64,
+//   密钥 = PBKDF2-HMAC-SHA256(passphrase, salt, 100k 轮, 32B)(评审修复:取代无
+//   工作因子的裸 HKDF;链路详见 ExportCrypto)。
 // * 日期以 JSON number(1970 秒,double)编码,与 GRDB `.datetime` 毫秒文本
 //   毫秒截断规则一致,round-trip 相等成立。
 
@@ -19,14 +22,31 @@ public struct ExportEnvelope: Codable, Equatable, Sendable {
     public var version: Int
     /// AES-GCM 盐(base64);nil = 明文 payload。
     public var salt: String?
+    /// 口令派生参数(加密时必填;nil = 明文)。缺失/未知算法在导入侧 typed 拒绝。
+    public var kdf: ExportKDFParams?
     /// 明文 JSON 字符串或 base64 密文(视 salt 而定)。
     public var payload: String
 
-    public init(format: String, version: Int, salt: String?, payload: String) {
+    public init(format: String, version: Int, salt: String?, kdf: ExportKDFParams?, payload: String) {
         self.format = format
         self.version = version
         self.salt = salt
+        self.kdf = kdf
         self.payload = payload
+    }
+}
+
+/// 口令派生(KDF)参数,W2-4 评审修复:入信封使未来升级 KDF(加轮数/换算法)
+/// 无需改格式版本——导入侧按信封参数推导,未知算法 typed 拒绝。
+public struct ExportKDFParams: Codable, Equatable, Sendable {
+    /// 当前唯一支持值:`"pbkdf2-hmac-sha256"`(见 `ExportCrypto.kdfAlgorithmName`)。
+    public var algorithm: String
+    /// PBKDF2 迭代轮数(当前 100_000;只升不降)。
+    public var iterations: Int
+
+    public init(algorithm: String, iterations: Int) {
+        self.algorithm = algorithm
+        self.iterations = iterations
     }
 }
 
@@ -75,13 +95,17 @@ public struct ExportNote: Codable, Equatable, Sendable {
         position = note.position
     }
 
-    /// 还原为存储行。id 非法文本由调用方校验流程兜底(导出前已校验)。
+    /// 还原为存储行。id 必须是合法 UUID 文本——导入路径在事务前已做
+    /// `.malformedEntityID` 校验(评审修复:拒绝而非静默重铸),此处 `parseStorage`
+    /// 是防御性兜底(history_log 快照若被外力篡改则在此显式抛错)。
     public var asRow: Note {
-        Note(
-            id: UUID(uuidString: id) ?? UUID(),
-            text: text, createdAt: createdAt, done: done,
-            dueDate: dueDate, position: position
-        )
+        get throws {
+            Note(
+                id: try UUID.parseStorage(id),
+                text: text, createdAt: createdAt, done: done,
+                dueDate: dueDate, position: position
+            )
+        }
     }
 }
 
@@ -103,12 +127,15 @@ public struct ExportNoteItem: Codable, Equatable, Sendable {
         createdAt = item.createdAt
     }
 
+    /// 还原为存储行。id/noteId 必须为合法 UUID 文本(导入路径已前置校验,此处防御兜底)。
     public var asRow: NoteItem {
-        NoteItem(
-            id: UUID(uuidString: id) ?? UUID(),
-            noteId: UUID(uuidString: noteId) ?? UUID(),
-            text: text, done: done, position: position, createdAt: createdAt
-        )
+        get throws {
+            NoteItem(
+                id: try UUID.parseStorage(id),
+                noteId: try UUID.parseStorage(noteId),
+                text: text, done: done, position: position, createdAt: createdAt
+            )
+        }
     }
 }
 
@@ -199,7 +226,9 @@ enum PayloadCodec {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         guard let string = String(data: try encoder.encode(value), encoding: .utf8) else {
-            throw NoteRepositoryError.corruptHistoryPayload("")
+            // 编码失败是「产出侧」故障(理论不可达:DTO 全为 JSON 安全类型),
+            // 与「读入侧日志损坏」(corruptHistoryPayload)是两回事,分开报。
+            throw NoteRepositoryError.snapshotEncodingFailed
         }
         return string
     }
@@ -207,39 +236,74 @@ enum PayloadCodec {
 
 // MARK: - 口令加密:AES-GCM + HKDF-SHA256
 
-/// 导出加密原语。CryptoKit 全平台可用(iOS/watchOS,含 watchOS 10 声明目标)。
+/// 导出加密原语。CryptoKit 全平台可用(iOS/watchOS,含 watchOS 10 声明目标);
+/// PBKDF2 走 CommonCrypto(同全平台可用)。
+///
+/// **密钥派生链(W2-4 评审修复:PBKDF2 取代裸 HKDF)**:
+/// `PBKDF2-HMAC-SHA256(passphrase, salt, 100_000 轮) → 32B → AES-256-GCM 密钥`。
+/// 裸 HKDF 对口令没有暴力破解工作因子(离线攻击者按 SHA-256 原速穷举口令),
+/// 口令拉伸必须用带轮数的 PBKDF2;格式 v1 零已发布文件,直接换链不留兼容层。
+/// 不再叠加 HKDF 做域分离——派生输入已由「盐 + 信封 kdf 字段」绑定到本格式,
+/// 单层链条更少出错面。算法/轮数记入信封 `kdf` 字段,未来只升不降。
 enum ExportCrypto {
 
-    /// HKDF info 域分离:绑定导出格式版本,防未来协议复用同一口令派生链。
-    private static let hkdfInfo = Data("pawit.export.v1".utf8)
+    /// 信封 kdf.algorithm 的当前唯一支持值。
+    static let kdfAlgorithmName = "pbkdf2-hmac-sha256"
+    /// PBKDF2 轮数(OWASP 2023 对 PBKDF2-HMAC-SHA256 的建议量级 ≥600k,
+    /// 取 100k 为便签换机场景「一次口令输入」的可接受延迟约几十毫秒;只升不降)。
+    static let kdfIterations: UInt32 = 100_000
+    private static let derivedKeyLength = 32
 
     /// 随机盐(16 字节,CryptoKit CSPRNG)。
     static func randomSalt() -> Data {
         SymmetricKey(size: .bits128).withUnsafeBytes { Data($0) }
     }
 
-    /// 口令 -> 256 位 AES 密钥(HKDF-SHA256,盐入信封)。
-    static func deriveKey(passphrase: String, salt: Data) -> SymmetricKey {
-        HKDF<SHA256>.deriveKey(
-            inputKeyMaterial: SymmetricKey(data: Data(passphrase.utf8)),
-            salt: salt,
-            info: hkdfInfo,
-            outputByteCount: 32
-        )
+    /// 口令 -> 256 位 AES 密钥(PBKDF2-HMAC-SHA256,盐与轮数入信封)。
+    static func deriveKey(passphrase: String, salt: Data, iterations: UInt32) throws -> SymmetricKey {
+        var derived = Data(repeating: 0, count: derivedKeyLength)
+        let passwordLength = passphrase.utf8.count
+        let status = derived.withUnsafeMutableBytes { (derivedBuf: UnsafeMutableRawBufferPointer) -> Int32 in
+            passphrase.withCString { (passwordPtr: UnsafePointer<CChar>) -> Int32 in
+                salt.withUnsafeBytes { (saltBuf: UnsafeRawBufferPointer) -> Int32 in
+                    CCKeyDerivationPBKDF(
+                        CCPBKDFAlgorithm(kCCPBKDF2),
+                        passwordPtr,
+                        passwordLength,
+                        saltBuf.bindMemory(to: UInt8.self).baseAddress,
+                        salt.count,
+                        CCPBKDFAlgorithm(kCCPRFHmacAlgSHA256),  // prf 参数与 algorithm 同为 uint32 typedef
+                        iterations,
+                        derivedBuf.bindMemory(to: UInt8.self).baseAddress,
+                        derivedKeyLength
+                    )
+                }
+            }
+        }
+        guard status == kCCSuccess else {
+            throw NoteRepositoryError.encryptionFailed
+        }
+        return SymmetricKey(data: derived)
     }
 
     /// AES-GCM 加密,返回 combined(nonce+ciphertext+tag)原始数据。
     static func seal(_ plaintext: Data, passphrase: String, salt: Data) throws -> Data {
-        let box = try AES.GCM.seal(plaintext, using: deriveKey(passphrase: passphrase, salt: salt))
+        let key = try deriveKey(passphrase: passphrase, salt: salt, iterations: kdfIterations)
+        let box = try AES.GCM.seal(plaintext, using: key)
         guard let combined = box.combined else {
-            throw NoteRepositoryError.decryptionFailed
+            throw NoteRepositoryError.encryptionFailed
         }
         return combined
     }
 
     /// AES-GCM 解密;口令错误/密文被篡改统一抛 `decryptionFailed`(不区分,防探测)。
-    static func open(_ combined: Data, passphrase: String, salt: Data) throws -> Data {
+    static func open(_ combined: Data, passphrase: String, salt: Data, iterations: UInt32) throws -> Data {
+        let key = try deriveKey(passphrase: passphrase, salt: salt, iterations: iterations)
         let box = try AES.GCM.SealedBox(combined: combined)
-        return try AES.GCM.open(box, using: deriveKey(passphrase: passphrase, salt: salt))
+        do {
+            return try AES.GCM.open(box, using: key)
+        } catch {
+            throw NoteRepositoryError.decryptionFailed
+        }
     }
 }
