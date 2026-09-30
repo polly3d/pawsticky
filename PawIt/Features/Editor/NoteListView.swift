@@ -90,6 +90,7 @@ struct NoteListView: View {
             }
         }
         .task { reloadNotes() }
+        .task { LiveActivityManager.renewIfNeeded() }
         .onChange(of: deepLinkNoteID) { _, noteID in
             guard let noteID else { return }
             editorMode = .edit(noteID)
@@ -125,7 +126,14 @@ struct NoteListView: View {
 
             ForEach(notes, id: \.id) { note in
                 Button { editorMode = .edit(note.id) } label: {
-                    NoteRowView(note: note)
+                    HStack {
+                        NoteRowView(note: note)
+                        if LiveActivityManager.isPinned(noteId: note.id) {
+                            Image(systemName: "pin.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        }
+                    }
                 }
                 .tint(.primary)
                 .listRowBackground(presetFor(note).backgroundColor.opacity(0.25))
@@ -137,6 +145,17 @@ struct NoteListView: View {
                               systemImage: note.done ? "arrow.uturn.backward" : "checkmark")
                     }
                     .tint(note.done ? .gray : .green)
+
+                    Button {
+                        togglePin(note)
+                    } label: {
+                        Label(
+                            LiveActivityManager.isPinned(noteId: note.id) ? "Unpin" : "Pin",
+                            systemImage: LiveActivityManager.isPinned(noteId: note.id)
+                                ? "pin.slash.fill" : "pin.fill"
+                        )
+                    }
+                    .tint(.orange)
                 }
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
@@ -241,6 +260,26 @@ struct NoteListView: View {
                 await feedPet()
             }
             reloadNotes()
+            // 同步更新锁屏 Live Activity
+            if LiveActivityManager.isPinned(noteId: note.id),
+               let store = SharedStore.cachedAppGroup(),
+               let updatedNotes = try? store.allNotes(),
+               let updated = updatedNotes.first(where: { $0.id == note.id }) {
+                let items = (try? store.noteItems(noteId: note.id)) ?? []
+                LiveActivityManager.updateIfPinned(note: updated, items: items)
+            }
+        }
+    }
+
+    /// 钉/取消钉便签到锁屏 Live Activity。
+    private func togglePin(_ note: Note) {
+        if LiveActivityManager.isPinned(noteId: note.id) {
+            LiveActivityManager.unpin(noteId: note.id)
+        } else {
+            guard let store = SharedStore.cachedAppGroup() else { return }
+            let items = (try? store.noteItems(noteId: note.id)) ?? []
+            let pet = try? store.selectedPet()
+            try? LiveActivityManager.pin(note: note, items: items, pet: pet)
         }
     }
 

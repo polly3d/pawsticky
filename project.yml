@@ -20,6 +20,7 @@ targets:
     platform: iOS
     sources:
       - PawIt
+      - Shared
     dependencies:
       - package: Core
       - target: PawItWidget
@@ -34,6 +35,7 @@ targets:
       properties:
         CFBundleDisplayName: PawIt
         UILaunchScreen: {}
+        NSSupportsLiveActivities: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app
@@ -42,6 +44,7 @@ targets:
     platform: iOS
     sources:
       - PawItWidget
+      - Shared
     dependencies:
       - package: Core
     entitlements:

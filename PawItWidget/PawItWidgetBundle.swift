@@ -726,5 +726,6 @@ struct PawItWidget: Widget {
 struct PawItWidgetBundle: WidgetBundle {
     var body: some Widget {
         PawItWidget()
+        NoteActivityLiveActivity()
     }
 }
