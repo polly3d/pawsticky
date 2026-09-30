@@ -161,19 +161,47 @@ struct NoteEditorView: View {
         }
     }
 
-    // MARK: - Checklist
+    // MARK: - Checklist（W3-4）
 
     private var checklistSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Checklist")
-                .font(.headline)
-                .padding(.top, 8)
+            HStack {
+                Text("Checklist")
+                    .font(.headline)
+                Spacer()
+                if !items.isEmpty {
+                    Text("\(items.filter(\.done).count)/\(items.count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 8)
 
-            ForEach(items, id: \.id) { item in
-                ChecklistItemRow(item: item, preset: currentPreset) {
-                    toggleItem(item)
-                } onDelete: {
-                    deleteItem(item)
+            if items.isEmpty {
+                Text("Add your first item")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 12)
+            } else {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ChecklistItemRow(item: item, preset: currentPreset) {
+                        toggleItem(item)
+                    } onDelete: {
+                        deleteItem(item)
+                    }
+                    .draggable(item.id.uuidString) {
+                        ChecklistItemRow(item: item, preset: currentPreset, onToggle: {}, onDelete: {})
+                            .frame(width: 300)
+                            .opacity(0.8)
+                    }
+                    .dropDestination(for: String.self) { droppedIDs, _ in
+                        guard let droppedID = droppedIDs.first,
+                              let fromIndex = items.firstIndex(where: { $0.id.uuidString == droppedID }),
+                              fromIndex != index else { return false }
+                        moveItem(from: fromIndex, to: index)
+                        return true
+                    }
                 }
             }
 
@@ -181,10 +209,13 @@ struct NoteEditorView: View {
                 TextField("Add item...", text: $newItemText)
                     .textFieldStyle(.plain)
                     .onSubmit { addItem() }
+                    .accessibilityLabel("New checklist item")
                 Button(action: addItem) {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(Color.accentColor)
                 }
                 .disabled(newItemText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .accessibilityLabel("Add checklist item")
             }
             .padding(.vertical, 4)
         }
@@ -329,6 +360,8 @@ struct NoteEditorView: View {
         let trimmed = newItemText.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, let repository, let noteID = effectiveNoteID else { return }
         Task {
+            let maxPos = items.map(\.position).max() ?? -1
+            var item = NoteItem(noteId: noteID, text: trimmed, position: maxPos + 1)
             _ = try? await repository.addItem(to: noteID, text: trimmed)
             newItemText = ""
             items = (try? repository.noteItems(noteId: noteID)) ?? []
@@ -339,6 +372,29 @@ struct NoteEditorView: View {
         guard let repository, let noteID = effectiveNoteID else { return }
         Task {
             try? await repository.deleteItem(noteId: noteID, itemId: item.id)
+            items = (try? repository.noteItems(noteId: noteID)) ?? []
+        }
+    }
+
+    /// 拖拽排序：将 fromIndex 处的项目移动到 toIndex 处，并更新所有受影响项的 position。
+    private func moveItem(from source: Int, to destination: Int) {
+        guard let repository, let noteID = effectiveNoteID else { return }
+
+        var reordered = items
+        let moving = reordered.remove(at: source)
+        let insertAt = destination > source ? destination - 1 : destination
+        reordered.insert(moving, at: min(insertAt, reordered.count))
+
+        // 乐观更新 UI
+        items = reordered
+
+        // 持久化新 position
+        Task {
+            for (index, var item) in reordered.enumerated() where item.position != index {
+                item.position = index
+                try? await repository.updateItem(item)
+            }
+            // 重新从 DB 加载确保一致
             items = (try? repository.noteItems(noteId: noteID)) ?? []
         }
     }
