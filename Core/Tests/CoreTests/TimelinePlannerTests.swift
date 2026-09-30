@@ -144,6 +144,30 @@ struct TimelinePlannerTests {
         #expect(slots[1].date.timeIntervalSince(now) == 23 * 3600 - 1800 + 60)
     }
 
+    // MARK: - 午夜跳变类时区（00:00-00:59 不存在的日子，圣地亚哥/哈瓦那/开罗/亚松森类）
+
+    @Test func springForwardAtMidnightDayBoundsAtTrueMidnight() {
+        // America/Santiago 2026-09-06：春令时跳变发生在午夜——00:00-00:59 不存在，
+        // 当天从 01:00 开始。「startOfDay + 1 天」会把日界保号到次日 01:00（越界 1 小时）；
+        // 正确答案永远以真实次日 00:00 为界——午夜翻转是 W4 DoD，此错误会被全家族克隆。
+        let tz = "America/Santiago"
+        let planner = makePlanner(timeZoneID: tz)
+
+        // 跳变日当天：倒计时到次日 00:00（而非 01:00），翻转条目在 00:01。
+        let now = date(2026, 9, 6, 12, 0, timeZoneID: tz)
+        let slots = planner.entries(now: now)
+        #expect(slots[0].countdownTarget == date(2026, 9, 7, timeZoneID: tz))
+        #expect(slots[0].countdownTarget.timeIntervalSince(now) == 12 * 3600)
+        #expect(slots[1].date == date(2026, 9, 7, 0, 1, timeZoneID: tz))
+        #expect(planner.nextReloadDate(after: now) == slots[1].date)
+
+        // 跳变日前一天：Sep 6 的真实起点是 01:00（00:00 不存在）——
+        // dateInterval 端点给出的是历法事实，而非「保号午夜」。
+        let eve = date(2026, 9, 5, 12, 0, timeZoneID: tz)
+        #expect(planner.nextMidnight(after: eve) == date(2026, 9, 6, 1, 0, timeZoneID: tz))
+        #expect(planner.nextMidnight(after: eve).timeIntervalSince(eve) == 12 * 3600)
+    }
+
     // MARK: - 墙钟/设备时区零依赖
 
     @Test func plannerFollowsInjectedCalendarNotDeviceClockOrTimezone() {

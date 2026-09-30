@@ -39,8 +39,13 @@ public struct TimelineSlot: Equatable, Sendable {
 /// 刷新策略的纯逻辑层：给定 `now`，预计算时间线条目与全天唯一一次预算内刷新时刻。
 ///
 /// - 纯函数：一切由入参 `now` + 注入的 `Calendar` 推导，内部不读墙钟（测试注入固定日期即可）。
-/// - DST 正确：日算术全部经 `Calendar`（如纽约 2026-11-01 是 25 小时的「今天」），
-///   不做固定 86400 秒的假设。
+/// - DST 正确：日算术全部经 `Calendar`——既有 25h/23h 的日长变化（纽约 2026-11-01 /
+///   2027-03-14），也有「午夜无 00:00」的跳变日（圣地亚哥 2026-09-06 类，日界取
+///   `dateInterval(of:.day)` 端点而非 startOfDay 保号值）；不做固定 86400 秒假设。
+/// - 已知限制（Known limitation）：条目按 init 时捕获的时区预计算。若用户在 widget
+///   已加载后更改设备时区，倒计时仍指向旧时区的午夜，直到下一次 00:01 预算 reload
+///   才换算到新时区（最长 ≤24 小时，之后自愈）。App 前台若感知到时区变化，可主动
+///   `WidgetCenter.reloadTimelines` 提前自愈（W5 接入）。
 public struct TimelinePlanner: Sendable {
     private let calendar: Calendar
 
@@ -84,7 +89,16 @@ public struct TimelinePlanner: Sendable {
     }
 
     private func startOfNextDay(after date: Date) -> Date {
-        self.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))
+        // 次日边界 = 当前「本地日」区间的 end（历法真相，跳变日也不例外）。
+        // 不能用 startOfDay + 1 天：在午夜无 00:00 的日子（圣地亚哥/哈瓦那/开罗/
+        // 亚松森类时区，春令时跳变发生在 00:00），startOfDay 返回 01:00，
+        // 加一天把「当日 01:00」保号成「次日 01:00」，越过真实日界 1 小时。
+        // dateInterval 的 end 在此类日子给出真实次日 00:00；25h/23h 日（纽约
+        // 双向往证）与常态日结果不变。
+        guard let dayInterval = calendar.dateInterval(of: .day, for: date) else {
+            fatalError("TimelinePlanner: 日历算术对可表示日期不可能返回 nil（本地日区间）")
+        }
+        return dayInterval.end
     }
 
     /// Calendar 算术仅对「不可表示的日期」返回 nil（系统时钟不可能给出）；
