@@ -1,18 +1,11 @@
 import SwiftUI
 import Core
 
+/// 旧占位视图，已被 NoteListView 替代（W3-2）。
+/// 保留作为参考；App 入口已切换至 NoteListView。
 struct ContentView: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Text("🐾")
-                .font(.system(size: 64))
-            Text("PawIt")
-                .font(.title.bold())
-            Text("由你的宠物帮你记住事情")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding()
+        NoteListView()
     }
 }
 

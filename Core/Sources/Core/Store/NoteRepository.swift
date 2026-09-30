@@ -344,6 +344,25 @@ public struct NoteRepository: Sendable {
         }
     }
 
+    // MARK: - 读取（W3-2：编辑器 UI 的便利入口,委托 SharedStore 同步读）
+
+    /// 全部便签,排序 (position ASC, createdAt ASC, id ASC)。
+    public func allNotes() throws -> [Note] {
+        try store.allNotes()
+    }
+
+    /// 指定便签。
+    public func note(id: UUID) throws -> Note? {
+        try store.read { db in
+            try Note.fetchOne(db, key: id.uuidString)
+        }
+    }
+
+    /// 指定便签的清单项,排序 (position ASC, id ASC)。
+    public func noteItems(noteId: UUID) throws -> [NoteItem] {
+        try store.noteItems(noteId: noteId)
+    }
+
     // MARK: - 导出 / 导入
 
     /// 导出全部数据。无口令 → 明文 JSON;有口令 → AES-GCM 加密(随机盐 + PBKDF2
