@@ -186,7 +186,7 @@ struct ToggleItemIntent: AppIntent {
 - Create: `Core/Store/SharedStore.swift`(真实实现)
 - Test: `Tests/SharedStoreTests.swift`(Swift Testing)
 
-- [ ] **Step 3.1:** 写失败测试(Swift Testing 语法):App 进程写入 Note → 同一 App Group 路径的第二个独立连接(模拟 Widget 进程)可读到:
+- [x] **Step 3.1:** 写失败测试(Swift Testing 语法):App 进程写入 Note → 同一 App Group 路径的第二个独立连接(模拟 Widget 进程)可读到:
 
 ```swift
 import Testing
@@ -200,12 +200,14 @@ import Testing
 }
 ```
 
-- [ ] **Step 3.2:** `xcodebuild test -scheme PawIt -destination 'platform=iOS Simulator,name=iPhone 16 Pro'` → 预期 FAIL(`SharedStore` 未实现)
-- [ ] **Step 3.3:** 实现 `SharedStore`:GRDB `DatabasePool`(自动 WAL)指向 `containerURL(forSecurityApplicationGroupIdentifier: "group.com.pawit.shared")` 下的 `store.sqlite`;`busyTimeout = 2s`;migrator 首次建表
-- [ ] **Step 3.4:** 测试转绿;再补**并发写冲突测试**(两连接同时改同一 Note,WAL 串行化下不丢更新、无 `SQLITE_BUSY` 抛出)
-- [ ] **Step 3.5:** 真机挂机冒烟:Widget 勾选(PoC A 链路)连续操作 50 次,数据零丢失
-- [ ] **Step 3.6:** **决策点**:全绿→D2 维持 GRDB;若遇不可解释的锁问题→降级单写者架构(App 单写,Widget 的 intent 结果回写经 App Group 消息队列由主 App 落盘),写入备忘录
-- [ ] **Step 3.7:** Commit:`feat: shared GRDB store in App Group, WAL dual-process (PoC B verified)`
+- [x] **Step 3.2:** `xcodebuild test -scheme PawIt -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` → 预期 FAIL(`SharedStore` 未实现)——TDD 红灯实证
+- [x] **Step 3.3:** 实现 `SharedStore`:GRDB `DatabasePool`(自动 WAL)+ `busyMode = .timeout(2)`(GRDB 7 改名)+ `DatabaseMigrator`(`w1.v1` 建 note 表);文件名落地为 `pawit.sqlite3`(优于计划的 store.sqlite,记录在案)
+- [x] **Step 3.4:** 测试转绿;并发测试超规格完成:4 连接×25 并发插入零丢失、16 并发翻转奇偶校验不变量、50 翻转 + 500 并发读全一致、WAL/表结构用 PRAGMA 断言
+- [ ] **Step 3.5:** 真机挂机冒烟:Widget 勾选连续 50 次(模拟器级已过:50 翻转 + 并发读零丢失;真机版随手动验收清单)
+- [x] **Step 3.6:** **决策点**:**D2 证实**——WAL 双连接零异常、零 workaround、无需降级单写者架构
+- [x] **Step 3.7:** Commit:`feat: shared GRDB store in App Group, WAL dual-process (PoC B verified)`(`324f73c`)
+
+> ✅ **Task 3 完成(2026-09-30)**:`324f73c`(10 文件 +387/−72,含 Package.resolved 锁 GRDB 7.11.1)。规格✅质量✅(Yes)。评审移交项已登记:①intent 每次开新池的 churn → W2 NoteRepository 进程级单池接管 ②双进程冷启动迁移竞态(败者 CREATE TABLE 撞表,非 BUSY)→ W2 加 retry-once 或 App 启动时急切迁移,**必须在 `w2.v1` 迁移上线前修** ③widget 把初始化失败永久缓存为 nil → W2 区分错误类型/重试 ④**文件保护级别**(DB + WAL/-shm 边车设 `.completeUntilFirstUserAuthentication`,否则锁屏 widget 首解前可能 SQLITE_IOERR)→ W2 必做 + 重启未解锁测试。
 
 ### Task 4: PoC C —— 刷新策略与零预算时间文字
 
@@ -226,7 +228,13 @@ import Testing
 
 ### Task 6: W1 收口
 
-- [ ] **Step 6.1:** 写《W1 架构备忘录》(1 页):D1-D5 全部"证实/证伪"结论 + 实测数据(D6 的验证点在 W10 D0,备忘录中登记计划)
+**已积累的备忘录素材(评审移交,写入 Step 6.1 备忘录):**
+- 计划内时序笔误:Task 2 原文引用了 Task 3 才有的 `SharedStore`;Task 2 文件清单误写 W4 的 NoteWidgetFamily.swift(已在文档修正)
+- 措辞诚实:commit "(PoC B verified)" 的"验证"指模拟器级双连接代理;真机跨进程 + GRDB 多进程 BUSY 边界(如 last-close checkpoint、崩溃恢复)仅真机可测
+- 待办的手动/真机验收清单:Task 2 Steps 2.2-2.4(springboard 点按、杀 App、延迟实测)、Task 3 Step 3.5 真机 50 连击、Task 1 真机三 target 部署
+- W2 前置项见 W2 卡"Task 3 评审移交"六条(单池、迁移竞态、失败缓存、文件保护、排序决胜、WAL 监控)
+
+- [ ] **Step 6.1:** 写《W1 架构备忘录》(1 页):D1-D5 全部"证实/证伪"结论 + 实测数据(D6 的验证点在 W10 D0,备忘录中登记计划)+ 上述素材
 - [ ] **Step 6.2:** 打 tag `week-1`;备忘录入库
 - [ ] **Step 6.3:** W2 任务卡展开为细粒度计划(下周一开工前)
 
@@ -240,7 +248,13 @@ import Testing
 **核心任务:** `Note`(**含 `dueDate` 字段**,§4.2 到期提醒的数据基础)/`NoteItem`/`PetProfile`/`GrowthState` 模型;`NoteRepository`(CRUD + 7 天 `HistoryLog` append-only 回滚 + 导出/导入:JSON,可选口令加密——统一口径,§7-P2);`NoteEngine` 勾选语义(经典划线样式保留——差评点 *"[1★ v4.6.3 2025-06-07] Liked it better before the update… able to cross the things on the list instead of a ✅"* `[reviews-1533254320-lows.txt]`)、排序、午夜翻转、到期语义;剩余 4 只宠物角色卡。
 **DoD:** Engine/Store 单测覆盖 ≥90%,全绿;`xcodebuild test` 通过;导出的 JSON 重新导入数据一致。
 **测试:** `NoteEngineTests`(勾选/划线/排序/午夜/**到期语义**),`HistoryLogTests`(回滚窗口),`SharedStoreTests`(GRDB `DatabaseMigrator` 迁移)。
-**注意事项:** GRDB 引入后提交 `Core/Package.resolved` 入库(工程级 resolved 随被忽略的 pbxproj 不入库,Core 的才是有效锁文件);为 PawItTests 增加 `- target: PawIt` 宿主链接,使 App 层逻辑可测(Task 1 评审遗留项)。
+**注意事项:** ~~GRDB 引入后提交 `Core/Package.resolved` 入库~~(Task 3 已完成,锁 7.11.1);为 PawItTests 增加 `- target: PawIt` 宿主链接,使 App 层逻辑可测(Task 1 评审遗留项)。**Task 3 评审移交(必须在此周消化):**
+1. `NoteRepository` 持**进程级唯一 DatabasePool** 并注入 intents(intent 现每次 `appGroup()` 开新池 + 跑迁移,churn 在 W5 延迟闸门上会爆);
+2. **迁移竞态修复**(双进程冷启动同时跑 migrator,败者 `CREATE TABLE` 撞表且非 BUSY):init retry-once 或 App 启动急切迁移——`w2.v1` 上线前必修;
+3. Widget 初始化失败不得永久缓存 nil:区分"容器不可用(永久)"与"迁移/瞬时失败(可重试)";
+4. **文件保护**:DB 与 WAL/-shm 边车显式设 `.completeUntilFirstUserAuthentication` + 真机"重启后未解锁看锁屏 widget"测试(锁屏 widget 首解前渲染,保护级别不匹配 = 经典 SQLITE_IOERR 来源);
+5. "首条 Note"排序无 tiebreaker(createdAt 相同则不确定)——NoteEngine 定义排序语义时加 id 决胜;
+6. WAL 增长监控纳入 dogfooding;GRDB 池读者已内置 `readonlyBusyMode=.timeout(10)`,跨进程 BUSY 排查时知悉。
 
 ### W3 · 编辑器 UI
 **核心任务:** Widget 点击 → 编辑器**光标直达正文,无命名步骤**(差评点 *"[2★ v5.0.0 2025-09-29] requirement to name a note before it will save"*)；逐键防抖 300ms 落盘;`scenePhase=.background` 即时落盘;清单模式;字体/颜色/渐变选择器;**到期提醒设置 UI + 通知权限申请流 + `UNUserNotificationCenter` 调度引擎**(§4.2 到期提醒;本地通知零刷新预算,与 D3 协同);深色模式全元素对比度校验;Dynamic Type。
