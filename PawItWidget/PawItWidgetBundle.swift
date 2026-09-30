@@ -482,11 +482,16 @@ struct CircularLockScreenWidget: View {
                 : Double(items.filter(\.done).count) / Double(max(items.count, 1))
 
             ZStack {
-                // 进度环
                 AccessoryWidgetBackground()
-                
-                // 外圈进度
-                if !items.isEmpty || note.done {
+
+                // 底层环（始终可见，作为轨道）
+                Circle()
+                    .stroke(style: StrokeStyle(lineWidth: 3))
+                    .opacity(0.2)
+                    .padding(2)
+
+                // 进度环（填充部分）
+                if progress > 0 {
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round))
@@ -495,13 +500,13 @@ struct CircularLockScreenWidget: View {
                         .widgetAccentable()
                 }
 
-                // 中心：宠物头像或图标
+                // 中心：宠物头像
                 if let pet {
                     Image("pet-\(pet.species.rawValue)-front")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .clipShape(Circle())
-                        .padding(6)
+                        .padding(7)
                 } else {
                     Image(systemName: note.done ? "checkmark" : "pawprint.fill")
                         .font(.system(size: 18, weight: .medium))
@@ -515,7 +520,7 @@ struct CircularLockScreenWidget: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .clipShape(Circle())
-                        .padding(6)
+                        .padding(7)
                 } else {
                     Image(systemName: "pawprint")
                         .font(.title2)
@@ -537,7 +542,7 @@ struct RectangularLockScreenWidget: View {
         if let note {
             let items = data.noteItems(noteId: note.id)
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 1) {
                 // 标题行：宠物小图标 + 便签标题
                 HStack(spacing: 4) {
                     if let pet {
@@ -564,8 +569,9 @@ struct RectangularLockScreenWidget: View {
                     }
                 }
 
-                // 清单项（最多 3 行，填满空间）
+                // 内容区：清单项 > 到期日 > 创建日期+状态
                 if !items.isEmpty {
+                    // 有清单项：显示清单列表
                     ForEach(items.prefix(3), id: \.id) { item in
                         HStack(spacing: 4) {
                             Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
@@ -594,13 +600,29 @@ struct RectangularLockScreenWidget: View {
                             .font(.caption)
                     }
                     .foregroundStyle(.secondary)
-                } else if !note.done {
-                    // 纯文字便签，显示更多文字内容
+                } else {
+                    // 纯文字便签：显示创建日期 + 便签总数
                     Spacer(minLength: 2)
-                    Text(note.text)
-                        .font(.caption)
-                        .lineLimit(2)
+                    HStack(spacing: 6) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 9))
+                            Text(note.createdAt.formatted(.dateTime.month(.abbreviated).day()))
+                                .font(.caption2)
+                        }
                         .foregroundStyle(.secondary)
+
+                        let totalNotes = data.noteCount()
+                        if totalNotes > 1 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "note.text")
+                                    .font(.system(size: 9))
+                                Text("\(totalNotes) notes")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         } else {
