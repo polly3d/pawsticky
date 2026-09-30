@@ -97,20 +97,20 @@ struct WatchRectangularWidget: View {
 
     var body: some View {
         if let note = entry.note {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 // 标题行：宠物 + 便签名 + 分页指示
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     if let pet = entry.pet {
                         Image("pet-\(pet.species)-front")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 18, height: 18)
+                            .frame(width: 20, height: 20)
                     } else {
                         Image(systemName: "pawprint.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                     }
                     Text(note.text.isEmpty ? "Untitled" : note.text)
-                        .font(.system(.caption, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .lineLimit(1)
                         .widgetAccentable()
 
@@ -124,18 +124,18 @@ struct WatchRectangularWidget: View {
                     }
                 }
 
-                // 清单项（未完成优先，最多显示 3 条）
+                // 清单项（未完成优先，最多显示 2 条）
                 if !note.items.isEmpty {
                     let pendingItems = note.items.filter { !$0.done }
-                    let display = pendingItems.isEmpty ? Array(note.items.prefix(3)) : Array(pendingItems.prefix(3))
+                    let display = pendingItems.isEmpty ? Array(note.items.prefix(2)) : Array(pendingItems.prefix(2))
 
                     ForEach(Array(display.enumerated()), id: \.offset) { _, item in
-                        HStack(spacing: 3) {
+                        HStack(spacing: 4) {
                             Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 8))
+                                .font(.system(size: 10))
                                 .foregroundStyle(item.done ? .green : .secondary)
                             Text(item.text)
-                                .font(.system(size: 11))
+                                .font(.system(size: 13))
                                 .lineLimit(1)
                                 .strikethrough(item.done)
                         }
@@ -144,26 +144,26 @@ struct WatchRectangularWidget: View {
                     let remaining = pendingItems.count - display.count
                     if remaining > 0 {
                         Text("+\(remaining) more")
-                            .font(.system(size: 9))
+                            .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         } else if entry.allDone {
             // 全部完成状态
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 if let pet = entry.pet {
                     Image("pet-\(pet.species)-front")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 28, height: 28)
                 } else {
                     Image(systemName: "checkmark.seal.fill")
                         .font(.title3)
                         .widgetAccentable()
                 }
                 Text("All done!")
-                    .font(.system(.caption, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .widgetAccentable()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
