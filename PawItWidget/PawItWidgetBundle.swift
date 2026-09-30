@@ -109,7 +109,7 @@ struct SmallNoteWidget: View {
             // 底部栏：宠物 + 状态 + 翻页
             HStack(spacing: 4) {
                 if let pet {
-                    WidgetPetAvatar(species: pet.species, mood: mood, size: 22)
+                    WidgetPetAvatar(species: pet.species, mood: mood, size: 28, pose: .holding)
                 }
 
                 if note.done {
@@ -418,27 +418,73 @@ struct CircularLockScreenWidget: View {
     let data: WidgetDataProvider
 
     private var note: Note? { data.currentNote() }
+    private var pet: PetProfile? { data.selectedPet() }
 
     var body: some View {
         if let note {
             ZStack {
                 AccessoryWidgetBackground()
-                VStack(spacing: 2) {
-                    Image(systemName: note.done ? "checkmark.circle.fill" : "pawprint.fill")
-                        .font(.title3)
-                    if let due = note.dueDate {
-                        Text(due, style: .timer)
-                            .font(.system(.caption2, design: .monospaced))
-                            .multilineTextAlignment(.center)
+                if let pet {
+                    // 真实宠物头像 + 状态角标
+                    ZStack {
+                        petImage(pet)
+                            .clipShape(Circle())
+
+                        // 状态角标
+                        if note.done {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.green)
+                                .background(Circle().fill(.black).frame(width: 16, height: 16))
+                                .offset(x: 14, y: 14)
+                        } else if note.dueDate != nil, NoteEngine.isOverdue(
+                            note, now: .now
+                        ) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.red)
+                                .background(Circle().fill(.black).frame(width: 16, height: 16))
+                                .offset(x: 14, y: 14)
+                        }
+                    }
+                } else {
+                    VStack(spacing: 2) {
+                        Image(systemName: note.done ? "checkmark.circle.fill" : "pawprint.fill")
+                            .font(.title3)
+                        if let due = note.dueDate {
+                            Text(due, style: .timer)
+                                .font(.system(.caption2, design: .monospaced))
+                                .multilineTextAlignment(.center)
+                        }
                     }
                 }
             }
         } else {
             ZStack {
                 AccessoryWidgetBackground()
-                Image(systemName: "pawprint")
-                    .font(.title2)
+                if let pet {
+                    petImage(pet)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "pawprint")
+                        .font(.title2)
+                }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func petImage(_ pet: PetProfile) -> some View {
+        let frontName = "pet-\(pet.species.rawValue)-front"
+        if UIImage(named: frontName) != nil {
+            Image(frontName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .widgetAccentable()
+        } else {
+            Image(systemName: PetAsset.placeholderSymbol(species: pet.species))
+                .font(.title2)
+                .widgetAccentable()
         }
     }
 }
@@ -449,49 +495,103 @@ struct RectangularLockScreenWidget: View {
     let data: WidgetDataProvider
 
     private var note: Note? { data.currentNote() }
+    private var pet: PetProfile? { data.selectedPet() }
 
     var body: some View {
         if let note {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Image(systemName: note.done ? "checkmark.circle.fill" : "pawprint.fill")
-                        .font(.caption)
+            HStack(spacing: 8) {
+                // 左侧：宠物头像
+                if let pet {
+                    petImage(pet)
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                // 右侧：便签内容
+                VStack(alignment: .leading, spacing: 2) {
                     Text(note.text.isEmpty ? "Untitled" : note.text)
                         .font(.headline)
                         .lineLimit(1)
                         .strikethrough(NoteEngine.strikethrough(isDone: note.done))
-                }
-                let items = data.noteItems(noteId: note.id)
-                if !items.isEmpty {
-                    ForEach(items.prefix(2), id: \.id) { item in
+                        .widgetAccentable()
+
+                    let items = data.noteItems(noteId: note.id)
+                    if !items.isEmpty {
                         HStack(spacing: 3) {
-                            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                                .font(.caption2)
-                            Text(item.text)
+                            let doneCount = items.filter(\.done).count
+                            Text("\(doneCount)/\(items.count)")
                                 .font(.caption)
-                                .lineLimit(1)
-                                .strikethrough(NoteEngine.strikethrough(isDone: item.done))
+                                .foregroundStyle(.secondary)
+
+                            // 进度条
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(.secondary.opacity(0.3))
+                                        .frame(height: 4)
+                                    Capsule()
+                                        .fill(.primary)
+                                        .frame(
+                                            width: geo.size.width * CGFloat(doneCount) / CGFloat(max(items.count, 1)),
+                                            height: 4
+                                        )
+                                }
+                            }
+                            .frame(height: 4)
+                        }
+                    } else if let due = note.dueDate {
+                        HStack(spacing: 3) {
+                            Image(systemName: NoteEngine.isOverdue(note, now: .now) ? "exclamationmark.triangle.fill" : "bell.fill")
+                                .font(.caption2)
+                            Text(due, style: .relative)
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.secondary)
+                    } else if note.done {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption2)
+                            Text("Done")
+                                .font(.caption)
                         }
                         .foregroundStyle(.secondary)
                     }
-                } else if let due = note.dueDate {
-                    Text(due, style: .relative)
+                }
+            }
+        } else {
+            HStack(spacing: 8) {
+                if let pet {
+                    petImage(pet)
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Image(systemName: "pawprint")
+                        .font(.title3)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PawIt")
+                        .font(.headline)
+                        .widgetAccentable()
+                    Text("No notes yet")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func petImage(_ pet: PetProfile) -> some View {
+        let frontName = "pet-\(pet.species.rawValue)-front"
+        if UIImage(named: frontName) != nil {
+            Image(frontName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .widgetAccentable()
         } else {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Image(systemName: "pawprint")
-                        .font(.caption)
-                    Text("PawIt")
-                        .font(.headline)
-                }
-                Text("No notes yet")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Image(systemName: PetAsset.placeholderSymbol(species: pet.species))
+                .font(.title3)
+                .widgetAccentable()
         }
     }
 }
@@ -508,12 +608,26 @@ struct InlineLockScreenWidget: View {
             let items = data.noteItems(noteId: note.id)
             if !items.isEmpty {
                 let done = items.filter(\.done).count
-                Text("📝 \(note.text.prefix(20)) (\(done)/\(items.count))")
+                Label {
+                    Text("\(note.text.prefix(18)) \(done)/\(items.count)")
+                } icon: {
+                    Image(systemName: "pawprint.fill")
+                }
+            } else if note.done {
+                Label {
+                    Text("✓ \(note.text.prefix(25))")
+                } icon: {
+                    Image(systemName: "pawprint.fill")
+                }
             } else {
-                Text("📝 \(note.text.prefix(30))")
+                Label {
+                    Text("\(note.text.prefix(28))")
+                } icon: {
+                    Image(systemName: "pawprint.fill")
+                }
             }
         } else {
-            Text("🐾 PawIt — No notes")
+            Label("PawIt — No notes", systemImage: "pawprint")
         }
     }
 }
