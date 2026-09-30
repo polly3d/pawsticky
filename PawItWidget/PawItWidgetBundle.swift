@@ -467,7 +467,7 @@ struct LargeNoteWidget: View {
     }
 }
 
-// MARK: - Lock Screen: Circular
+// MARK: - Lock Screen: Circular（宠物头像 + 进度环）
 
 struct CircularLockScreenWidget: View {
     let data: WidgetDataProvider
@@ -477,49 +477,45 @@ struct CircularLockScreenWidget: View {
 
     var body: some View {
         if let note {
-            ZStack {
-                AccessoryWidgetBackground()
-                if let pet {
-                    // 真实宠物头像 + 状态角标
-                    ZStack {
-                        petImage(pet)
-                            .clipShape(Circle())
+            let items = data.noteItems(noteId: note.id)
+            let progress: Double = items.isEmpty ? (note.done ? 1.0 : 0.0)
+                : Double(items.filter(\.done).count) / Double(max(items.count, 1))
 
-                        // 状态角标
-                        if note.done {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.green)
-                                .background(Circle().fill(.black).frame(width: 16, height: 16))
-                                .offset(x: 14, y: 14)
-                        } else if note.dueDate != nil, NoteEngine.isOverdue(
-                            note, now: .now
-                        ) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.red)
-                                .background(Circle().fill(.black).frame(width: 16, height: 16))
-                                .offset(x: 14, y: 14)
-                        }
-                    }
+            ZStack {
+                // 进度环
+                AccessoryWidgetBackground()
+                
+                // 外圈进度
+                if !items.isEmpty || note.done {
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .padding(2)
+                        .widgetAccentable()
+                }
+
+                // 中心：宠物头像或图标
+                if let pet {
+                    Image("pet-\(pet.species.rawValue)-front")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(Circle())
+                        .padding(6)
                 } else {
-                    VStack(spacing: 2) {
-                        Image(systemName: note.done ? "checkmark.circle.fill" : "pawprint.fill")
-                            .font(.title3)
-                        if let due = note.dueDate {
-                            Text(due, style: .timer)
-                                .font(.system(.caption2, design: .monospaced))
-                                .multilineTextAlignment(.center)
-                        }
-                    }
+                    Image(systemName: note.done ? "checkmark" : "pawprint.fill")
+                        .font(.system(size: 18, weight: .medium))
                 }
             }
         } else {
             ZStack {
                 AccessoryWidgetBackground()
                 if let pet {
-                    petImage(pet)
+                    Image("pet-\(pet.species.rawValue)-front")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
                         .clipShape(Circle())
+                        .padding(6)
                 } else {
                     Image(systemName: "pawprint")
                         .font(.title2)
@@ -527,17 +523,9 @@ struct CircularLockScreenWidget: View {
             }
         }
     }
-
-    @ViewBuilder
-    private func petImage(_ pet: PetProfile) -> some View {
-        Image("pet-\(pet.species.rawValue)-front")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .widgetAccentable()
-    }
 }
 
-// MARK: - Lock Screen: Rectangular
+// MARK: - Lock Screen: Rectangular（便签卡片——对标 Sticky Widgets）
 
 struct RectangularLockScreenWidget: View {
     let data: WidgetDataProvider
@@ -547,93 +535,96 @@ struct RectangularLockScreenWidget: View {
 
     var body: some View {
         if let note {
-            HStack(spacing: 8) {
-                // 左侧：宠物头像
-                if let pet {
-                    petImage(pet)
-                        .frame(width: 36, height: 36)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
+            let items = data.noteItems(noteId: note.id)
 
-                // 右侧：便签内容
-                VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
+                // 标题行：宠物小图标 + 便签标题
+                HStack(spacing: 4) {
+                    if let pet {
+                        Image("pet-\(pet.species.rawValue)-front")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 14, height: 14)
+                    } else {
+                        Image(systemName: "pawprint.fill")
+                            .font(.system(size: 10))
+                    }
+
                     Text(note.text.isEmpty ? "Untitled" : note.text)
-                        .font(.headline)
+                        .font(.system(.subheadline, weight: .bold))
                         .lineLimit(1)
                         .strikethrough(NoteEngine.strikethrough(isDone: note.done))
                         .widgetAccentable()
 
-                    let items = data.noteItems(noteId: note.id)
-                    if !items.isEmpty {
-                        HStack(spacing: 3) {
-                            let doneCount = items.filter(\.done).count
-                            Text("\(doneCount)/\(items.count)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
 
-                            // 进度条
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    Capsule()
-                                        .fill(.secondary.opacity(0.3))
-                                        .frame(height: 4)
-                                    Capsule()
-                                        .fill(.primary)
-                                        .frame(
-                                            width: geo.size.width * CGFloat(doneCount) / CGFloat(max(items.count, 1)),
-                                            height: 4
-                                        )
-                                }
-                            }
-                            .frame(height: 4)
-                        }
-                    } else if let due = note.dueDate {
-                        HStack(spacing: 3) {
-                            Image(systemName: NoteEngine.isOverdue(note, now: .now) ? "exclamationmark.triangle.fill" : "bell.fill")
-                                .font(.caption2)
-                            Text(due, style: .relative)
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.secondary)
-                    } else if note.done {
-                        HStack(spacing: 3) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption2)
-                            Text("Done")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.secondary)
+                    if note.done {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 11))
                     }
+                }
+
+                // 清单项（最多 3 行，填满空间）
+                if !items.isEmpty {
+                    ForEach(items.prefix(3), id: \.id) { item in
+                        HStack(spacing: 4) {
+                            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 10))
+                            Text(item.text)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .strikethrough(NoteEngine.strikethrough(isDone: item.done))
+                        }
+                        .foregroundStyle(item.done ? .secondary : .primary)
+                    }
+
+                    if items.count > 3 {
+                        Text("+\(items.count - 3) more")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let due = note.dueDate {
+                    // 没有清单项，显示到期时间
+                    Spacer(minLength: 2)
+                    HStack(spacing: 4) {
+                        Image(systemName: NoteEngine.isOverdue(note, now: .now)
+                            ? "exclamationmark.triangle.fill" : "bell.fill")
+                            .font(.system(size: 10))
+                        Text(due, style: .relative)
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.secondary)
+                } else if !note.done {
+                    // 纯文字便签，显示更多文字内容
+                    Spacer(minLength: 2)
+                    Text(note.text)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .foregroundStyle(.secondary)
                 }
             }
         } else {
-            HStack(spacing: 8) {
-                if let pet {
-                    petImage(pet)
-                        .frame(width: 36, height: 36)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    Image(systemName: "pawprint")
-                        .font(.title3)
-                }
-                VStack(alignment: .leading, spacing: 2) {
+            // 空状态
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    if let pet {
+                        Image("pet-\(pet.species.rawValue)-front")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 14, height: 14)
+                    } else {
+                        Image(systemName: "pawprint.fill")
+                            .font(.system(size: 10))
+                    }
                     Text("PawIt")
-                        .font(.headline)
+                        .font(.system(.subheadline, weight: .bold))
                         .widgetAccentable()
-                    Text("No notes yet")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
+                Text("No notes yet")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
-    }
-
-    @ViewBuilder
-    private func petImage(_ pet: PetProfile) -> some View {
-        Image("pet-\(pet.species.rawValue)-front")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .widgetAccentable()
     }
 }
 
