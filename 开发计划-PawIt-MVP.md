@@ -271,7 +271,7 @@ import Testing
 
 | 子任务 | 内容 | 验收 |
 |---|---|---|
-| **W2-1 可靠性四件套** | ①进程级单池接入点(intent/widget 复用,修 churn)②迁移竞态 retry-once ③初始化失败不缓存 nil(下次访问可重试)④DB + WAL/-shm 文件保护 `.completeUntilFirstUserAuthentication` ⑤首条排序 id 决胜 | TDD + 双评审 |
+| **W2-1 可靠性四件套** | ①进程级单池接入点(intent/widget 复用,修 churn)②迁移竞态 retry-once ③初始化失败不缓存 nil(下次访问可重试)④DB + WAL/-shm 文件保护 `.completeUntilFirstUserAuthentication` ⑤首条排序 id 决胜 | ✅ `5c401cc`(29 测试)。规格✅(评审员亲自探针实证"模拟器不持久化保护键"平台声明);质量✅(限额期由控制器内联评审,独立性降级已披露)。遗留→W2-4:缓存失败加 os_log 诊断、WAL 边车重建后保护重设 hook |
 | **W2-2 w2.v1 schema + 模型** | `Note`(dueDate/position)、`NoteItem`、`PetProfile`、`GrowthState` 骨架;`DatabaseMigrator` 扩展;排序语义落库 | TDD + 双评审 |
 | **W2-3 NoteEngine** | 勾选/划线/排序/午夜翻转(**消费 TimelinePlanner 日界,单一事实源**)/到期语义;纯逻辑全覆盖 | TDD + 双评审 |
 | **W2-4 NoteRepository + HistoryLog + 导出** | CRUD、7 天 append-only 回滚日志、JSON 导出/导入(可选口令加密)、PawItTests 宿主链接 | TDD + 双评审;DoD:导出→导入数据一致 |
