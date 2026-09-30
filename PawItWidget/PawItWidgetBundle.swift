@@ -58,42 +58,50 @@ struct PawItWidgetEntryView: View {
     }
 }
 
-// MARK: - System Small（W5：交互式——点击勾选，长按翻页）
+// MARK: - System Small（宠物在右下角，便签文字在上方）
 
 struct SmallNoteWidget: View {
     let data: WidgetDataProvider
     let entry: PawItEntry
 
     private var note: Note? { data.currentNote() }
+    private var pet: PetProfile? { data.selectedPet() }
     private var preset: NoteStylePreset {
         note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
     private var hasMultipleNotes: Bool { data.noteCount() > 1 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let note {
-                noteContent(note)
-            } else {
-                emptyState
+        ZStack(alignment: .bottomTrailing) {
+            // 便签内容
+            VStack(alignment: .leading, spacing: 4) {
+                if let note {
+                    noteContent(note)
+                } else {
+                    emptyState
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(12)
+
+            // 宠物图（右下角，35% 宽度）
+            if let pet {
+                let petName = petImageName(pet.species)
+                Image(petName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 55, height: 55)
+                    .padding(.trailing, 4)
+                    .padding(.bottom, 4)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(12)
         .containerBackground(for: .widget) {
             preset.backgroundColor
         }
     }
 
     private func noteContent(_ note: Note) -> some View {
-        let pet = data.selectedPet()
-        let mood = PetNoteRenderer.inferMood(
-            isDone: note.done,
-            isOverdue: NoteEngine.isOverdue(note, now: entry.date)
-        )
-
-        return VStack(alignment: .leading, spacing: 6) {
-            // 便签正文（点击整区域勾选）
+        VStack(alignment: .leading, spacing: 4) {
             Button(intent: ToggleItemIntent()) {
                 Text(note.text.isEmpty ? "Untitled" : note.text)
                     .font(.system(.subheadline, weight: .medium))
@@ -106,12 +114,8 @@ struct SmallNoteWidget: View {
 
             Spacer(minLength: 0)
 
-            // 底部栏：宠物 + 状态 + 翻页
+            // 底部状态栏
             HStack(spacing: 4) {
-                if let pet {
-                    WidgetPetAvatar(species: pet.species, mood: mood, size: 28, pose: .holding)
-                }
-
                 if note.done {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
@@ -131,14 +135,12 @@ struct SmallNoteWidget: View {
                         )
                 }
                 Spacer()
-
                 let items = data.noteItems(noteId: note.id)
                 if !items.isEmpty {
                     Text("\(items.filter(\.done).count)/\(items.count)")
                         .font(.caption2)
                         .foregroundStyle(preset.textColor.opacity(0.6))
                 }
-
                 if hasMultipleNotes {
                     Button(intent: CycleNoteIntent()) {
                         Image(systemName: "chevron.right.circle.fill")
@@ -164,49 +166,104 @@ struct SmallNoteWidget: View {
     }
 }
 
-// MARK: - System Medium（W5：左侧勾选 + 右侧清单项可勾选 + 翻页）
+// MARK: - System Medium（宠物在左侧举牌，便签内容在右侧）
 
 struct MediumNoteWidget: View {
     let data: WidgetDataProvider
     let entry: PawItEntry
 
     private var note: Note? { data.currentNote() }
+    private var pet: PetProfile? { data.selectedPet() }
     private var preset: NoteStylePreset {
         note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
     private var hasMultipleNotes: Bool { data.noteCount() > 1 }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(spacing: 0) {
             if let note {
-                leftColumn(note)
-                rightColumn(note)
+                // 左侧：宠物区（约 30% 宽度）
+                petArea
+                    .frame(maxHeight: .infinity)
+
+                // 右侧：便签内容（约 70% 宽度）
+                noteArea(note)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             } else {
                 emptyState
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(14)
         .containerBackground(for: .widget) {
             preset.backgroundColor
         }
     }
 
-    private func leftColumn(_ note: Note) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private var petArea: some View {
+        VStack {
+            Spacer()
+            if let pet {
+                let petName = petImageName(pet.species)
+                Image(petName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 100)
+            } else {
+                Image(systemName: "pawprint.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(preset.textColor.opacity(0.3))
+            }
+            Spacer()
+        }
+        .frame(width: 110)
+        .padding(.leading, 6)
+    }
+
+    private func noteArea(_ note: Note) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // 标题（可勾选）
             Button(intent: ToggleItemIntent()) {
                 Text(note.text.isEmpty ? "Untitled" : note.text)
-                    .font(.system(.subheadline, weight: .medium))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(preset.textColor)
-                    .lineLimit(4)
+                    .lineLimit(2)
                     .strikethrough(NoteEngine.strikethrough(isDone: note.done))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
 
+            // Checklist 项
+            let items = data.noteItems(noteId: note.id)
+            if !items.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(items.prefix(3), id: \.id) { item in
+                        HStack(spacing: 4) {
+                            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                .font(.caption2)
+                                .foregroundStyle(item.done ? .green : preset.textColor.opacity(0.4))
+                            Text(item.text)
+                                .font(.caption)
+                                .foregroundStyle(preset.textColor)
+                                .lineLimit(1)
+                                .strikethrough(NoteEngine.strikethrough(isDone: item.done))
+                        }
+                    }
+                    if items.count > 3 {
+                        Text("+\(items.count - 3) more")
+                            .font(.caption2)
+                            .foregroundStyle(preset.textColor.opacity(0.5))
+                    }
+                }
+            }
+
             Spacer(minLength: 0)
 
+            // 底部状态
             HStack(spacing: 4) {
+                if note.done {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption2)
+                }
                 if let due = note.dueDate {
                     HStack(spacing: 3) {
                         Image(systemName: "bell.fill")
@@ -219,6 +276,11 @@ struct MediumNoteWidget: View {
                     )
                 }
                 Spacer()
+                if !items.isEmpty {
+                    Text("\(items.filter(\.done).count)/\(items.count)")
+                        .font(.caption2)
+                        .foregroundStyle(preset.textColor.opacity(0.5))
+                }
                 if hasMultipleNotes {
                     Button(intent: CycleNoteIntent()) {
                         Image(systemName: "chevron.right.circle.fill")
@@ -229,75 +291,68 @@ struct MediumNoteWidget: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-    }
-
-    private func rightColumn(_ note: Note) -> some View {
-        let items = data.noteItems(noteId: note.id)
-        return VStack(alignment: .leading, spacing: 3) {
-            if items.isEmpty {
-                Text("No items")
-                    .font(.caption)
-                    .foregroundStyle(preset.textColor.opacity(0.5))
-            } else {
-                ForEach(items.prefix(4), id: \.id) { item in
-                    HStack(spacing: 4) {
-                        Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                            .font(.caption2)
-                            .foregroundStyle(item.done ? .green : preset.textColor.opacity(0.5))
-                        Text(item.text)
-                            .font(.caption)
-                            .foregroundStyle(preset.textColor)
-                            .lineLimit(1)
-                            .strikethrough(NoteEngine.strikethrough(isDone: item.done))
-                    }
-                }
-                if items.count > 4 {
-                    Text("+\(items.count - 4) more")
-                        .font(.caption2)
-                        .foregroundStyle(preset.textColor.opacity(0.5))
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.vertical, 14)
+        .padding(.trailing, 14)
+        .padding(.leading, 4)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "note.text")
-                .font(.title)
-                .foregroundStyle(.secondary)
-            Text("Tap to add a note")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            if let pet {
+                Image(petImageName(pet.species))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 80)
+            }
+            VStack(spacing: 8) {
+                Image(systemName: "note.text")
+                    .font(.title)
+                    .foregroundStyle(.secondary)
+                Text("Tap to add a note")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - System Large（W5：勾选 + 翻页 + 清单项交互）
+// MARK: - System Large（宠物在左下角，便签占主区域）
 
 struct LargeNoteWidget: View {
     let data: WidgetDataProvider
     let entry: PawItEntry
 
     private var note: Note? { data.currentNote() }
+    private var pet: PetProfile? { data.selectedPet() }
     private var preset: NoteStylePreset {
         note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
     private var hasMultipleNotes: Bool { data.noteCount() > 1 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let note {
-                fullNoteContent(note)
-            } else {
-                emptyState
+        ZStack(alignment: .bottomLeading) {
+            // 便签主内容
+            VStack(alignment: .leading, spacing: 8) {
+                if let note {
+                    fullNoteContent(note)
+                } else {
+                    emptyState
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(16)
+
+            // 宠物在左下角
+            if let pet {
+                Image(petImageName(pet.species))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 80, height: 80)
+                    .padding(.leading, 8)
+                    .padding(.bottom, 8)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(16)
         .containerBackground(for: .widget) {
             preset.backgroundColor
         }
@@ -615,6 +670,20 @@ struct InlineLockScreenWidget: View {
         } else {
             Label("PawIt — No notes", systemImage: "pawprint")
         }
+    }
+}
+
+// MARK: - Pet Image Helper
+
+/// 宠物图片名查找：holding pose → front 降级。
+/// cat/corgi 有举牌图，其余用正面图。
+private func petImageName(_ species: PetSpecies) -> String {
+    let holdingName = PetAsset.imageName(species: species, pose: .holding)
+    switch species {
+    case .cat, .corgi:
+        return holdingName
+    default:
+        return "pet-\(species.rawValue)-front"
     }
 }
 

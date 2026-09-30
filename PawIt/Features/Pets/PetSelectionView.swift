@@ -1,7 +1,7 @@
 import SwiftUI
 import Core
 
-/// 宠物选择界面（W6-3）——6 宠物网格，点击选择「当前举牌宠物」。
+/// 宠物选择界面（W6-3 → W7 升级）——大卡片布局，展示宠物全身。
 struct PetSelectionView: View {
     @State private var selectedSpecies: PetSpecies?
     @State private var pets: [PetProfile] = []
@@ -15,20 +15,19 @@ struct PetSelectionView: View {
     }
 
     private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
     ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 16) {
                     Text("Choose your pet companion")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    LazyVGrid(columns: columns, spacing: 16) {
+                    LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(PetSpecies.allCases, id: \.rawValue) { species in
                             PetCard(
                                 species: species,
@@ -64,7 +63,6 @@ struct PetSelectionView: View {
         selectedSpecies = species
 
         Task {
-            // 先取消所有选中
             for sp in PetSpecies.allCases {
                 let pet = PetProfile(
                     id: sp.rawValue,
@@ -78,38 +76,72 @@ struct PetSelectionView: View {
     }
 }
 
-// MARK: - Pet Card
+// MARK: - Pet Card（大卡片布局）
 
 private struct PetCard: View {
     let species: PetSpecies
     let isSelected: Bool
     let onSelect: () -> Void
 
+    private var accentColor: Color {
+        Color(
+            hue: PetAsset.accentHue(species: species) / 360,
+            saturation: 0.5,
+            brightness: 0.85
+        )
+    }
+
     var body: some View {
         Button(action: onSelect) {
-            VStack(spacing: 8) {
-                PetAvatarView(
-                    species: species,
-                    mood: .neutral,
-                    size: 72,
-                    pose: .holding
-                )
-                .overlay {
-                    if isSelected {
-                        Circle()
-                            .strokeBorder(Color.accentColor, lineWidth: 3)
-                            .frame(width: 72, height: 72)
-                    }
-                }
+            VStack(spacing: 6) {
+                // 宠物全身图
+                Image("pet-\(species.rawValue)-front")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(height: 100)
+                    .padding(.top, 12)
 
+                // 名字
                 Text(PetAsset.displayName(species: species))
-                    .font(.caption)
-                    .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(isSelected ? accentColor : .primary)
+
+                // 性格标签
+                Text(personality(species))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 10)
             }
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected
+                        ? accentColor.opacity(0.1)
+                        : Color(.systemGray6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        isSelected ? accentColor : Color.clear,
+                        lineWidth: 2.5
+                    )
+            )
+            .scaleEffect(isSelected ? 1.02 : 1.0)
+            .animation(.spring(duration: 0.25), value: isSelected)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(PetAsset.displayName(species: species)), \(isSelected ? "selected" : "not selected")")
+        .accessibilityLabel("\(PetAsset.displayName(species: species)), \(personality(species)), \(isSelected ? "selected" : "not selected")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func personality(_ species: PetSpecies) -> String {
+        switch species {
+        case .cat:      return "Warm & Playful"
+        case .graycat:  return "Calm & Gentle"
+        case .corgi:    return "Loyal & Energetic"
+        case .shiba:    return "Independent & Bold"
+        case .rabbit:   return "Soft & Curious"
+        case .hamster:  return "Tiny & Cheerful"
+        }
     }
 }

@@ -117,6 +117,12 @@ struct NoteListView: View {
 
     private var noteList: some View {
         List {
+            // Pet Mascot Header
+            petHeader
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+
             ForEach(notes, id: \.id) { note in
                 Button { editorMode = .edit(note.id) } label: {
                     NoteRowView(note: note)
@@ -150,6 +156,48 @@ struct NoteListView: View {
         }
         .listStyle(.plain)
         .refreshable { reloadNotes() }
+    }
+
+    // MARK: - Pet Header
+
+    @ViewBuilder
+    private var petHeader: some View {
+        if let store = SharedStore.cachedAppGroup(),
+           let pet = try? store.selectedPet() {
+            Button { showGrowthDashboard = true } label: {
+                HStack(spacing: 12) {
+                    PetAvatarView(species: pet.species, mood: .neutral, size: 52)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(PetAsset.displayName(species: pet.species))
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.primary)
+
+                        if GrowthSettings.isEnabled,
+                           let gs = try? store.growthState(petId: pet.id) {
+                            HStack(spacing: 8) {
+                                if gs.streakDays > 0 {
+                                    Label("\(gs.streakDays)d streak", systemImage: "flame.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                                Label("Lv.\(gs.fedLevel)", systemImage: "heart.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.pink)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - Helpers
