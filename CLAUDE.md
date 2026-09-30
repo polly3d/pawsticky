@@ -4,9 +4,12 @@
 PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业计划与调研项目。核心定位："由你的宠物帮你记住事情"——便签是骨，宠物是魂。
 
 ## 目录结构
-- `宠物便签商业计划书.md` — 完整商业计划书（v1.1）
-- `开发计划-PawIt-MVP.md` — 12 周开发实施计划（W1 已完成并勾选，W2-W12 为任务卡）
-- `W1-架构备忘录.md` — W1 收官备忘录（D1-D6 裁决 / W2 前置项 / 工具链坑）
+- `docs/plan.md` — 12 周开发实施计划（精简鸟瞰图）
+- `docs/business-plan.md` — 完整商业计划书（v1.1）
+- `docs/w1-architecture.md` — W1 架构备忘录（D1-D6 裁决 / W2 前置项 / 工具链坑）
+- `docs/w1-risk-elimination.md` — W1 详细任务与完成记录
+- `docs/w2-data-layer.md` — W2 详细任务与完成记录
+- `docs/w3-editor-ui.md` — W3 详细任务与完成记录
 - `art/` — 美术资产与生成管线（风格已冻结 B 扁平矢量+描边，见 `art/style-pack/style-notes.md`）
 - `research/` — 一手调研数据（iTunes API 抓取，2026-09-29）
   - `lookup-*.json` — 竞品元数据（iTunes Lookup API）
