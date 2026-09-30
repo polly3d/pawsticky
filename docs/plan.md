@@ -81,7 +81,7 @@ App 编辑   → 300ms 防抖落盘 → scenePhase=.background 即时全量落�
 | **W2** | 数据层 + 便签引擎 | ✅ | [`docs/w2-data-layer.md`](w2-data-layer.md) |
 | **W3** | 编辑器 UI | ✅ | [`docs/w3-editor-ui.md`](w3-editor-ui.md) |
 | **W4** | Widget 家族（静态渲染）| ✅ | [`docs/w4-widget-static.md`](w4-widget-static.md) |
-| **W5** | 交互式 Widget + App Intents | 📋 | — |
+| **W5** | 交互式 Widget + App Intents | ✅ | [`docs/w5-interactive-widget.md`](w5-interactive-widget.md) |
 | **W6** | 宠物层集成 | 📋 | — |
 | **W7** | 轻养成 + 分享卡片 | 📋 | — |
 | **W8** | 商业化 | 📋 | — |
