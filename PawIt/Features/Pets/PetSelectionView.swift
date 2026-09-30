@@ -66,7 +66,7 @@ struct PetSelectionView: View {
         Task {
             // 先取消所有选中
             for sp in PetSpecies.allCases {
-                var pet = PetProfile(
+                let pet = PetProfile(
                     id: sp.rawValue,
                     species: sp,
                     displayName: PetAsset.displayName(species: sp),
@@ -88,27 +88,12 @@ private struct PetCard: View {
     var body: some View {
         Button(action: onSelect) {
             VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            Color(
-                                hue: PetAsset.accentHue(species: species) / 360,
-                                saturation: isSelected ? 0.4 : 0.15,
-                                brightness: 0.95
-                            )
-                        )
-                        .frame(width: 72, height: 72)
-
-                    Image(systemName: PetAsset.placeholderSymbol(species: species))
-                        .font(.system(size: 32))
-                        .foregroundStyle(
-                            Color(
-                                hue: PetAsset.accentHue(species: species) / 360,
-                                saturation: 0.6,
-                                brightness: 0.5
-                            )
-                        )
-                }
+                PetAvatarView(
+                    species: species,
+                    mood: .neutral,
+                    size: 72,
+                    pose: .holding
+                )
                 .overlay {
                     if isSelected {
                         Circle()

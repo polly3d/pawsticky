@@ -74,7 +74,10 @@ struct NoteListView: View {
                 }
             }
             .sheet(isPresented: $showPetSelection) {
-                PetSelectionView { reloadNotes() }
+                PetSelectionView {
+                    showPetSelection = false
+                    reloadNotes()
+                }
             }
             .sheet(isPresented: $showGrowthDashboard) {
                 GrowthDashboardView { showGrowthDashboard = false }

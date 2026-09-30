@@ -475,17 +475,10 @@ struct CircularLockScreenWidget: View {
 
     @ViewBuilder
     private func petImage(_ pet: PetProfile) -> some View {
-        let frontName = "pet-\(pet.species.rawValue)-front"
-        if UIImage(named: frontName) != nil {
-            Image(frontName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .widgetAccentable()
-        } else {
-            Image(systemName: PetAsset.placeholderSymbol(species: pet.species))
-                .font(.title2)
-                .widgetAccentable()
-        }
+        Image("pet-\(pet.species.rawValue)-front")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .widgetAccentable()
     }
 }
 
@@ -582,17 +575,10 @@ struct RectangularLockScreenWidget: View {
 
     @ViewBuilder
     private func petImage(_ pet: PetProfile) -> some View {
-        let frontName = "pet-\(pet.species.rawValue)-front"
-        if UIImage(named: frontName) != nil {
-            Image(frontName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .widgetAccentable()
-        } else {
-            Image(systemName: PetAsset.placeholderSymbol(species: pet.species))
-                .font(.title3)
-                .widgetAccentable()
-        }
+        Image("pet-\(pet.species.rawValue)-front")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .widgetAccentable()
     }
 }
 

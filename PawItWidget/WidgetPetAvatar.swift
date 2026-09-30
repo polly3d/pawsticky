@@ -2,6 +2,9 @@ import SwiftUI
 import Core
 
 /// Widget 内宠物渲染（W6-2 → W7 升级）——优先使用真实美术资产。
+///
+/// Widget 中不使用 UIImage(named:) 检查（扩展进程的 Bundle.main 行为不同），
+/// 直接按 species 加载已知的 Asset Catalog 图片。
 struct WidgetPetAvatar: View {
     let species: PetSpecies
     let mood: PetMood
@@ -20,7 +23,10 @@ struct WidgetPetAvatar: View {
                 )
                 .frame(width: size, height: size)
 
-            petImage
+            // 直接加载 front 图（所有 6 种宠物都有）
+            Image("pet-\(species.rawValue)-front")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
                 .frame(width: size * 0.85, height: size * 0.85)
 
             if mood == .happy {
@@ -34,32 +40,6 @@ struct WidgetPetAvatar: View {
                     .foregroundStyle(.orange)
                     .offset(x: size * 0.3, y: -size * 0.3)
             }
-        }
-    }
-
-    @ViewBuilder
-    private var petImage: some View {
-        let poseName = PetAsset.imageName(species: species, pose: pose)
-        let frontName = "pet-\(species.rawValue)-front"
-
-        if UIImage(named: poseName) != nil {
-            Image(poseName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else if UIImage(named: frontName) != nil {
-            Image(frontName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Image(systemName: PetAsset.placeholderSymbol(species: species))
-                .font(.system(size: size * 0.45))
-                .foregroundStyle(
-                    Color(
-                        hue: PetAsset.accentHue(species: species) / 360,
-                        saturation: 0.6,
-                        brightness: 0.45
-                    )
-                )
         }
     }
 }

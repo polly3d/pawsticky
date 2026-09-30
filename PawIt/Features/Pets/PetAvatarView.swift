@@ -1,12 +1,10 @@
 import SwiftUI
 import Core
 
-/// 宠物渲染器（W6-5 → W7 升级）——优先使用真实美术资产，降级到 SF Symbol。
+/// 宠物渲染器（W7 升级）——优先使用真实美术资产。
 ///
-/// 资产查找顺序：
-/// 1. pose 精确图：`pet-{species}-{pose}`（如 pet-cat-holding）
-/// 2. 正面通用图：`pet-{species}-front`（角色卡正面裁剪）
-/// 3. SF Symbol 占位（最终降级）
+/// 所有 6 种宠物都有 `pet-{species}-front` 正面图（从角色卡裁出）。
+/// cat/corgi 额外有 `pet-{species}-holding` 和 `pet-{species}-happy` 姿势图。
 struct PetAvatarView: View {
     let species: PetSpecies
     let mood: PetMood
@@ -26,8 +24,10 @@ struct PetAvatarView: View {
                 )
                 .frame(width: size, height: size)
 
-            // 宠物图（真实资产 → 降级 SF Symbol）
-            petImage
+            // 宠物图：直接加载 front 图（全部 6 种宠物都有）
+            Image("pet-\(species.rawValue)-front")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
                 .frame(width: size * 0.85, height: size * 0.85)
 
             // 心情指示（仅 happy/worried 时显示小图标）
@@ -42,33 +42,6 @@ struct PetAvatarView: View {
                     .foregroundStyle(.orange)
                     .offset(x: size * 0.3, y: -size * 0.3)
             }
-        }
-    }
-
-    /// 尝试加载真实图片，降级到 SF Symbol。
-    @ViewBuilder
-    private var petImage: some View {
-        let poseName = PetAsset.imageName(species: species, pose: pose)
-        let frontName = "pet-\(species.rawValue)-front"
-
-        if UIImage(named: poseName) != nil {
-            Image(poseName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else if UIImage(named: frontName) != nil {
-            Image(frontName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Image(systemName: PetAsset.placeholderSymbol(species: species))
-                .font(.system(size: size * 0.45))
-                .foregroundStyle(
-                    Color(
-                        hue: PetAsset.accentHue(species: species) / 360,
-                        saturation: 0.6,
-                        brightness: 0.45
-                    )
-                )
         }
     }
 }
