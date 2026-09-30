@@ -212,12 +212,16 @@ import Testing
 ### Task 4: PoC C —— 刷新策略与零预算时间文字
 
 **Files:**
-- Modify: `PawItWidget/NoteWidgetFamily.swift`
+- Create: `Core/Sources/Core/Store/TimelinePlanner.swift`(纯逻辑 + 《刷新策略表》文档注释)
+- Test: `Core/Tests/CoreTests/TimelinePlannerTests.swift`
+- Modify: `PawItWidget/PawItWidgetBundle.swift`(计划原文 NoteWidgetFamily.swift 系 W4 文件,笔误同 Task 2)
 
-- [ ] **Step 4.1:** 实现 `Timeline(policy: .after(nextMidnight))` + 预生成的明日 00:01 条目;验证:跨午夜后 Widget 内容自动翻转、**全天零额外刷新**
-- [ ] **Step 4.2:** 渲染一个 `Text(date, style: .timer)` 倒计时,验证不发起 reload 也每秒跳动
-- [ ] **Step 4.3:** 记录:哪些场景必须靠 intent、哪些可预计算——产出《刷新策略表》贴进 `Core/Store` 注释
-- [ ] **Step 4.4:** Commit:`poc: timeline policy + zero-budget timer text`
+- [x] **Step 4.1:** 实现 `Timeline(policy: .after(明日00:01))` + 预生成双条目(今天 + 明日 00:01 翻转);跨午夜翻转以注入时钟的纯逻辑测试验证(含 NY DST 双向 + 圣地亚哥午夜 DST 类时区),真机视觉翻转列入手动清单
+- [x] **Step 4.2:** 渲染 `Text(timerInterval:)` 倒计时(计划原文 `Text(date, style:.timer)` 的 widget 安全变体),零刷新预算;每秒跳动的视觉确认列入手动清单
+- [x] **Step 4.3:** 《刷新策略表》已作为 TimelinePlanner 文档注释交付:五类场景各有唯一驱动者,零行依赖系统主动刷新,每日预算至多 1 次(午夜续链)且被预计算条目兜底
+- [x] **Step 4.4:** Commit:`poc: timeline policy + zero-budget timer text`(`5bf65bc`)+ 评审修复 `c101fd7`(午夜 DST 边界 bug:改用 `dateInterval(of:.day).end`,圣地亚哥类时区实测)
+
+> ✅ **Task 4 完成(2026-09-30)**:`5bf65bc` + `c101fd7`。规格✅(含 00:01 统一裁定:优于计划字面混合)质量✅(修复后 Approved)。评审亮点:主动探测任务书外时区类别(午夜型 DST)抓到真实超调 bug。遗留(登记 W4/备忘录):`nextMidnight` 方法注释补"边界=日界(含 01:00 类)"说明;`.tertiary` 倒计时真机可读性待手动验收。
 
 ### Task 5: 美术风格包 v1(与代码并行,gpt-image-2.5)
 
@@ -229,10 +233,13 @@ import Testing
 ### Task 6: W1 收口
 
 **已积累的备忘录素材(评审移交,写入 Step 6.1 备忘录):**
-- 计划内时序笔误:Task 2 原文引用了 Task 3 才有的 `SharedStore`;Task 2 文件清单误写 W4 的 NoteWidgetFamily.swift(已在文档修正)
+- 计划内时序笔误:Task 2 原文引用了 Task 3 才有的 `SharedStore`;Task 2/4 文件清单误写 W4 的 NoteWidgetFamily.swift(已在文档修正)
 - 措辞诚实:commit "(PoC B verified)" 的"验证"指模拟器级双连接代理;真机跨进程 + GRDB 多进程 BUSY 边界(如 last-close checkpoint、崩溃恢复)仅真机可测
-- 待办的手动/真机验收清单:Task 2 Steps 2.2-2.4(springboard 点按、杀 App、延迟实测)、Task 3 Step 3.5 真机 50 连击、Task 1 真机三 target 部署
+- 待办的手动/真机验收清单:Task 2 Steps 2.2-2.4(springboard 点按、杀 App、延迟实测)、Task 3 Step 3.5 真机 50 连击、Task 1 真机三 target 部署、Task 4 倒计时每秒跳动 + 跨午夜视觉翻转 + `.tertiary` 可读性
 - W2 前置项见 W2 卡"Task 3 评审移交"六条(单池、迁移竞态、失败缓存、文件保护、排序决胜、WAL 监控)
+- **姿态裁定**:Core 库中守卫式 `fatalError`(仅系统不可表示日期可达,如 9999 年边界)优于 throw 仪式或静默错误回退——错误回退对 D3 比崩溃更糟(错午夜 = 陈旧日)。与 D2 否决 SwiftData 的 `fatalError` 示例并不矛盾:那是**可达路径**(容器创建失败),这是**不可达路径**
+- **工具链坑**:xcodebuild 对 Swift Testing 的**函数级** `-only-testing:.../testName` 会静默跑零个测试(显示成功)——必须用套件级过滤或全量运行;CI 与后续任务的测试证据一律核对逐测试输出行
+- W4 顺手项:`nextMidnight` 方法注释补"返回日界(午夜型 DST 日为 01:00)"说明;`makeEntry` 的 `entries(now:)[0]` 强索引在家族增多时提升为命名访问器 `todaySlot(now:)`;NoteEngine 的午夜语义消费 TimelinePlanner 的日界定义(单一事实源,防两处漂移)
 
 - [ ] **Step 6.1:** 写《W1 架构备忘录》(1 页):D1-D5 全部"证实/证伪"结论 + 实测数据(D6 的验证点在 W10 D0,备忘录中登记计划)+ 上述素材
 - [ ] **Step 6.2:** 打 tag `week-1`;备忘录入库
