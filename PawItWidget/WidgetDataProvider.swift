@@ -39,4 +39,10 @@ struct WidgetDataProvider {
         guard let store else { return 0 }
         return (try? store.countNotes()) ?? 0
     }
+
+    /// 当前选中的宠物（W6-2）。
+    func selectedPet() -> PetProfile? {
+        guard let store else { return nil }
+        return try? store.selectedPet()
+    }
 }

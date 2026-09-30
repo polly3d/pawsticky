@@ -12,6 +12,7 @@ struct NoteListView: View {
 
     @State private var notes: [Note] = []
     @State private var editorMode: EditorMode?
+    @State private var showPetSelection = false
 
     /// Deep link 入口：通知 tap 后的目标 noteID（W3-5）。
     @State var deepLinkNoteID: UUID?
@@ -33,6 +34,13 @@ struct NoteListView: View {
             }
             .navigationTitle("PawIt")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showPetSelection = true } label: {
+                        Image(systemName: "pawprint.circle.fill")
+                            .font(.title3)
+                    }
+                    .accessibilityLabel("Choose Pet")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { editorMode = .create } label: {
                         Image(systemName: "plus.circle.fill")
@@ -45,6 +53,9 @@ struct NoteListView: View {
                 NoteEditorView(mode: mode, repository: repository) {
                     reloadNotes()
                 }
+            }
+            .sheet(isPresented: $showPetSelection) {
+                PetSelectionView { reloadNotes() }
             }
         }
         .task { reloadNotes() }

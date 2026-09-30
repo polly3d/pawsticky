@@ -86,7 +86,13 @@ struct SmallNoteWidget: View {
     }
 
     private func noteContent(_ note: Note) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let pet = data.selectedPet()
+        let mood = PetNoteRenderer.inferMood(
+            isDone: note.done,
+            isOverdue: NoteEngine.isOverdue(note, now: entry.date)
+        )
+
+        return VStack(alignment: .leading, spacing: 6) {
             // 便签正文（点击整区域勾选）
             Button(intent: ToggleItemIntent()) {
                 Text(note.text.isEmpty ? "Untitled" : note.text)
@@ -100,8 +106,12 @@ struct SmallNoteWidget: View {
 
             Spacer(minLength: 0)
 
-            // 底部栏：状态 + 翻页
+            // 底部栏：宠物 + 状态 + 翻页
             HStack(spacing: 4) {
+                if let pet {
+                    WidgetPetAvatar(species: pet.species, mood: mood, size: 22)
+                }
+
                 if note.done {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
@@ -122,7 +132,6 @@ struct SmallNoteWidget: View {
                 }
                 Spacer()
 
-                // 清单进度
                 let items = data.noteItems(noteId: note.id)
                 if !items.isEmpty {
                     Text("\(items.filter(\.done).count)/\(items.count)")
@@ -130,7 +139,6 @@ struct SmallNoteWidget: View {
                         .foregroundStyle(preset.textColor.opacity(0.6))
                 }
 
-                // 翻页按钮（多条便签时显示）
                 if hasMultipleNotes {
                     Button(intent: CycleNoteIntent()) {
                         Image(systemName: "chevron.right.circle.fill")
