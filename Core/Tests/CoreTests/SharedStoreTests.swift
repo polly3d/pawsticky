@@ -46,7 +46,7 @@ struct SharedStoreTests {
         #expect(mode?.lowercased() == "wal")
     }
 
-    @Test func schemaIsMinimalNoteTable() throws {
+    @Test func schemaNoteTableMatchesW2Columns() throws {
         let path = makeDatabasePath()
         _ = try SharedStore(databasePath: path)
 
@@ -56,8 +56,8 @@ struct SharedStoreTests {
                 row["name"]
             }
         }
-        // W1 最小 schema：note(id TEXT PK, text, createdAt, done)，真实 schema 由 W2 设计。
-        #expect(Set(columns) == ["id", "text", "createdAt", "done"])
+        // W2 schema：W1 四列之上 additive 增加 dueDate（可空）与 position（手动排序）。
+        #expect(Set(columns) == ["id", "text", "createdAt", "done", "dueDate", "position"])
     }
 
     // MARK: - Step 3.4 并发写冲突：多条独立连接并发插入，零丢失

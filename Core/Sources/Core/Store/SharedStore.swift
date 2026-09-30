@@ -149,9 +149,19 @@ public struct SharedStore: Sendable {
 
     // MARK: - Schema
 
-    /// W1 最小迁移：note(id TEXT PK, text, createdAt, done)。真实 schema 由 W2 设计。
+    /// 全量迁移：w1.v1 → w2.v1。迁移是 append-only 的——已发布迁移体一经上线即冻结
+    /// （改动它 = 已装机走旧体、新装机走新体，语义漂移且难排查），演进 schema 只能
+    /// 追加新迁移，这正是选 GRDB 规避 SwiftData 类「schema hash brick」失败的纪律。
     private static func makeMigrator() -> DatabaseMigrator {
         var migrator = DatabaseMigrator()
+        registerW1V1(on: &migrator)
+        registerW2V1(on: &migrator)
+        return migrator
+    }
+
+    /// W1 最小迁移（冻结，永不修改）：note(id TEXT PK, text, createdAt, done)。
+    /// internal 是给迁移测试的注入缝：测试用它造「只跑到 w1 的存量库」再走真实升级路径。
+    static func registerW1V1(on migrator: inout DatabaseMigrator) {
         migrator.registerMigration("w1.v1") { db in
             try db.create(table: "note") { t in
                 t.column("id", .text).primaryKey()
@@ -160,7 +170,49 @@ public struct SharedStore: Sendable {
                 t.column("done", .boolean).notNull().defaults(to: false)
             }
         }
-        return migrator
+    }
+
+    /// W2-2 迁移（additive）：note 增列 + 三张新表。日期编码决策：全部走 GRDB
+    /// `.datetime` 列——GRDB 默认把 Date 持久化为 "YYYY-MM-DD HH:MM:SS.SSS" 文本，
+    /// 与 w1 的 `createdAt` 同族（选 TEXT 家族而非 DOUBLE epoch：库内日期编码单一，
+    /// 人读可辨，GRDB 双向转换零配置；毫秒精度足够便签/提醒场景）。
+    /// 外键：GRDB `Configuration.foreignKeysEnabled` 默认 true（连接级 PRAGMA），
+    /// 级联行为由 SchemaTests/deleteNoteCascadesItemsAcrossConnections 行为级钉死。
+    static func registerW2V1(on migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("w2.v1") { db in
+            // ① note 增列：dueDate 可空（nil = 未设到期）；position 手动排序，存量行补 0。
+            try db.alter(table: "note") { t in
+                t.add(column: "dueDate", .datetime)
+                t.add(column: "position", .integer).notNull().defaults(to: 0)
+            }
+            // ② 清单项：挂在便签之下，删便签级联清空。
+            try db.create(table: "note_item") { t in
+                t.column("id", .text).primaryKey()
+                t.column("noteId", .text).notNull().references("note", onDelete: .cascade)
+                t.column("text", .text).notNull()
+                t.column("done", .boolean).notNull().defaults(to: false)
+                t.column("position", .integer).notNull().defaults(to: 0)
+                t.column("createdAt", .datetime).notNull()
+            }
+            // noteItems(noteId:) 查询与级联删除都走 noteId，建索引免全表扫描。
+            try db.create(indexOn: "note_item", columns: ["noteId"])
+            // ③ 宠物档案：首发六宠（species 见 PetSpecies）。
+            try db.create(table: "pet_profile") { t in
+                t.column("id", .text).primaryKey()
+                t.column("species", .text).notNull()
+                t.column("displayName", .text).notNull()
+                t.column("isSelected", .boolean).notNull().defaults(to: false)
+                t.column("acquiredAt", .datetime).notNull()
+            }
+            // ④ 轻养成状态：纯存储骨架（逻辑归 W2-3/W7）。unlockedOutfits 存 JSON 数组原文。
+            try db.create(table: "growth_state") { t in
+                t.column("petId", .text).primaryKey().references("pet_profile", onDelete: .cascade)
+                t.column("fedLevel", .integer).notNull().defaults(to: 0)
+                t.column("streakDays", .integer).notNull().defaults(to: 0)
+                t.column("lastActiveDay", .datetime)
+                t.column("unlockedOutfits", .text).notNull().defaults(to: "[]")
+            }
+        }
     }
 
     // MARK: - 写入（async，协作式）
@@ -191,6 +243,107 @@ public struct SharedStore: Sendable {
         }
     }
 
+    // MARK: - W2-2 最小持久化 API（写入 async，读取同步；引擎语义归 W2-3，仓库层归 W2-4）
+
+    // —— Note ——
+
+    /// 插入或更新便签（按主键 upsert：存在则更新，不存在则插入）。
+    public func upsertNote(_ note: Note) async throws {
+        try await pool.write { db in
+            try note.save(db)
+        }
+    }
+
+    /// 全部便签，排序 (position ASC, createdAt ASC, id ASC)：
+    /// position 是手动排序键；同 position 时保留 w1 的 createdAt → id 决胜
+    /// （与 `firstNote()` 同族规则，排序确定性是 W2-1 评审项 5 的延续）。
+    public func allNotes() throws -> [Note] {
+        try pool.read { db in
+            try Note
+                .order(Column("position").asc, Column("createdAt").asc, Column("id").asc)
+                .fetchAll(db)
+        }
+    }
+
+    /// 删除便签；其清单项经外键 `ON DELETE CASCADE` 连带清空（同事务内数据库侧完成）。
+    public func deleteNote(id: UUID) async throws {
+        try await pool.write { db in
+            _ = try Note.deleteOne(db, key: id.uuidString)
+        }
+    }
+
+    // —— NoteItem ——
+
+    /// 新增清单项。
+    public func addNoteItem(_ item: NoteItem) async throws {
+        try await pool.write { db in
+            try item.insert(db)
+        }
+    }
+
+    /// 翻转指定清单项的 done 标记，返回翻转后的状态。
+    /// 读-改-写在同一写事务内原子完成（与 `toggleFirstItem()` 同一模式）；
+    /// WHERE 同时钉死 noteId 与 itemId——跨便签的 item 翻不到（作用域错配抛错零副作用）。
+    /// - Throws: `SharedStoreError.noteItemNotFound`（item 不存在或不属于该 note）。
+    @discardableResult
+    public func toggleNoteItem(noteId: UUID, itemId: UUID) async throws -> Bool {
+        try await pool.write { db in
+            guard var item = try NoteItem
+                .filter(Column("id") == itemId.uuidString)
+                .filter(Column("noteId") == noteId.uuidString)
+                .fetchOne(db)
+            else {
+                throw SharedStoreError.noteItemNotFound(noteId: noteId, itemId: itemId)
+            }
+            item.done.toggle()
+            try item.update(db)
+            return item.done
+        }
+    }
+
+    /// 指定便签的清单项，排序 (position ASC, id ASC)——position 同值以 id 决胜。
+    public func noteItems(noteId: UUID) throws -> [NoteItem] {
+        try pool.read { db in
+            try NoteItem
+                .filter(Column("noteId") == noteId.uuidString)
+                .order(Column("position").asc, Column("id").asc)
+                .fetchAll(db)
+        }
+    }
+
+    // —— PetProfile / GrowthState ——
+
+    /// 插入或更新宠物档案（按主键 upsert）。多选中的「互斥去选」是引擎语义（W2-3/W6），本层不代劳。
+    public func upsertPet(_ pet: PetProfile) async throws {
+        try await pool.write { db in
+            try pet.save(db)
+        }
+    }
+
+    /// 当前选中的宠物；若脏数据出现多行 isSelected，以 id ASC 决胜保证读侧确定性。
+    public func selectedPet() throws -> PetProfile? {
+        try pool.read { db in
+            try PetProfile
+                .filter(Column("isSelected") == true)
+                .order(Column("id").asc)
+                .fetchOne(db)
+        }
+    }
+
+    /// 插入或更新养成状态（按主键 upsert；纯存储，逻辑归 W2-3/W7）。
+    public func upsertGrowthState(_ state: GrowthState) async throws {
+        try await pool.write { db in
+            try state.save(db)
+        }
+    }
+
+    /// 指定宠物的养成状态；无记录返回 nil（不代建，首只宠物的初值由调用方写入）。
+    public func growthState(petId: String) throws -> GrowthState? {
+        try pool.read { db in
+            try GrowthState.filter(Column("petId") == petId).fetchOne(db)
+        }
+    }
+
     // MARK: - 读取（同步，WAL 读不阻塞写）
 
     /// 便签总数。
@@ -218,6 +371,10 @@ public struct SharedStore: Sendable {
 public enum SharedStoreError: Error, Equatable, Sendable {
     /// App Group 容器不可用（宿主 target 缺少对应 entitlement 时发生）。
     case appGroupContainerUnavailable(String)
-    /// note 主键不是合法 UUID 文本（正常写入路径不可能出现，防御性兜底）。
+    /// 主键列不是合法 UUID 文本（正常写入路径不可能出现，防御性兜底）。
     case corruptNoteID(String)
+    /// pet_profile.species 不是首发六宠的合法 rawValue（脏数据/未知版本写入，防御性兜底）。
+    case corruptPetSpecies(String)
+    /// toggleNoteItem 的作用域错配：itemId 不存在，或不属于给定 noteId。
+    case noteItemNotFound(noteId: UUID, itemId: UUID)
 }
