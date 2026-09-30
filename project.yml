@@ -23,6 +23,7 @@ targets:
     dependencies:
       - package: Core
       - target: PawItWidget
+      - target: PawItWatch
     entitlements:
       path: PawIt/PawIt.entitlements
       properties:
@@ -95,12 +96,14 @@ schemes:
     build:
       targets:
         PawIt: all
+        PawItWatch: all
     run:
       config: Debug
     test:
       config: Debug
       targets:
         - PawItTests
+        - package: Core/CoreTests
   PawItWidget:
     build:
       targets:
