@@ -22,8 +22,7 @@ struct PawItProvider: TimelineProvider {
         completion(PawItEntry(date: .now, slot: planner.entries(now: .now)[0]))
     }
 
-    /// D3 时间线策略：预计算双条目（今天 + 明日 00:01 午夜翻转），
-    /// 每日至多 1 次预算内刷新。数据在 body 内实时读取（不在此处缓存）。
+    /// D3 时间线策略：预计算双条目（今天 + 明日 00:01），每日至多 1 次预算内刷新。
     func getTimeline(in context: Context, completion: @escaping (Timeline<PawItEntry>) -> Void) {
         let now = Date.now
         let entries = planner.entries(now: now).map { PawItEntry(date: $0.date, slot: $0) }
@@ -31,7 +30,7 @@ struct PawItProvider: TimelineProvider {
     }
 }
 
-// MARK: - Widget Entry View（路由到各家族渲染器）
+// MARK: - Widget Entry View（路由）
 
 struct PawItWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
@@ -59,16 +58,17 @@ struct PawItWidgetEntryView: View {
     }
 }
 
-// MARK: - System Small（便签卡片风格）
+// MARK: - System Small（W5：交互式——点击勾选，长按翻页）
 
 struct SmallNoteWidget: View {
     let data: WidgetDataProvider
     let entry: PawItEntry
 
-    private var note: Note? { data.firstNote() }
+    private var note: Note? { data.currentNote() }
     private var preset: NoteStylePreset {
         note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
+    private var hasMultipleNotes: Bool { data.noteCount() > 1 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -87,14 +87,20 @@ struct SmallNoteWidget: View {
 
     private func noteContent(_ note: Note) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(note.text.isEmpty ? "Untitled" : note.text)
-                .font(.system(.subheadline, weight: .medium))
-                .foregroundStyle(preset.textColor)
-                .lineLimit(4)
-                .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+            // 便签正文（点击整区域勾选）
+            Button(intent: ToggleItemIntent()) {
+                Text(note.text.isEmpty ? "Untitled" : note.text)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(preset.textColor)
+                    .lineLimit(3)
+                    .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
 
             Spacer(minLength: 0)
 
+            // 底部栏：状态 + 翻页
             HStack(spacing: 4) {
                 if note.done {
                     Image(systemName: "checkmark.circle.fill")
@@ -115,11 +121,23 @@ struct SmallNoteWidget: View {
                         )
                 }
                 Spacer()
+
+                // 清单进度
                 let items = data.noteItems(noteId: note.id)
                 if !items.isEmpty {
                     Text("\(items.filter(\.done).count)/\(items.count)")
                         .font(.caption2)
                         .foregroundStyle(preset.textColor.opacity(0.6))
+                }
+
+                // 翻页按钮（多条便签时显示）
+                if hasMultipleNotes {
+                    Button(intent: CycleNoteIntent()) {
+                        Image(systemName: "chevron.right.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(preset.textColor.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -138,16 +156,17 @@ struct SmallNoteWidget: View {
     }
 }
 
-// MARK: - System Medium（便签 + 清单预览）
+// MARK: - System Medium（W5：左侧勾选 + 右侧清单项可勾选 + 翻页）
 
 struct MediumNoteWidget: View {
     let data: WidgetDataProvider
     let entry: PawItEntry
 
-    private var note: Note? { data.firstNote() }
+    private var note: Note? { data.currentNote() }
     private var preset: NoteStylePreset {
         note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
+    private var hasMultipleNotes: Bool { data.noteCount() > 1 }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -167,24 +186,39 @@ struct MediumNoteWidget: View {
 
     private func leftColumn(_ note: Note) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(note.text.isEmpty ? "Untitled" : note.text)
-                .font(.system(.subheadline, weight: .medium))
-                .foregroundStyle(preset.textColor)
-                .lineLimit(5)
-                .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+            Button(intent: ToggleItemIntent()) {
+                Text(note.text.isEmpty ? "Untitled" : note.text)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(preset.textColor)
+                    .lineLimit(4)
+                    .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
 
             Spacer(minLength: 0)
 
-            if let due = note.dueDate {
-                HStack(spacing: 3) {
-                    Image(systemName: "bell.fill")
-                        .font(.caption2)
-                    Text(due, style: .relative)
-                        .font(.caption2)
+            HStack(spacing: 4) {
+                if let due = note.dueDate {
+                    HStack(spacing: 3) {
+                        Image(systemName: "bell.fill")
+                            .font(.caption2)
+                        Text(due, style: .relative)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(
+                        NoteEngine.isOverdue(note, now: entry.date) ? .red : .orange
+                    )
                 }
-                .foregroundStyle(
-                    NoteEngine.isOverdue(note, now: entry.date) ? .red : .orange
-                )
+                Spacer()
+                if hasMultipleNotes {
+                    Button(intent: CycleNoteIntent()) {
+                        Image(systemName: "chevron.right.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(preset.textColor.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -234,16 +268,17 @@ struct MediumNoteWidget: View {
     }
 }
 
-// MARK: - System Large（完整便签）
+// MARK: - System Large（W5：勾选 + 翻页 + 清单项交互）
 
 struct LargeNoteWidget: View {
     let data: WidgetDataProvider
     let entry: PawItEntry
 
-    private var note: Note? { data.firstNote() }
+    private var note: Note? { data.currentNote() }
     private var preset: NoteStylePreset {
         note?.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
     }
+    private var hasMultipleNotes: Bool { data.noteCount() > 1 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -262,21 +297,24 @@ struct LargeNoteWidget: View {
 
     private func fullNoteContent(_ note: Note) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 标题区
+            // 标题（可勾选）
             HStack {
-                Text(note.text.isEmpty ? "Untitled" : note.text)
-                    .font(.system(.body, weight: .medium))
-                    .foregroundStyle(preset.textColor)
-                    .lineLimit(3)
-                    .strikethrough(NoteEngine.strikethrough(isDone: note.done))
-                Spacer()
-                if note.done {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                Button(intent: ToggleItemIntent()) {
+                    HStack {
+                        Text(note.text.isEmpty ? "Untitled" : note.text)
+                            .font(.system(.body, weight: .medium))
+                            .foregroundStyle(preset.textColor)
+                            .lineLimit(3)
+                            .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+                        Spacer()
+                        Image(systemName: note.done ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(note.done ? .green : preset.textColor.opacity(0.4))
+                    }
                 }
+                .buttonStyle(.plain)
             }
 
-            // 到期信息
+            // 到期
             if let due = note.dueDate {
                 HStack(spacing: 4) {
                     Image(systemName: "bell.fill")
@@ -323,7 +361,7 @@ struct LargeNoteWidget: View {
 
             Spacer(minLength: 0)
 
-            // 底部信息
+            // 底部：日期 + 进度 + 翻页
             HStack {
                 Text(note.createdAt.formatted(.dateTime.month().day()))
                     .font(.caption2)
@@ -333,6 +371,18 @@ struct LargeNoteWidget: View {
                     Text("\(items.filter(\.done).count)/\(items.count) done")
                         .font(.caption2)
                         .foregroundStyle(preset.textColor.opacity(0.5))
+                }
+                if hasMultipleNotes {
+                    Button(intent: CycleNoteIntent()) {
+                        HStack(spacing: 2) {
+                            Text("Next")
+                                .font(.caption2)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(preset.textColor.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -359,7 +409,7 @@ struct LargeNoteWidget: View {
 struct CircularLockScreenWidget: View {
     let data: WidgetDataProvider
 
-    private var note: Note? { data.firstNote() }
+    private var note: Note? { data.currentNote() }
 
     var body: some View {
         if let note {
@@ -390,7 +440,7 @@ struct CircularLockScreenWidget: View {
 struct RectangularLockScreenWidget: View {
     let data: WidgetDataProvider
 
-    private var note: Note? { data.firstNote() }
+    private var note: Note? { data.currentNote() }
 
     var body: some View {
         if let note {
@@ -443,7 +493,7 @@ struct RectangularLockScreenWidget: View {
 struct InlineLockScreenWidget: View {
     let data: WidgetDataProvider
 
-    private var note: Note? { data.firstNote() }
+    private var note: Note? { data.currentNote() }
 
     var body: some View {
         if let note {
