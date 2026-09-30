@@ -16,5 +16,41 @@
     "resize": "1536x864",
     "output_dir": "art/characters/corgi",
     "filename": "corgi-character-sheet"
+  },
+  {
+    "id": "b-graycat-sheet",
+    "name": "角色卡 · 灰白猫三视图(B 扁平矢量)",
+    "prompt": "Character reference sheet of a cute gray and white domestic shorthair cat, three full-body views arranged in one horizontal row: front view, side view, back view, consistent proportions and colors across all three views, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, chibi proportions with head-to-body ratio about 1:1, plain white background, no text, no letters, no watermark",
+    "aspect_ratio": "16:9",
+    "resize": "1536x864",
+    "output_dir": "art/characters/graycat",
+    "filename": "graycat-character-sheet"
+  },
+  {
+    "id": "b-shiba-sheet",
+    "name": "角色卡 · 柴犬三视图(B 扁平矢量)",
+    "prompt": "Character reference sheet of a cute shiba inu dog, three full-body views arranged in one horizontal row: front view, side view, back view, consistent proportions and colors across all three views, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, chibi proportions with head-to-body ratio about 1:1, plain white background, no text, no letters, no watermark",
+    "aspect_ratio": "16:9",
+    "resize": "1536x864",
+    "output_dir": "art/characters/shiba",
+    "filename": "shiba-character-sheet"
+  },
+  {
+    "id": "b-rabbit-sheet",
+    "name": "角色卡 · 兔子三视图(B 扁平矢量)",
+    "prompt": "Character reference sheet of a cute white rabbit with long upright ears, three full-body views arranged in one horizontal row: front view, side view, back view, consistent proportions and colors across all three views, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, chibi proportions with head-to-body ratio about 1:1, plain white background, no text, no letters, no watermark",
+    "aspect_ratio": "16:9",
+    "resize": "1536x864",
+    "output_dir": "art/characters/rabbit",
+    "filename": "rabbit-character-sheet"
+  },
+  {
+    "id": "b-hamster-sheet",
+    "name": "角色卡 · 仓鼠三视图(B 扁平矢量)",
+    "prompt": "Character reference sheet of a cute golden hamster, three full-body views arranged in one horizontal row: front view, side view, back view, consistent proportions and colors across all three views, flat vector illustration, minimal geometric shapes, simple two-tone shading, limited palette of exactly 5 colors with one dominant pastel, crisp edges, modern app-icon aesthetic, chibi proportions with head-to-body ratio about 1:1, plain white background, no text, no letters, no watermark",
+    "aspect_ratio": "16:9",
+    "resize": "1536x864",
+    "output_dir": "art/characters/hamster",
+    "filename": "hamster-character-sheet"
   }
 ]

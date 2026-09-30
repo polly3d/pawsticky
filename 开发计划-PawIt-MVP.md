@@ -267,6 +267,16 @@ import Testing
 5. "首条 Note"排序无 tiebreaker(createdAt 相同则不确定)——NoteEngine 定义排序语义时加 id 决胜;
 6. WAL 增长监控纳入 dogfooding;GRDB 池读者已内置 `readonlyBusyMode=.timeout(10)`,跨进程 BUSY 排查时知悉。
 
+**W2 任务拆解(2026-09-30 展开,对应 W1 Task 6 Step 6.3):**
+
+| 子任务 | 内容 | 验收 |
+|---|---|---|
+| **W2-1 可靠性四件套** | ①进程级单池接入点(intent/widget 复用,修 churn)②迁移竞态 retry-once ③初始化失败不缓存 nil(下次访问可重试)④DB + WAL/-shm 文件保护 `.completeUntilFirstUserAuthentication` ⑤首条排序 id 决胜 | TDD + 双评审 |
+| **W2-2 w2.v1 schema + 模型** | `Note`(dueDate/position)、`NoteItem`、`PetProfile`、`GrowthState` 骨架;`DatabaseMigrator` 扩展;排序语义落库 | TDD + 双评审 |
+| **W2-3 NoteEngine** | 勾选/划线/排序/午夜翻转(**消费 TimelinePlanner 日界,单一事实源**)/到期语义;纯逻辑全覆盖 | TDD + 双评审 |
+| **W2-4 NoteRepository + HistoryLog + 导出** | CRUD、7 天 append-only 回滚日志、JSON 导出/导入(可选口令加密)、PawItTests 宿主链接 | TDD + 双评审;DoD:导出→导入数据一致 |
+| **W2-5 并行轨:角色卡补齐** | 剩余 4 只(灰白猫/柴犬/兔/仓鼠)三视图角色卡走生成管线 | 用户眼验 |
+
 ### W3 · 编辑器 UI
 **核心任务:** Widget 点击 → 编辑器**光标直达正文,无命名步骤**(差评点 *"[2★ v5.0.0 2025-09-29] requirement to name a note before it will save"*)；逐键防抖 300ms 落盘;`scenePhase=.background` 即时落盘;清单模式;字体/颜色/渐变选择器;**到期提醒设置 UI + 通知权限申请流 + `UNUserNotificationCenter` 调度引擎**(§4.2 到期提醒;本地通知零刷新预算,与 D3 协同);深色模式全元素对比度校验;Dynamic Type。
 **DoD:** 演示脚本——输入中途强杀 App,重开零丢失;设 2 分钟后到期的提醒,锁屏收到通知并点击跳回该便签;VoiceOver 走查编辑主流程。
