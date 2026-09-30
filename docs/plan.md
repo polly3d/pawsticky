@@ -106,15 +106,17 @@ App 编辑   → 300ms 防抖落盘 → scenePhase=.background 即时全量落�
 **DoD:** 真机勾选 <100ms；强杀 App 后 intent 仍工作；Siri 速记端到端；**连续 50 次勾选零丢失**。
 **测试:** Intent 单测；手测协议 §7-I。
 
-### W6 · 宠物层集成
+### W6 · 宠物层集成 ✅
 **核心任务:** `PetNoteRenderer`（姿势×心情×尺寸状态机）；6 宠物×8-10 姿势 + 12 件装扮入包；喂食动画。
 **DoD:** 资产增量 <15MB；每宠物 3 种 Widget 尺寸无破碎；SE 不掉帧。
 **测试:** 布局状态机单测；资产完整性脚本。
+**详情:** → [`docs/w6-pet-integration.md`](w6-pet-integration.md)
 
-### W7 · 轻养成 + 分享卡片
+### W7 · 轻养成 + 分享卡片 ✅
 **核心任务:** `GrowthEngine`（完成→喂食→连击→装扮解锁 12 件；**断签不惩罚**）；分享卡片导出（IG Story 1080×1920）。
 **DoD:** 养成单测全绿；卡片导出端到端；「关闭养成」开关可用。
 **测试:** `GrowthEngineTests`。
+**详情:** → [`docs/w7-growth-sharing.md`](w7-growth-sharing.md)
 
 ### W8 · 商业化
 **核心任务:** StoreKit 2 三档（$1.49/月、$5.99/年 7 天试用、$14.99 买断）；`Gate` 门控；**弹窗频控 ≤1/周**。

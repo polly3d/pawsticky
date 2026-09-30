@@ -4,7 +4,7 @@ import GRDB
 /// 一条宠物便签,对应 note 表(W2 schema:id TEXT PK, text, createdAt, done, dueDate, position)。
 /// W2-2 起在 W1 四列之上 additive 增加 `dueDate`(可空到期日)与 `position`(手动排序);
 /// 迁移只增不改,w1 存量行由 `w2.v1` 默认值补齐(position 0、dueDate NULL)。
-public struct Note: Equatable, Sendable, FetchableRecord, PersistableRecord {
+public struct Note: Equatable, Sendable, Identifiable, FetchableRecord, PersistableRecord {
     /// 数据库表名(GRDB)。
     public static let databaseTableName = "note"
 

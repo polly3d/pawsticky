@@ -13,6 +13,9 @@ struct NoteListView: View {
     @State private var notes: [Note] = []
     @State private var editorMode: EditorMode?
     @State private var showPetSelection = false
+    @State private var showGrowthDashboard = false
+    @State private var showSettings = false
+    @State private var shareNote: Note?
 
     /// Deep link 入口：通知 tap 后的目标 noteID（W3-5）。
     @State var deepLinkNoteID: UUID?
@@ -35,18 +38,34 @@ struct NoteListView: View {
             .navigationTitle("PawIt")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button { showPetSelection = true } label: {
-                        Image(systemName: "pawprint.circle.fill")
-                            .font(.title3)
+                    HStack(spacing: 12) {
+                        Button { showPetSelection = true } label: {
+                            Image(systemName: "pawprint.circle.fill")
+                                .font(.title3)
+                        }
+                        .accessibilityLabel("Choose Pet")
+
+                        Button { showGrowthDashboard = true } label: {
+                            Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
+                                .font(.title3)
+                        }
+                        .accessibilityLabel("Growth Dashboard")
                     }
-                    .accessibilityLabel("Choose Pet")
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { editorMode = .create } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
+                    HStack(spacing: 12) {
+                        Button { showSettings = true } label: {
+                            Image(systemName: "gearshape")
+                                .font(.title3)
+                        }
+                        .accessibilityLabel("Settings")
+
+                        Button { editorMode = .create } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                        }
+                        .accessibilityLabel("New Note")
                     }
-                    .accessibilityLabel("New Note")
                 }
             }
             .sheet(item: $editorMode) { mode in
@@ -56,6 +75,15 @@ struct NoteListView: View {
             }
             .sheet(isPresented: $showPetSelection) {
                 PetSelectionView { reloadNotes() }
+            }
+            .sheet(isPresented: $showGrowthDashboard) {
+                GrowthDashboardView { showGrowthDashboard = false }
+            }
+            .sheet(item: $shareNote) { note in
+                ShareCardSheet(note: note) { shareNote = nil }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView { showSettings = false }
             }
         }
         .task { reloadNotes() }
@@ -92,6 +120,28 @@ struct NoteListView: View {
                 }
                 .tint(.primary)
                 .listRowBackground(presetFor(note).backgroundColor.opacity(0.25))
+                .swipeActions(edge: .leading) {
+                    Button {
+                        toggleDone(note)
+                    } label: {
+                        Label(note.done ? "Undo" : "Done",
+                              systemImage: note.done ? "arrow.uturn.backward" : "checkmark")
+                    }
+                    .tint(note.done ? .gray : .green)
+                }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        deleteNote(note)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    Button {
+                        shareNote = note
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .tint(.orange)
+                }
             }
             .onDelete(perform: deleteNotes)
         }
@@ -118,6 +168,41 @@ struct NoteListView: View {
             }
             reloadNotes()
         }
+    }
+
+    private func deleteNote(_ note: Note) {
+        guard let repository else { return }
+        let reminderManager = ReminderManager()
+        Task {
+            try? await repository.deleteNote(id: note.id)
+            await reminderManager.cancelReminder(noteID: note.id)
+            reloadNotes()
+        }
+    }
+
+    /// 勾选便签 + 喂食逻辑（W7-3）。
+    /// 当 toggle 结果 = done → 触发 GrowthEngine.feed → 持久化。
+    private func toggleDone(_ note: Note) {
+        guard let repository else { return }
+        Task {
+            let nowDone = try? await repository.toggleNote(id: note.id)
+            if nowDone == true {
+                await feedPet()
+            }
+            reloadNotes()
+        }
+    }
+
+    /// 喂养宠物：读 GrowthState → feed → 写回。
+    private func feedPet() async {
+        guard let store = SharedStore.cachedAppGroup(),
+              let pet = try? store.selectedPet(),
+              GrowthSettings.isEnabled
+        else { return }
+
+        let current = (try? store.growthState(petId: pet.id)) ?? GrowthState(petId: pet.id)
+        let updated = GrowthEngine.feed(state: current, now: .now)
+        try? await store.upsertGrowthState(updated)
     }
 
     func reloadNotes() {
