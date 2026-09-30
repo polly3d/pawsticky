@@ -273,13 +273,14 @@ import Testing
 |---|---|---|
 | **W2-1 可靠性四件套** | ①进程级单池接入点(intent/widget 复用,修 churn)②迁移竞态 retry-once ③初始化失败不缓存 nil(下次访问可重试)④DB + WAL/-shm 文件保护 `.completeUntilFirstUserAuthentication` ⑤首条排序 id 决胜 | ✅ `5c401cc`(29 测试)。规格✅(评审员亲自探针实证"模拟器不持久化保护键"平台声明);质量✅(限额期由控制器内联评审,独立性降级已披露)。遗留→W2-4:缓存失败加 os_log 诊断、WAL 边车重建后保护重设 hook |
 | **W2-2 w2.v1 schema + 模型** | `Note`(dueDate/position)、`NoteItem`、`PetProfile`、`GrowthState` 骨架;`DatabaseMigrator` 扩展;排序语义落库 | ✅ `4ad2365`(43 测试;真实 w1→w2 升级路径测试;w1.v1 字节级冻结)。规格✅质量✅(Yes,Important×2 转入下方登记) |
-| **W2-3 NoteEngine** | 勾选/划线/排序/午夜翻转(**消费 TimelinePlanner 日界,单一事实源**)/到期语义;纯逻辑全覆盖 | TDD + 双评审 |
+| **W2-3 NoteEngine** | 勾选/划线/排序/午夜翻转(**消费 TimelinePlanner 日界,单一事实源**)/到期语义;纯逻辑全覆盖 | ✅ `15394c1`(61 测试;规格评审做了实验级红灯复现)。规格✅质量✅(Yes,0 Important)。Minor×5(未用 import、两处文档过度声明、测试 helper 去重、DueStatus.none 遮蔽意识)→ 随 W2-4 顺路清 |
 | **W2-4 NoteRepository + HistoryLog + 导出** | CRUD、7 天 append-only 回滚日志、JSON 导出/导入(可选口令加密)、PawItTests 宿主链接 | TDD + 双评审;DoD:导出→导入数据一致 |
 | **W2-5 并行轨:角色卡补齐** | 剩余 4 只(灰白猫/柴犬/兔/仓鼠)三视图角色卡走生成管线 | ✅ 6/6 齐备(2026-09-30 用户眼验通过) |
 
 **W2 评审移交登记(滚动,W2-2 质量+规格评审产出):**
 - **→ W2-3**:①`firstNote`/`toggleFirstItem` 排序补 `position` 列(与 `allNotes` 统一,防 W3 拖拽排序后 widget 与编辑器"第一条"分裂);②dueDate NULL 排序显式决策——SQLite ASC 下 NULL 在前,需 `ORDER BY dueDate IS NULL, dueDate ASC` 且加 SQL 时序 pin 测试;③午夜翻转语义决策(**默认:done 持久保留,日界只影响"今日"分组与喂养结算,不自动重置 done、不新增 doneAt 列**;w3.v1 设计时复核);④补测试:pet→growth 级联行为、假 noteId FK 拒绝;⑤Package.swift 注释:`swift test`(macOS 宿主)会因 `OSAllocatedUnfairLock`(macOS 13+)编译失败,DoD 路径是 xcodebuild
 - **→ W2-4**:⑥`upsertNote` 整行覆盖契约(冲突时 createdAt/done/position 以传入值为准)文档化 + pin 测试;⑦export 防 `unlockedOutfits` JSON 双重编码;⑧UUID→TEXT parse DRY helper + `corruptNoteID` 文档修正(noteId 非主键也复用它);⑨os_log 诊断(自 W2-1);⑩WAL 边车重建后文件保护重设 hook(自 W2-1)
+- **→ W3(来自 W2-3 质量评审)**:`SharedStore.toggleNote(id:)` 原子对应物必须随编辑器落地(引擎有 `toggled(Note)` 但 store 只有 toggleFirstItem 原子版,编辑器用 upsert 实现 per-note 勾选会与 widget intent 竞态);可选:CI 固化 xcodebuild DoD 路径
 - **→ w3.v1 设计时**:style 列(字体/颜色/渐变)追加 ALTER TABLE 即可,勿提前;HistoryLog 表在 W2-4
 
 ### W3 · 编辑器 UI
