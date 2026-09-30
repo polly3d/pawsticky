@@ -24,8 +24,15 @@ struct PawItProvider: TimelineProvider {
 struct PawItWidgetEntryView: View {
     var entry: PawItEntry
 
-    /// 渲染时实时读取 App Group 状态：intent perform 后系统重绘即拿到新值。
-    private var isToggled: Bool { ToggleState.isToggled }
+    /// 进程内复用的共享库连接（首次渲染打开一次，避免每次重绘重连）。
+    /// 容器不可用（如缺 entitlement 的预览环境）时按未勾选渲染。
+    private static let store: SharedStore? = try? SharedStore.appGroup()
+
+    /// 渲染时实时读取 App Group 数据库：intent perform 后系统重绘即拿到新值。
+    private var isToggled: Bool {
+        guard let store = Self.store else { return false }
+        return (try? store.firstNoteIsDone()) ?? false
+    }
 
     var body: some View {
         Button(intent: ToggleItemIntent()) {

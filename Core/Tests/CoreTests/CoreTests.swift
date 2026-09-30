@@ -9,6 +9,10 @@ struct CoreTests {
 
     @Test func noteEquatable() {
         let id = UUID()
-        #expect(Note(id: id, title: "喂食") == Note(id: id, title: "喂食"))
+        let createdAt = Date(timeIntervalSinceReferenceDate: 0)
+        #expect(
+            Note(id: id, text: "喂食", createdAt: createdAt)
+                == Note(id: id, text: "喂食", createdAt: createdAt)
+        )
     }
 }
