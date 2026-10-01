@@ -11,6 +11,10 @@ import Core
 struct NoteListView: View {
 
     @State private var notes: [Note] = []
+    /// 头部宠物区数据——与 notes 同周期在 reloadNotes() 缓存,body 不再查库
+    /// (评审项 #8:此前 petHeader 计算属性每次重绘打 2 次同步查询)。
+    @State private var headerPet: PetProfile?
+    @State private var headerGrowth: GrowthState?
     @State private var editorMode: EditorMode?
     @State private var showPetSelection = false
     @State private var showGrowthDashboard = false
@@ -83,7 +87,10 @@ struct NoteListView: View {
                 }
             }
             .sheet(isPresented: $showGrowthDashboard) {
-                GrowthDashboardView { showGrowthDashboard = false }
+                GrowthDashboardView {
+                    showGrowthDashboard = false
+                    reloadNotes()
+                }
             }
             .sheet(item: $shareNote) { note in
                 ShareCardSheet(note: note) { shareNote = nil }
@@ -179,12 +186,11 @@ struct NoteListView: View {
         .refreshable { reloadNotes() }
     }
 
-    // MARK: - Pet Header
+    // MARK: - Pet Header（数据来自 reloadNotes 缓存,渲染零查询）
 
     @ViewBuilder
     private var petHeader: some View {
-        if let store = SharedStore.cachedAppGroup(),
-           let pet = try? store.selectedPet() {
+        if let pet = headerPet {
             Button { showGrowthDashboard = true } label: {
                 HStack(spacing: 12) {
                     PetAvatarView(species: pet.species, mood: .neutral, size: 52)
@@ -195,7 +201,7 @@ struct NoteListView: View {
                             .foregroundStyle(.primary)
 
                         if GrowthSettings.isEnabled,
-                           let gs = try? store.growthState(petId: pet.id) {
+                           let gs = headerGrowth {
                             HStack(spacing: 8) {
                                 if gs.streakDays > 0 {
                                     Label("\(gs.streakDays)d streak", systemImage: "flame.fill")
@@ -291,10 +297,16 @@ struct NoteListView: View {
         _ = try? await store.feedPet(petId: pet.id)
     }
 
-    /// 重载列表（纯 UI 状态）；跨表面副作用（Watch/锁屏）走 NoteChangeCoordinator。
+    /// 重载列表与头部宠物区（纯 UI 状态,渲染零查询）；
+    /// 跨表面副作用（Watch/锁屏）走 NoteChangeCoordinator。
     func reloadNotes() {
-        guard let repository else { return }
-        notes = (try? repository.allNotes()) ?? []
+        if let repository {
+            notes = (try? repository.allNotes()) ?? []
+        }
+        if let store = SharedStore.cachedAppGroup() {
+            headerPet = try? store.selectedPet()
+            headerGrowth = headerPet.flatMap { try? store.growthState(petId: $0.id) }
+        }
     }
 }
 

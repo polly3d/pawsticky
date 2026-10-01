@@ -130,4 +130,20 @@ public enum HistoryLog {
             .order(sql: "changedAt DESC, rowid DESC")
             .fetchAll(db)
     }
+
+    /// 某实体的最新一条条目——`entries` 的 LIMIT 1 形态(同序契约:
+    /// `changedAt` DESC, `rowid` DESC)。「只看最新」的调用(如会话合并的
+    /// 窗口裁决)走此查询,不为一条数据搬全量数组——编辑器活跃时每次
+    /// 防抖落盘都会经过这里(~3 次/秒)。
+    public static func latestEntry(
+        entityType: HistoryEntityType,
+        entityId: String,
+        in db: Database
+    ) throws -> HistoryEntry? {
+        try HistoryEntry
+            .filter(Column("entityType") == entityType.rawValue)
+            .filter(Column("entityId") == entityId)
+            .order(sql: "changedAt DESC, rowid DESC")
+            .fetchOne(db)
+    }
 }

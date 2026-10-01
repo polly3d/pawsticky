@@ -131,9 +131,9 @@ public struct NoteRepository: Sendable {
         case .always:
             return true
         case .coalesce(let window):
-            guard let last = try HistoryLog.entries(
+            guard let last = try HistoryLog.latestEntry(
                 entityType: entityType, entityId: entityId, in: db
-            ).first else {
+            ) else {
                 return true
             }
             return Date.now.timeIntervalSince(last.changedAt) >= window
