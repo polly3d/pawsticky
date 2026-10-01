@@ -1,6 +1,7 @@
 import AppIntents
 import Foundation
 import GRDB
+import WidgetKit
 
 /// Siri / 快捷指令速记（W5-2）："Hey Siri, add Buy cat food to PawIt"。
 ///
@@ -32,6 +33,12 @@ public struct AppendNoteIntent: AppIntent {
             let note = Note(text: trimmed, position: maxPos + 1)
             try note.insert(db)
         }
+
+        // Siri/Shortcuts 入口没有交互式 widget 按钮的系统自动重绘——必须显式
+        // reload,否则新便签要等下次 App 前后台切换才出现在 widget。
+        // Watch 同步:本进程无 WCSession 会话(归主 App),App 下次回前台时
+        // scenePhase → .active 的 syncToWatch 会补上。
+        WidgetCenter.shared.reloadAllTimelines()
 
         return .result(dialog: "Added: \(trimmed)")
     }

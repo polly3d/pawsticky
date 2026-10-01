@@ -279,6 +279,11 @@ public struct SharedStore: Sendable {
     }
 
     // MARK: - 写入（async，协作式）
+    //
+    // 本节裸写 API（insert/upsertNote/toggleFirstItem 等）**不落历史**——App 内
+    // 变更必须走 NoteRepository（历史与变更同事务）。它们保留作测试种数据原语
+    //（27 处测试调用），生产调用方为零；toggleFirstItem 为 W1 遗留语义，
+    // 清理需随 8 处测试迁移单独立项。
 
     /// 插入一条便签。不落历史;App 内变更请走 NoteRepository。
     public func insert(_ note: Note) async throws {
@@ -481,6 +486,24 @@ public struct SharedStore: Sendable {
     public func growthState(petId: String) throws -> GrowthState? {
         try pool.read { db in
             try GrowthState.filter(Column("petId") == petId).fetchOne(db)
+        }
+    }
+
+    /// 原子喂养（P0-5 修复）：单写事务内「读现值 → GrowthEngine.feed → 写回」。
+    /// 此前的三步读-改-写（读 growthState → feed → upsert）横跨两个隔离域，
+    /// App 与 Widget intent 双进程并发勾选时会丢更新。
+    /// 分层：喂养**语义**在 GrowthEngine（纯函数），原子性在本层——与
+    /// `toggleNoteItem(db:)` 同一分层模式。无 growth 行时以初值创建
+    ///（调用方保证宠物已存在；宠物行缺失由外键约束抛错，零静默）。
+    @discardableResult
+    public func feedPet(
+        petId: String, now: Date = .now, calendar: Calendar = .current
+    ) async throws -> GrowthState {
+        try await pool.write { db in
+            let current = try GrowthState.fetchOne(db, key: petId) ?? GrowthState(petId: petId)
+            let updated = GrowthEngine.feed(state: current, now: now, calendar: calendar)
+            try updated.save(db)
+            return updated
         }
     }
 

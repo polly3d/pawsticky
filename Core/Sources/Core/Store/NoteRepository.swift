@@ -83,10 +83,11 @@ public struct NoteRepository: Sendable {
     ///   注意:返回值为**内存新值**,其 createdAt 亚毫秒精度不会被 GRDB 毫秒文本编码
     ///   保留——与库内行做全等比较时,以读回值(`allNotes()` 等)为基准。
     @discardableResult
-    public func createNote(text: String, dueDate: Date? = nil) async throws -> Note {
+    public func createNote(text: String, dueDate: Date? = nil, style: String? = nil) async throws -> Note {
         try await store.write { db in
             let maxPos = try Int.fetchOne(db, Note.select(max(Column("position")))) ?? -1
-            let note = Note(text: text, dueDate: dueDate, position: maxPos + 1)
+            var note = Note(text: text, dueDate: dueDate, position: maxPos + 1)
+            note.style = style
             try note.insert(db)
             try HistoryLog.append(
                 in: db, entityType: .note, entityId: note.id.uuidString,
@@ -99,16 +100,43 @@ public struct NoteRepository: Sendable {
     /// 更新便签(整行按传入值落库)。目标行不存在时抛错——**更新不做静默插入**,
     /// 否则陈旧对象会把误删数据「复活」成丢失编辑的状态。
     /// 历史落 **PRE-change 前像**:恢复该条目即回到更新前状态。
-    public func updateNote(_ note: Note) async throws {
+    /// - Parameter history: 前像落盘模式(默认 `.always` 无条件落;编辑器防抖路径
+    ///   传 `.coalesce` 合并编辑会话内的连续前像,语义见 `HistoryMode`)。
+    public func updateNote(_ note: Note, history: HistoryMode = .always) async throws {
         try await store.write { db in
             guard let current = try Note.fetchOne(db, key: note.id.uuidString) else {
                 throw NoteRepositoryError.noteNotFound(note.id)
             }
-            try HistoryLog.append(
-                in: db, entityType: .note, entityId: note.id.uuidString,
-                payload: try PayloadCodec.encode(current)
-            )
+            if try Self.shouldAppendHistory(
+                history, entityType: .note, entityId: note.id.uuidString, in: db
+            ) {
+                try HistoryLog.append(
+                    in: db, entityType: .note, entityId: note.id.uuidString,
+                    payload: try PayloadCodec.encode(current)
+                )
+            }
             try note.update(db)
+        }
+    }
+
+    /// `.coalesce` 的裁决:同实体上一条历史距今 ≥ window 才落新前像
+    /// ——被保留的始终是「会话起点」状态;无历史条目时照落(理论上 create 先行)。
+    private static func shouldAppendHistory(
+        _ mode: HistoryMode,
+        entityType: HistoryEntityType,
+        entityId: String,
+        in db: Database
+    ) throws -> Bool {
+        switch mode {
+        case .always:
+            return true
+        case .coalesce(let window):
+            guard let last = try HistoryLog.entries(
+                entityType: entityType, entityId: entityId, in: db
+            ).first else {
+                return true
+            }
+            return Date.now.timeIntervalSince(last.changedAt) >= window
         }
     }
 
@@ -161,21 +189,29 @@ public struct NoteRepository: Sendable {
     // MARK: - NoteItem
 
     /// 新增清单项(父便签必须存在),并落「创建」后像快照。
+    /// **position-on-create**（与 `createNote` 同一纪律,W3-0③ 的清单项对齐）:
+    /// position = 该便签下现有 MAX(position) + 1,保证追加到队尾——修复:此前恒 0,
+    /// 同值时按随机 UUID 决胜,新增项的显示顺序与输入顺序无关。
     /// - Returns: 内存新值(createdAt 亚毫秒精度,库内为毫秒截断)——全等比较以读回值为基准。
     @discardableResult
     public func addItem(to noteId: UUID, text: String) async throws -> NoteItem {
-        let item = NoteItem(noteId: noteId, text: text)
         try await store.write { db in
             guard try Note.exists(db, key: noteId.uuidString) else {
                 throw NoteRepositoryError.noteNotFound(noteId)
             }
+            let maxPos = try Int.fetchOne(
+                db, NoteItem
+                    .filter(Column("noteId") == noteId.uuidString)
+                    .select(max(Column("position")))
+            ) ?? -1
+            let item = NoteItem(noteId: noteId, text: text, position: maxPos + 1)
             try item.insert(db)
             try HistoryLog.append(
                 in: db, entityType: .noteItem, entityId: item.id.uuidString,
                 payload: try PayloadCodec.encode(item)
             )
+            return item
         }
-        return item
     }
 
     /// 原子翻转清单项勾选:委托 `SharedStore.toggleNoteItem` 的单事务读-改-写本体
@@ -615,4 +651,26 @@ public struct NoteRepository: Sendable {
     /// 导出格式标识与版本常量(信封校验基准)。
     static let exportFormat = "pawit.export"
     static let exportVersion = 1
+}
+
+// MARK: - 历史落盘模式(P2 编辑会话合并)
+
+/// `updateNote` 的前像落盘模式。
+public enum HistoryMode: Equatable, Sendable {
+    /// 无条件落前像——默认,与「历史与变更同生共死」纪律一致
+    ///(toggle / restore / import 等语义性变更一律走此模式)。
+    case always
+    /// 编辑会话合并:同实体上一条历史距今 < window 时**跳过**本条前像。
+    /// 效果是给历史密度设上限(至多每 window 一条),回滚粒度从「每个防抖点」
+    /// 变为「会话起点(≤window 精度)」——正是「撤销我这轮编辑」的直觉语义,
+    /// 同时消除 300ms 防抖 × 整行快照的写放大。首条前像(会话起点状态)保留,
+    /// 窗外的新编辑重新落一条,合并不跨语义变更(`.always` 路径不受影响)。
+    /// 注意:**create 后像同样充当合并锚点**——新建便签后立刻快速编辑时,
+    /// 首次编辑即被合并跳过;create 后像内容即会话起点状态,回滚信息零损失。
+    case coalesce(window: TimeInterval = NoteRepository.historyCoalesceWindow)
+}
+
+extension NoteRepository {
+    /// 编辑会话合并的默认窗口:60 秒。
+    public static let historyCoalesceWindow: TimeInterval = 60
 }

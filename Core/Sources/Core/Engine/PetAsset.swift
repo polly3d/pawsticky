@@ -37,6 +37,18 @@ public enum PetAsset {
         "pet-\(species.rawValue)-\(pose.rawValue)"
     }
 
+    /// 是否有「举牌」姿势的美术资产——哪些物种能举牌是**资产层知识**
+    /// （P1-3 收敛点），渲染层不得自带副本（此前 iOS Widget / Live Activity
+    /// 各内联一份 cat/corgi 特判）。
+    /// Watch 端例外（决策固化，2026-10）：20pt 级小尺寸一律用 front——
+    /// 举牌细节在小尺寸下丢失，正面头像更清晰。
+    public static func hasHoldingPose(species: PetSpecies) -> Bool {
+        switch species {
+        case .cat, .corgi: return true
+        default: return false
+        }
+    }
+
     /// 开发期占位 SF Symbol（每个物种不同图标）。
     public static func placeholderSymbol(species: PetSpecies) -> String {
         switch species {

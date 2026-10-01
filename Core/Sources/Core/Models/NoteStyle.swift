@@ -13,6 +13,13 @@ public enum NoteStylePreset: String, CaseIterable, Codable, Sendable {
 
 extension NoteStylePreset {
 
+    /// 持久化 style 原文 → 预设的唯一解析点（P1-3 DRY）。
+    /// nil（数据库 NULL）与未知原文一律回退 classicYellow——此前该解析式
+    /// 在 App / Widget / 分享卡各处内联重复 7 处。
+    public static func resolve(_ rawValue: String?) -> NoteStylePreset {
+        rawValue.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+    }
+
     /// 便签背景色。
     public var backgroundColor: Color {
         switch self {
