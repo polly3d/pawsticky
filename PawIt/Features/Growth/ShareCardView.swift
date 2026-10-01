@@ -52,7 +52,7 @@ struct ShareCardView: View {
     // MARK: - Background
 
     private var cardBackground: some View {
-        let preset = note.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+        let preset = NoteStylePreset.resolve(note.style)
         return RoundedRectangle(cornerRadius: 0)
             .fill(
                 LinearGradient(

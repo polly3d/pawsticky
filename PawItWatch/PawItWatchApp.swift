@@ -68,8 +68,7 @@ struct WatchNoteListView: View {
                     }
 
                     if !note.items.isEmpty {
-                        let done = note.items.filter(\.done).count
-                        Text("\(done)/\(note.items.count) items")
+                        Text("\(note.items.doneCount)/\(note.items.count) items")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

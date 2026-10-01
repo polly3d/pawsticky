@@ -54,9 +54,9 @@ struct NoteEditorView: View {
         }
     }
 
-    /// 当前预设色（nil 回退 classicYellow）。
+    /// 当前预设色（nil 回退 classicYellow——解析单一入口 `NoteStylePreset.resolve`）。
     private var currentPreset: NoteStylePreset {
-        style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+        NoteStylePreset.resolve(style)
     }
 
     var body: some View {
@@ -91,7 +91,13 @@ struct NoteEditorView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background { flushSave() }
         }
-        .onDisappear { flushSave(); onDismiss() }
+        .onDisappear {
+            // 先取消防抖订阅再冲刷——否则 dismiss 后 300ms 内排队的保存事件
+            // 仍会触发一次冗余写库（多一条历史 + 一次提醒同步）。
+            cancellables.removeAll()
+            flushSave()
+            onDismiss()
+        }
     }
 
     private var navigationTitle: String {
@@ -170,7 +176,7 @@ struct NoteEditorView: View {
                     .font(.headline)
                 Spacer()
                 if !items.isEmpty {
-                    Text("\(items.filter(\.done).count)/\(items.count)")
+                    Text("\(items.doneCount)/\(items.count)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -301,17 +307,15 @@ struct NoteEditorView: View {
                 note.text = text
                 note.dueDate = dueDate
                 note.style = style
-                try? await repository.updateNote(note)
+                // 编辑会话合并（P2）：连续防抖落盘不逐条落前像，回滚回到会话起点。
+                try? await repository.updateNote(note, history: .coalesce())
                 await reminderManager.syncReminder(for: note)
             }
         } else if !trimmed.isEmpty {
-            if let note = try? await repository.createNote(text: text, dueDate: dueDate) {
+            // 一步事务带 style 创建——此前 create + update 两步两事务,
+            // 崩溃窗口会丢 style,且第二步历史前像无语义价值。
+            if let note = try? await repository.createNote(text: text, dueDate: dueDate, style: style) {
                 persistedNoteID = note.id
-                if style != nil {
-                    var styled = note
-                    styled.style = style
-                    try? await repository.updateNote(styled)
-                }
                 await reminderManager.syncReminder(for: note)
             }
         }
@@ -327,11 +331,12 @@ struct NoteEditorView: View {
                     note.text = text
                     note.dueDate = dueDate
                     note.style = style
-                    try? await repository.updateNote(note)
+                    try? await repository.updateNote(note, history: .coalesce())
                     await reminderManager.syncReminder(for: note)
                 }
             } else if !trimmed.isEmpty {
-                if let note = try? await repository.createNote(text: text, dueDate: dueDate) {
+                // 与 debouncedSave 同一创建路径——快速 dismiss 不再丢 style（P0-2）。
+                if let note = try? await repository.createNote(text: text, dueDate: dueDate, style: style) {
                     persistedNoteID = note.id
                     await reminderManager.syncReminder(for: note)
                 }
@@ -360,8 +365,8 @@ struct NoteEditorView: View {
         let trimmed = newItemText.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, let repository, let noteID = effectiveNoteID else { return }
         Task {
-            let maxPos = items.map(\.position).max() ?? -1
-            var item = NoteItem(noteId: noteID, text: trimmed, position: maxPos + 1)
+            // position-on-create 已在 repository.addItem 落实（MAX+1）——
+            // 此前这里算好了 maxPos+1 却调用不接受 position 的 API，是死代码。
             _ = try? await repository.addItem(to: noteID, text: trimmed)
             newItemText = ""
             items = (try? repository.noteItems(noteId: noteID)) ?? []

@@ -25,11 +25,6 @@ enum LiveActivityManager {
         currentActivity(for: noteId) != nil
     }
 
-    /// 所有当前活跃的钉住便签 ID。
-    static func pinnedNoteIDs() -> [String] {
-        Activity<NoteActivityAttributes>.activities.map(\.attributes.noteId)
-    }
-
     // MARK: - Pin（启动 Live Activity）
 
     /// 将便签钉到锁屏。如果已钉则更新内容。
@@ -110,37 +105,52 @@ enum LiveActivityManager {
         logger.debug("同步更新钉住便签: \(note.id.uuidString)")
     }
 
-    // MARK: - Renew（App 回前台时自动续期）
+    // MARK: - Refresh / Renew（App 回前台）
 
-    /// App 回到前台时调用：检查已过期/stale 的 Activity，自动重新启动。
-    static func renewIfNeeded() {
+    /// App 回到前台时调用：对全部钉住便签做「补刷 + 续期」。
+    /// * **active**：内容可能已被 widget intent 改脏（平台限制：Live Activity
+    ///   只能由主 App 进程更新，widget 勾选无法实时刷新锁屏）——用库内最新
+    ///   数据补刷，消除「widget 勾了、锁屏没划线」的可见不一致。
+    /// * **stale/ended**：结束旧的并按最新数据重新 pin（12h 过期保护续期）。
+    static func handleAppForeground() {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        guard let store = SharedStore.cachedAppGroup() else { return }
 
         for activity in Activity<NoteActivityAttributes>.activities {
-            guard activity.activityState == .ended || activity.activityState == .stale
-            else { continue }
-
             let noteIdStr = activity.attributes.noteId
-            guard let noteId = UUID(uuidString: noteIdStr),
-                  let notes = try? store.allNotes(),
-                  let note = notes.first(where: { $0.id == noteId })
-            else { continue }
+            guard let noteId = UUID(uuidString: noteIdStr) else { continue }
 
-            let items = (try? store.noteItems(noteId: noteId)) ?? []
-            let pet = try? store.selectedPet()
+            switch activity.activityState {
+            case .stale, .ended:
+                guard let repo = NoteRepository.cachedAppGroup(),
+                      let note = try? repo.note(id: noteId)
+                else { continue }
+                let items = (try? repo.noteItems(noteId: noteId)) ?? []
+                let pet = try? SharedStore.cachedAppGroup()?.selectedPet()
 
-            // 先结束旧的
-            let finalContent = ActivityContent(
-                state: activity.content.state, staleDate: .now
-            )
-            Task {
-                await activity.end(finalContent, dismissalPolicy: .immediate)
-                // 重新启动
-                try? Self.pin(note: note, items: items, pet: pet)
+                let finalContent = ActivityContent(
+                    state: activity.content.state, staleDate: .now
+                )
+                Task {
+                    await activity.end(finalContent, dismissalPolicy: .immediate)
+                    try? Self.pin(note: note, items: items, pet: pet)
+                }
+                logger.info("自动续期钉住便签: \(noteIdStr)")
+            default:
+                refreshFromStore(noteId: noteId)
             }
-            logger.info("自动续期钉住便签: \(noteIdStr)")
         }
+    }
+
+    /// 用库内最新数据补刷指定便签的锁屏内容（未钉住则无操作）。
+    /// 变更后同步锁屏的唯一入口——由 `NoteChangeCoordinator` 在每次便签
+    /// 变更后调用，App 各调用点不再各自手抄读取逻辑。
+    static func refreshFromStore(noteId: UUID) {
+        guard currentActivity(for: noteId) != nil,
+              let repo = NoteRepository.cachedAppGroup(),
+              let note = try? repo.note(id: noteId)
+        else { return }
+        let items = (try? repo.noteItems(noteId: noteId)) ?? []
+        updateIfPinned(note: note, items: items)
     }
 
     // MARK: - Private

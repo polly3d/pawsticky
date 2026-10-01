@@ -36,6 +36,9 @@ struct PawItApp: App {
             }
             if newPhase == .active {
                 phoneSession.syncToWatch()
+                // 补刷 + 续期全部钉住便签：widget/Siri 进程的变更（锁屏无法实时
+                // 刷新的平台限制）与 12h stale 过期都在此刻对齐。
+                LiveActivityManager.handleAppForeground()
             }
         }
     }

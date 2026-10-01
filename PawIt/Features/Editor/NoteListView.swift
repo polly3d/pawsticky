@@ -71,12 +71,15 @@ struct NoteListView: View {
             .sheet(item: $editorMode) { mode in
                 NoteEditorView(mode: mode, repository: repository) {
                     reloadNotes()
+                    NoteChangeCoordinator.noteChanged(noteId: mode.noteID)
                 }
             }
             .sheet(isPresented: $showPetSelection) {
                 PetSelectionView {
                     showPetSelection = false
                     reloadNotes()
+                    // 宠物切换影响 Watch 快照的 selectedPet——经协调层同步。
+                    NoteChangeCoordinator.noteChanged(noteId: nil)
                 }
             }
             .sheet(isPresented: $showGrowthDashboard) {
@@ -90,7 +93,6 @@ struct NoteListView: View {
             }
         }
         .task { reloadNotes() }
-        .task { LiveActivityManager.renewIfNeeded() }
         .onChange(of: deepLinkNoteID) { _, noteID in
             guard let noteID else { return }
             editorMode = .edit(noteID)
@@ -222,7 +224,7 @@ struct NoteListView: View {
     // MARK: - Helpers
 
     private func presetFor(_ note: Note) -> NoteStylePreset {
-        note.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+        NoteStylePreset.resolve(note.style)
     }
 
     // MARK: - Actions
@@ -235,6 +237,7 @@ struct NoteListView: View {
             for note in toDelete {
                 try? await repository.deleteNote(id: note.id)
                 await reminderManager.cancelReminder(noteID: note.id)
+                NoteChangeCoordinator.noteDeleted(noteId: note.id)
             }
             reloadNotes()
         }
@@ -246,12 +249,13 @@ struct NoteListView: View {
         Task {
             try? await repository.deleteNote(id: note.id)
             await reminderManager.cancelReminder(noteID: note.id)
+            NoteChangeCoordinator.noteDeleted(noteId: note.id)
             reloadNotes()
         }
     }
 
     /// 勾选便签 + 喂食逻辑（W7-3）。
-    /// 当 toggle 结果 = done → 触发 GrowthEngine.feed → 持久化。
+    /// 当 toggle 结果 = done → 触发喂养（store.feedPet 单事务原子读-改-写）。
     private func toggleDone(_ note: Note) {
         guard let repository else { return }
         Task {
@@ -260,14 +264,8 @@ struct NoteListView: View {
                 await feedPet()
             }
             reloadNotes()
-            // 同步更新锁屏 Live Activity
-            if LiveActivityManager.isPinned(noteId: note.id),
-               let store = SharedStore.cachedAppGroup(),
-               let updatedNotes = try? store.allNotes(),
-               let updated = updatedNotes.first(where: { $0.id == note.id }) {
-                let items = (try? store.noteItems(noteId: note.id)) ?? []
-                LiveActivityManager.updateIfPinned(note: updated, items: items)
-            }
+            // 变更副作用（Watch 同步 + 锁屏补刷）单点化——不再手抄。
+            NoteChangeCoordinator.noteChanged(noteId: note.id)
         }
     }
 
@@ -283,22 +281,20 @@ struct NoteListView: View {
         }
     }
 
-    /// 喂养宠物：读 GrowthState → feed → 写回。
+    /// 喂养宠物：store.feedPet 单事务原子读-改-写（P0-5 修复——此前的三步
+    /// 读-改-写在 App/Widget 双进程并发勾选时会丢更新）。
     private func feedPet() async {
         guard let store = SharedStore.cachedAppGroup(),
               let pet = try? store.selectedPet(),
               GrowthSettings.isEnabled
         else { return }
-
-        let current = (try? store.growthState(petId: pet.id)) ?? GrowthState(petId: pet.id)
-        let updated = GrowthEngine.feed(state: current, now: .now)
-        try? await store.upsertGrowthState(updated)
+        _ = try? await store.feedPet(petId: pet.id)
     }
 
+    /// 重载列表（纯 UI 状态）；跨表面副作用（Watch/锁屏）走 NoteChangeCoordinator。
     func reloadNotes() {
         guard let repository else { return }
         notes = (try? repository.allNotes()) ?? []
-        PhoneSessionManager.shared.syncToWatch()
     }
 }
 
@@ -314,6 +310,14 @@ enum EditorMode: Identifiable {
         case .edit(let uuid): return uuid.uuidString
         }
     }
+
+    /// 关联便签（create 模式无——新建流程的锁屏补刷由协调层按 nil 处理）。
+    var noteID: UUID? {
+        switch self {
+        case .create: return nil
+        case .edit(let uuid): return uuid
+        }
+    }
 }
 
 // MARK: - Note Row
@@ -322,7 +326,7 @@ struct NoteRowView: View {
     let note: Note
 
     private var preset: NoteStylePreset {
-        note.style.flatMap { NoteStylePreset(rawValue: $0) } ?? .classicYellow
+        NoteStylePreset.resolve(note.style)
     }
 
     var body: some View {

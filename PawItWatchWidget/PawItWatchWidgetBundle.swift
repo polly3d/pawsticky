@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import Core
+import os
 
 // MARK: - Timeline
 
@@ -71,11 +72,21 @@ struct WatchNoteProvider: TimelineProvider {
 
     // MARK: - Helpers
 
+    private static let logger = Logger(subsystem: "com.pawit.watch", category: "widgetData")
+
     /// 从 App Group UserDefaults 读取 iPhone 同步的快照。
+    /// 解码失败不再静默（P1-5）——损坏的快照会表现为「永远空状态」，无诊断不可排查。
     private static func loadPayload() -> WatchPayload? {
         let defaults = UserDefaults(suiteName: PawItInfo.appGroupID)
         guard let data = defaults?.data(forKey: "com.pawit.watchPayload") else { return nil }
-        return try? JSONDecoder().decode(WatchPayload.self, from: data)
+        do {
+            return try JSONDecoder().decode(WatchPayload.self, from: data)
+        } catch {
+            logger.warning(
+                "loadPayload 解码失败: \(String(describing: error), privacy: .public)"
+            )
+            return nil
+        }
     }
 
     /// 未完成的清单项排到前面，已完成的放后面。
@@ -92,6 +103,8 @@ struct WatchNoteProvider: TimelineProvider {
 
 /// Smart Stack 矩形 Widget（accessoryRectangular）——Watch 主力展示。
 /// 每次轮播一条未完成便签，未完成清单项优先展示。
+/// 宠物图固定用 front 正面（决策固化,2026-10）：20pt 级小尺寸下举牌细节丢失，
+/// 正面头像更清晰——与 iOS 端 holding 优先的差异记录于 `PetAsset.hasHoldingPose`。
 struct WatchRectangularWidget: View {
     let entry: WatchNoteEntry
 
@@ -191,9 +204,7 @@ struct WatchCircularWidget: View {
     var body: some View {
         if let note = entry.note {
             let items = note.items
-            let progress: Double = items.isEmpty
-                ? 0.0
-                : Double(items.filter(\.done).count) / Double(max(items.count, 1))
+            let progress: Double = items.isEmpty ? 0.0 : items.completionFraction
 
             ZStack {
                 AccessoryWidgetBackground()
@@ -247,7 +258,7 @@ struct WatchInlineWidget: View {
     var body: some View {
         if let note = entry.note {
             if !note.items.isEmpty {
-                let pending = note.items.filter { !$0.done }.count
+                let pending = note.items.count - note.items.doneCount
                 Label("\(note.text.prefix(12)) · \(pending) left",
                       systemImage: "pawprint.fill")
             } else {

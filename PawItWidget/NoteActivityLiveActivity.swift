@@ -3,6 +3,12 @@ import SwiftUI
 import WidgetKit
 import Core
 
+/// LA 清单项快照接入清单进度单一定义点（P1-3）——
+/// `Checkable` 归 Core,此处补 LA DTO 的 conformance（Shared/ 不 import Core）。
+extension NoteActivityAttributes.ChecklistItem: Checkable {
+    var isDone: Bool { done }
+}
+
 /// 便签 Live Activity 渲染——钉在锁屏的全宽便签卡片 + Dynamic Island。
 struct NoteActivityLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -28,8 +34,7 @@ struct NoteActivityLiveActivity: Widget {
                             .strikethrough(context.state.isDone)
 
                         if !context.state.items.isEmpty {
-                            let done = context.state.items.filter(\.done).count
-                            Text("\(done)/\(context.state.items.count) done")
+                            Text("\(context.state.items.doneCount)/\(context.state.items.count) done")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -90,12 +95,10 @@ private struct LockScreenActivityView: View {
 
     private var state: NoteActivityAttributes.ContentState { context.state }
     private var attrs: NoteActivityAttributes { context.attributes }
-    private var textColor: Color {
-        let preset = state.noteStyle ?? "classicYellow"
-        return preset == "charcoal"
-            ? Color(red: 0.93, green: 0.93, blue: 0.94)
-            : Color(red: 0.2, green: 0.2, blue: 0.2)
-    }
+    /// 颜色走 `NoteStylePreset` 单一定义（P0-4 修复）——此前此处硬编码一份 RGB
+    /// 副本,与 App/Widget 的预设色天然漂移。
+    private var preset: NoteStylePreset { NoteStylePreset.resolve(state.noteStyle) }
+    private var textColor: Color { preset.textColor }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -160,8 +163,7 @@ private struct LockScreenActivityView: View {
                         .foregroundStyle(textColor.opacity(0.5))
                     Spacer()
                     if !state.items.isEmpty {
-                        let done = state.items.filter(\.done).count
-                        Text("\(done)/\(state.items.count) done")
+                        Text("\(state.items.doneCount)/\(state.items.count) done")
                             .font(.caption2.bold())
                             .foregroundStyle(textColor.opacity(0.6))
                     } else if state.isDone {
@@ -179,29 +181,21 @@ private struct LockScreenActivityView: View {
 // MARK: - Shared Helpers
 
 /// 宠物图片（holding 优先，降级到 front）——复用 Widget 的 Asset Catalog。
+/// 「哪些物种有举牌图」的裁决在 `PetAsset.hasHoldingPose`（单一事实源），
+/// 此前此处与 iOS Widget 各内联一份 cat/corgi 特判。
 private func petImage(_ speciesRaw: String) -> some View {
-    let holdingName = "pet-\(speciesRaw)-holding"
-    let frontName = "pet-\(speciesRaw)-front"
-    let hasHolding = (speciesRaw == "cat" || speciesRaw == "corgi")
-    let imageName = hasHolding ? holdingName : frontName
-
+    let imageName: String
+    if let species = PetSpecies(rawValue: speciesRaw), PetAsset.hasHoldingPose(species: species) {
+        imageName = "pet-\(speciesRaw)-holding"
+    } else {
+        imageName = "pet-\(speciesRaw)-front"
+    }
     return Image(imageName)
         .resizable()
         .aspectRatio(contentMode: .fit)
 }
 
-/// 便签背景色（从 NoteStylePreset rawValue 映射）。
-private func noteBackground(_ styleRaw: String?) -> some View {
-    let color: Color = {
-        switch styleRaw {
-        case "classicYellow": return Color(red: 1.0, green: 0.976, blue: 0.769)
-        case "mint":          return Color(red: 0.784, green: 0.902, blue: 0.788)
-        case "sakura":        return Color(red: 0.984, green: 0.804, blue: 0.863)
-        case "ocean":         return Color(red: 0.733, green: 0.871, blue: 0.984)
-        case "lavender":      return Color(red: 0.839, green: 0.788, blue: 0.945)
-        case "charcoal":      return Color(red: 0.259, green: 0.259, blue: 0.278)
-        default:              return Color(red: 1.0, green: 0.976, blue: 0.769)
-        }
-    }()
-    return color
+/// 便签背景色（NoteStylePreset 单一定义——此前硬编码 RGB 副本，P0-4 修复）。
+private func noteBackground(_ styleRaw: String?) -> Color {
+    NoteStylePreset.resolve(styleRaw).backgroundColor
 }
