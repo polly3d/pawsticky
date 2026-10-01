@@ -1,7 +1,13 @@
 import SwiftUI
 import Core
 
-/// 养成仪表盘（W7-2）——展示喂养进度、连击天数、已解锁装扮。
+/// 养成仪表盘（Soft Companion 风格）——宠物居中 + 进度环 + 装扮网格。
+///
+/// 升级要点：
+/// - 宠物居中大图（120px + idle 动画）
+/// - Duolingo 式进度环替代条形进度条
+/// - 暖色背景一致性
+/// - 装扮网格用暖色调
 struct GrowthDashboardView: View {
     @State private var growthState: GrowthState?
     @State private var selectedPet: PetProfile?
@@ -12,12 +18,14 @@ struct GrowthDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    petHeader
-                    progressSection
+                    petCenterStage
+                    statsRow
+                    progressRing
                     outfitGrid
                 }
                 .padding()
             }
+            .warmBackground()
             .navigationTitle("Growth")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -29,86 +37,134 @@ struct GrowthDashboardView: View {
         .task { loadState() }
     }
 
-    // MARK: - Pet Header
+    // MARK: - Pet Center Stage
 
-    private var petHeader: some View {
-        VStack(spacing: 12) {
+    private var petCenterStage: some View {
+        VStack(spacing: 14) {
             if let pet = selectedPet {
                 PetAvatarView(
                     species: pet.species,
-                    mood: .neutral,
-                    size: 80
+                    mood: petMood,
+                    size: 120,
+                    animated: true
                 )
+
                 Text(PetAsset.displayName(species: pet.species))
-                    .font(.title2.bold())
+                    .font(AppTheme.title)
+
+                if let gs = growthState, gs.streakDays > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "flame.fill")
+                            .foregroundStyle(.orange)
+                        Text("\(gs.streakDays) day streak")
+                            .font(.system(.subheadline, design: .rounded, weight: .medium))
+                            .foregroundStyle(.orange)
+                    }
+                }
             } else {
                 Image(systemName: "pawprint.circle")
                     .font(.system(size: 60))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.secondaryText)
                 Text("No pet selected")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .font(AppTheme.subtitle)
+                    .foregroundStyle(AppTheme.secondaryText)
             }
         }
     }
 
-    // MARK: - Progress Section
+    /// 根据 growth 状态决定心情
+    private var petMood: PetMood {
+        guard let gs = growthState else { return .neutral }
+        if gs.streakDays >= 7 { return .happy }
+        return .neutral
+    }
 
-    private var progressSection: some View {
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
         let state = growthState ?? GrowthState(petId: "")
 
-        return VStack(spacing: 16) {
-            // 连击
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Streak")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(state.streakDays)")
-                            .font(.system(.title, design: .rounded, weight: .bold))
-                        Text("days")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                VStack(alignment: .trailing) {
-                    Text("Fed Level")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("\(state.fedLevel)")
-                        .font(.system(.title, design: .rounded, weight: .bold))
-                }
-            }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial))
+        return HStack(spacing: 16) {
+            StatBubble(
+                value: "\(state.streakDays)",
+                label: "Streak Days",
+                icon: "flame.fill",
+                color: .orange
+            )
+            StatBubble(
+                value: "\(state.fedLevel)",
+                label: "Fed Level",
+                icon: "heart.fill",
+                color: .pink
+            )
+            StatBubble(
+                value: "\(GrowthEngine.unlockedOutfits(state: state).count)",
+                label: "Outfits",
+                icon: "tshirt.fill",
+                color: .purple
+            )
+        }
+    }
 
-            // 下一装扮进度
+    // MARK: - Progress Ring
+
+    private var progressRing: some View {
+        let state = growthState ?? GrowthState(petId: "")
+        let progress = GrowthEngine.progressToNextOutfit(state: state)
+
+        return VStack(spacing: 12) {
             if let next = GrowthEngine.nextOutfit(state: state) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Next: \(next.outfit.displayName)")
-                            .font(.subheadline.bold())
-                        Spacer()
-                        Text("\(next.remaining) more to go")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                ZStack {
+                    // 背景环
+                    Circle()
+                        .stroke(AppTheme.separator, lineWidth: 10)
+                        .frame(width: 100, height: 100)
 
-                    ProgressView(value: GrowthEngine.progressToNextOutfit(state: state))
-                        .tint(.orange)
+                    // 进度环
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(
+                            Color.orange,
+                            style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                        )
+                        .frame(width: 100, height: 100)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(duration: 0.8), value: progress)
+
+                    // 中心文字
+                    VStack(spacing: 2) {
+                        Text("\(Int(progress * 100))%")
+                            .font(.system(.title3, design: .rounded, weight: .bold))
+                        Text("to next")
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(AppTheme.secondaryText)
+                    }
                 }
-                .padding()
-                .background(RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial))
+
+                HStack {
+                    Text("Next: \(next.outfit.displayName)")
+                        .font(AppTheme.cardTitle)
+                    Spacer()
+                    Text("\(next.remaining) more to go")
+                        .font(AppTheme.caption)
+                        .foregroundStyle(AppTheme.secondaryText)
+                }
             } else {
-                Text("All outfits unlocked! 🎉")
-                    .font(.headline)
+                Text("All outfits unlocked!")
+                    .font(AppTheme.subtitle)
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial))
             }
         }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .fill(AppTheme.surfaceBackground)
+                .shadow(
+                    color: AppTheme.lightShadow.color,
+                    radius: AppTheme.lightShadow.radius,
+                    y: AppTheme.lightShadow.y
+                )
+        )
     }
 
     // MARK: - Outfit Grid
@@ -119,16 +175,16 @@ struct GrowthDashboardView: View {
 
         return VStack(alignment: .leading, spacing: 12) {
             Text("Outfits")
-                .font(.headline)
+                .font(AppTheme.cardTitle)
 
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(Outfit.allCases, id: \.rawValue) { outfit in
                     VStack(spacing: 4) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
                                 .fill(unlocked.contains(outfit)
-                                    ? Color.orange.opacity(0.15)
-                                    : Color.gray.opacity(0.1))
+                                    ? Color.orange.opacity(0.12)
+                                    : AppTheme.separator.opacity(0.5))
                                 .frame(width: 60, height: 60)
 
                             if unlocked.contains(outfit) {
@@ -138,13 +194,13 @@ struct GrowthDashboardView: View {
                             } else {
                                 Image(systemName: "lock.fill")
                                     .font(.title3)
-                                    .foregroundStyle(.gray.opacity(0.4))
+                                    .foregroundStyle(AppTheme.secondaryText.opacity(0.4))
                             }
                         }
 
                         Text(outfit.displayName)
-                            .font(.caption2)
-                            .foregroundStyle(unlocked.contains(outfit) ? .primary : .secondary)
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(unlocked.contains(outfit) ? .primary : AppTheme.secondaryText)
                             .lineLimit(1)
                     }
                     .accessibilityLabel("\(outfit.displayName), \(unlocked.contains(outfit) ? "unlocked" : "locked, \(outfit.unlockThreshold) feeds required")")
@@ -161,5 +217,40 @@ struct GrowthDashboardView: View {
         if let petId = selectedPet?.id {
             growthState = try? store.growthState(petId: petId)
         }
+    }
+}
+
+// MARK: - Stat Bubble
+
+private struct StatBubble: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+
+            Text(value)
+                .font(.system(.title2, design: .rounded, weight: .bold))
+
+            Text(label)
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(AppTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .fill(AppTheme.surfaceBackground)
+                .shadow(
+                    color: AppTheme.lightShadow.color,
+                    radius: AppTheme.lightShadow.radius,
+                    y: AppTheme.lightShadow.y
+                )
+        )
     }
 }

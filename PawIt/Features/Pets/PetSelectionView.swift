@@ -1,45 +1,64 @@
 import SwiftUI
 import Core
 
-/// 宠物选择界面（W6-3 → W7 升级）——大卡片布局，展示宠物全身。
+/// 宠物选择界面（Soft Companion 风格）——仅用于非 onboarding 场景的"换宠"。
+///
+/// Onboarding 场景已由 OnboardingView 接管。此处保留日常「My Pet」入口，
+/// 升级为暖色背景 + 弹跳动效 + 对话气泡反馈。
 struct PetSelectionView: View {
     @State private var selectedSpecies: PetSpecies?
-    @State private var pets: [PetProfile] = []
+    @State private var bouncing: PetSpecies?
 
     let repository: NoteRepository?
     let onDismiss: () -> Void
 
-    init(repository: NoteRepository? = NoteRepository.cachedAppGroup(), onDismiss: @escaping () -> Void) {
+    init(
+        repository: NoteRepository? = NoteRepository.cachedAppGroup(),
+        isOnboarding: Bool = false,
+        onDismiss: @escaping () -> Void
+    ) {
         self.repository = repository
         self.onDismiss = onDismiss
     }
 
     private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14),
     ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     Text("Choose your pet companion")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(AppTheme.secondaryText)
 
-                    LazyVGrid(columns: columns, spacing: 12) {
+                    LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(PetSpecies.allCases, id: \.rawValue) { species in
                             PetCard(
                                 species: species,
                                 isSelected: selectedSpecies == species,
+                                isBouncing: bouncing == species,
                                 onSelect: { selectPet(species) }
                             )
                         }
                     }
                     .padding(.horizontal)
+
+                    // 选中后的对话反馈
+                    if let species = selectedSpecies {
+                        PetDialogueBubble(
+                            text: switchDialogue(species),
+                            maxWidth: 260
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        .padding(.top, 8)
+                    }
                 }
                 .padding(.top)
             }
+            .warmBackground()
             .navigationTitle("My Pet")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -60,7 +79,15 @@ struct PetSelectionView: View {
 
     private func selectPet(_ species: PetSpecies) {
         guard let store = SharedStore.cachedAppGroup() else { return }
-        selectedSpecies = species
+
+        // 弹跳反馈
+        withAnimation(AppTheme.petHappyAnimation) {
+            selectedSpecies = species
+            bouncing = species
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            bouncing = nil
+        }
 
         Task {
             for sp in PetSpecies.allCases {
@@ -74,60 +101,72 @@ struct PetSelectionView: View {
             }
         }
     }
+
+    private func switchDialogue(_ species: PetSpecies) -> String {
+        switch species {
+        case .cat:     return "Mochi is happy to see you again!"
+        case .graycat: return "Luna purrs softly. Ready to help."
+        case .corgi:   return "Coco's tail is wagging like crazy!"
+        case .shiba:   return "Hachi gives you a cool nod."
+        case .rabbit:  return "Mimi hops with excitement!"
+        case .hamster: return "Peanut squeaks with joy!"
+        }
+    }
 }
 
-// MARK: - Pet Card（大卡片布局）
+// MARK: - Pet Card（Soft Companion 风格）
 
 private struct PetCard: View {
     let species: PetSpecies
     let isSelected: Bool
+    let isBouncing: Bool
     let onSelect: () -> Void
 
     private var accentColor: Color {
-        Color(
-            hue: PetAsset.accentHue(species: species) / 360,
-            saturation: 0.5,
-            brightness: 0.85
-        )
+        AppTheme.petAccentColor(species: species)
     }
 
     var body: some View {
         Button(action: onSelect) {
-            VStack(spacing: 6) {
-                // 宠物全身图
+            VStack(spacing: 8) {
                 Image("pet-\(species.rawValue)-front")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(height: 100)
-                    .padding(.top, 12)
+                    .frame(height: 90)
+                    .padding(.top, 14)
+                    .scaleEffect(isBouncing ? 1.15 : (isSelected ? 1.05 : 1.0))
+                    .offset(y: isBouncing ? -8 : 0)
+                    .animation(AppTheme.petHappyAnimation, value: isBouncing)
+                    .animation(.spring(duration: 0.3), value: isSelected)
 
-                // 名字
                 Text(PetAsset.displayName(species: species))
-                    .font(.subheadline.bold())
+                    .font(AppTheme.cardTitle)
                     .foregroundStyle(isSelected ? accentColor : .primary)
 
-                // 性格标签
                 Text(personality(species))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 10)
+                    .font(AppTheme.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+                    .padding(.bottom, 12)
             }
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                     .fill(isSelected
                         ? accentColor.opacity(0.1)
-                        : Color(.systemGray6))
+                        : AppTheme.surfaceBackground)
+                    .shadow(
+                        color: isSelected ? accentColor.opacity(0.2) : AppTheme.cardShadow.color,
+                        radius: isSelected ? 12 : AppTheme.cardShadow.radius,
+                        y: AppTheme.cardShadow.y
+                    )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                     .strokeBorder(
                         isSelected ? accentColor : Color.clear,
                         lineWidth: 2.5
                     )
             )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(.spring(duration: 0.25), value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(PetAsset.displayName(species: species)), \(personality(species)), \(isSelected ? "selected" : "not selected")")

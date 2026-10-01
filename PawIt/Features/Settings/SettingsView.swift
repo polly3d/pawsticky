@@ -1,7 +1,7 @@
 import SwiftUI
 import Core
 
-/// 设置页面（W7-5）——目前仅含「关闭养成」开关。
+/// 设置页面（Soft Companion 风格）——暖色背景一致。
 struct SettingsView: View {
     @State private var growthEnabled: Bool = GrowthSettings.isEnabled
     let onDismiss: () -> Void
@@ -20,6 +20,8 @@ struct SettingsView: View {
                     Text("When disabled, completing tasks won't feed your pet or track streaks. Your existing progress is preserved.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .warmBackground()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

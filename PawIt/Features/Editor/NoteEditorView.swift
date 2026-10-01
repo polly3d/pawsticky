@@ -80,7 +80,9 @@ struct NoteEditorView: View {
                 }
                 .padding()
             }
-            .background(currentPreset.backgroundColor.opacity(0.3).ignoresSafeArea())
+            .background(currentPreset.backgroundColor.opacity(0.2).ignoresSafeArea()
+                .overlay(AppTheme.background.opacity(0.4).ignoresSafeArea())
+            )
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
@@ -111,23 +113,28 @@ struct NoteEditorView: View {
 
     private var noteTextEditor: some View {
         TextEditor(text: $text)
-            .font(.body)
+            .font(AppTheme.body)
             .foregroundStyle(currentPreset.textColor)
             .focused($isTextEditorFocused)
             .frame(minHeight: 200)
             .scrollContentBackground(.hidden)
-            .padding(12)
+            .padding(14)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                     .fill(currentPreset.backgroundColor)
-                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                    .shadow(
+                        color: AppTheme.cardShadow.color,
+                        radius: AppTheme.cardShadow.radius,
+                        y: AppTheme.cardShadow.y
+                    )
             )
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
                     Text("Start typing...")
-                        .foregroundStyle(currentPreset.textColor.opacity(0.4))
-                        .padding(.leading, 16)
-                        .padding(.top, 20)
+                        .font(.system(.body, design: .rounded))
+                        .foregroundStyle(currentPreset.textColor.opacity(0.35))
+                        .padding(.leading, 18)
+                        .padding(.top, 22)
                         .allowsHitTesting(false)
                 }
             }
@@ -141,7 +148,7 @@ struct NoteEditorView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label("Reminder", systemImage: "bell")
-                    .font(.headline)
+                    .font(AppTheme.cardTitle)
                 Spacer()
                 if dueDate != nil {
                     Button("Clear") {
@@ -173,12 +180,12 @@ struct NoteEditorView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Checklist")
-                    .font(.headline)
+                    .font(AppTheme.cardTitle)
                 Spacer()
                 if !items.isEmpty {
                     Text("\(items.doneCount)/\(items.count)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(AppTheme.caption)
+                        .foregroundStyle(AppTheme.secondaryText)
                 }
             }
             .padding(.top, 8)

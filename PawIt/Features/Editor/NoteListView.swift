@@ -1,18 +1,17 @@
 import SwiftUI
 import Core
 
-/// 便签列表——App 主界面（W3-2）。
+/// 便签列表——App 主界面（Soft Companion 风格重设计）。
 ///
-/// 设计原则（来自竞品差评的反面教训）：
-/// - "+" 一键创建，sheet 弹出编辑器，光标直达正文，无命名步骤
-/// - 创建与编辑共用同一 sheet 编辑器
-/// - 排序消费 `allNotes()`——与 Widget/store 同族同序
-/// - deep link：通知 tap → 自动打开对应便签（W3-5）
+/// 核心变更（vs 原 W3-2）：
+/// - 暖奶油色背景（AppTheme.background）替代系统白
+/// - 宠物头部区更大（64px + idle 动画 + 对话气泡）
+/// - 便签行改为卡片式布局（圆角 + 阴影 + 预设色背景）
+/// - 空状态使用宠物 + 对话引导替代系统 ContentUnavailableView
+/// - Onboarding 路由到新 OnboardingView（fullScreenCover）
 struct NoteListView: View {
 
     @State private var notes: [Note] = []
-    /// 头部宠物区数据——与 notes 同周期在 reloadNotes() 缓存,body 不再查库
-    /// (评审项 #8:此前 petHeader 计算属性每次重绘打 2 次同步查询)。
     @State private var headerPet: PetProfile?
     @State private var headerGrowth: GrowthState?
     @State private var editorMode: EditorMode?
@@ -21,7 +20,12 @@ struct NoteListView: View {
     @State private var showSettings = false
     @State private var shareNote: Note?
 
-    /// Deep link 入口：通知 tap 后的目标 noteID（W3-5）。
+    // Onboarding
+    @State private var showOnboarding = false
+    @State private var onboardingInProgress = false
+    @State private var showWidgetHint = false
+
+    /// Deep link 入口
     @State var deepLinkNoteID: UUID?
 
     let repository: NoteRepository?
@@ -32,14 +36,33 @@ struct NoteListView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if notes.isEmpty {
-                    emptyState
-                } else {
-                    noteList
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Widget 添加引导
+                    if showWidgetHint {
+                        widgetHintBanner
+                            .padding(.horizontal, 16)
+                    }
+
+                    // Pet Companion Header
+                    petHeader
+                        .padding(.horizontal, 16)
+
+                    // Notes
+                    if notes.isEmpty {
+                        emptyState
+                            .padding(.top, 40)
+                    } else {
+                        noteCards
+                            .padding(.horizontal, 16)
+                    }
                 }
+                .padding(.top, 8)
+                .padding(.bottom, 80)
             }
+            .warmBackground()
             .navigationTitle("PawIt")
+            .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     HStack(spacing: 12) {
@@ -67,6 +90,7 @@ struct NoteListView: View {
                         Button { editorMode = .create } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
+                                .foregroundStyle(.orange)
                         }
                         .accessibilityLabel("New Note")
                     }
@@ -76,13 +100,23 @@ struct NoteListView: View {
                 NoteEditorView(mode: mode, repository: repository) {
                     reloadNotes()
                     NoteChangeCoordinator.noteChanged(noteId: mode.noteID)
+                    finishOnboardingIfNeeded()
+                }
+            }
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView {
+                    showOnboarding = false
+                    onboardingInProgress = true
+                    reloadNotes()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        editorMode = .create
+                    }
                 }
             }
             .sheet(isPresented: $showPetSelection) {
                 PetSelectionView {
                     showPetSelection = false
                     reloadNotes()
-                    // 宠物切换影响 Watch 快照的 selectedPet——经协调层同步。
                     NoteChangeCoordinator.noteChanged(noteId: nil)
                 }
             }
@@ -99,7 +133,10 @@ struct NoteListView: View {
                 SettingsView { showSettings = false }
             }
         }
-        .task { reloadNotes() }
+        .task {
+            reloadNotes()
+            startOnboardingIfNeeded()
+        }
         .onChange(of: deepLinkNoteID) { _, noteID in
             guard let noteID else { return }
             editorMode = .edit(noteID)
@@ -112,107 +149,44 @@ struct NoteListView: View {
         }
     }
 
-    // MARK: - Subviews
-
-    private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No Notes Yet", systemImage: "note.text")
-        } description: {
-            Text("Tap + to start writing")
-        } actions: {
-            Button("Create Your First Note") { editorMode = .create }
-                .buttonStyle(.borderedProminent)
-        }
-    }
-
-    private var noteList: some View {
-        List {
-            // Pet Mascot Header
-            petHeader
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
-
-            ForEach(notes, id: \.id) { note in
-                Button { editorMode = .edit(note.id) } label: {
-                    HStack {
-                        NoteRowView(note: note)
-                        if LiveActivityManager.isPinned(noteId: note.id) {
-                            Image(systemName: "pin.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                }
-                .tint(.primary)
-                .listRowBackground(presetFor(note).backgroundColor.opacity(0.25))
-                .swipeActions(edge: .leading) {
-                    Button {
-                        toggleDone(note)
-                    } label: {
-                        Label(note.done ? "Undo" : "Done",
-                              systemImage: note.done ? "arrow.uturn.backward" : "checkmark")
-                    }
-                    .tint(note.done ? .gray : .green)
-
-                    Button {
-                        togglePin(note)
-                    } label: {
-                        Label(
-                            LiveActivityManager.isPinned(noteId: note.id) ? "Unpin" : "Pin",
-                            systemImage: LiveActivityManager.isPinned(noteId: note.id)
-                                ? "pin.slash.fill" : "pin.fill"
-                        )
-                    }
-                    .tint(.orange)
-                }
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        deleteNote(note)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    Button {
-                        shareNote = note
-                    } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                    }
-                    .tint(.orange)
-                }
-            }
-            .onDelete(perform: deleteNotes)
-        }
-        .listStyle(.plain)
-        .refreshable { reloadNotes() }
-    }
-
-    // MARK: - Pet Header（数据来自 reloadNotes 缓存,渲染零查询）
+    // MARK: - Pet Companion Header（更大、更有存在感）
 
     @ViewBuilder
     private var petHeader: some View {
         if let pet = headerPet {
             Button { showGrowthDashboard = true } label: {
-                HStack(spacing: 12) {
-                    PetAvatarView(species: pet.species, mood: .neutral, size: 52)
+                HStack(spacing: 14) {
+                    PetAvatarView(
+                        species: pet.species,
+                        mood: moodForHeader,
+                        size: 64,
+                        animated: true
+                    )
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(PetAsset.displayName(species: pet.species))
-                            .font(.subheadline.bold())
+                            .font(AppTheme.cardTitle)
                             .foregroundStyle(.primary)
 
                         if GrowthSettings.isEnabled,
                            let gs = headerGrowth {
-                            HStack(spacing: 8) {
+                            HStack(spacing: 10) {
                                 if gs.streakDays > 0 {
                                     Label("\(gs.streakDays)d streak", systemImage: "flame.fill")
-                                        .font(.caption)
+                                        .font(AppTheme.caption)
                                         .foregroundStyle(.orange)
                                 }
                                 Label("Lv.\(gs.fedLevel)", systemImage: "heart.fill")
-                                    .font(.caption)
+                                    .font(AppTheme.caption)
                                     .foregroundStyle(.pink)
                             }
                         }
+
+                        // 宠物对话——根据状态显示不同台词
+                        Text(petGreeting)
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(AppTheme.secondaryText)
+                            .italic()
                     }
 
                     Spacer()
@@ -221,33 +195,168 @@ struct NoteListView: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.vertical, 8)
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                        .fill(AppTheme.petTintBackground(species: pet.species))
+                        .shadow(
+                            color: AppTheme.lightShadow.color,
+                            radius: AppTheme.lightShadow.radius,
+                            y: AppTheme.lightShadow.y
+                        )
+                )
             }
             .buttonStyle(.plain)
         }
     }
 
-    // MARK: - Helpers
+    /// 根据便签状态决定宠物心情
+    private var moodForHeader: PetMood {
+        let overdueCount = notes.filter { NoteEngine.isOverdue($0, now: .now) }.count
+        if overdueCount > 0 { return .worried }
+        let doneToday = notes.filter { $0.done }.count
+        if doneToday > 0 { return .happy }
+        return .neutral
+    }
 
-    private func presetFor(_ note: Note) -> NoteStylePreset {
-        NoteStylePreset.resolve(note.style)
+    /// 宠物随机/状态性台词
+    private var petGreeting: String {
+        let overdueCount = notes.filter { NoteEngine.isOverdue($0, now: .now) }.count
+        if overdueCount > 0 {
+            return "You have \(overdueCount) overdue note\(overdueCount > 1 ? "s" : "")..."
+        }
+        if notes.isEmpty {
+            return "What should I remember today?"
+        }
+        let greetings = [
+            "Ready to help!",
+            "Let's get things done!",
+            "I've got your notes safe.",
+            "Tap + to add more!",
+        ]
+        return greetings[notes.count % greetings.count]
+    }
+
+    // MARK: - Empty State（宠物引导风格）
+
+    private var emptyState: some View {
+        VStack(spacing: 20) {
+            if let pet = headerPet {
+                PetAvatarView(
+                    species: pet.species,
+                    mood: .neutral,
+                    size: 100,
+                    animated: true
+                )
+
+                PetDialogueBubble(
+                    text: "No notes yet! Tap + to write your first one, and I'll remember it for you.",
+                    maxWidth: 280
+                )
+            } else {
+                Image(systemName: "note.text")
+                    .font(.system(size: 48))
+                    .foregroundStyle(AppTheme.secondaryText)
+
+                Text("No Notes Yet")
+                    .font(AppTheme.subtitle)
+            }
+
+            Button { editorMode = .create } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Create Your First Note")
+                }
+                .font(AppTheme.cardTitle)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                        .fill(Color.orange)
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+    }
+
+    // MARK: - Note Cards（卡片式替代 List）
+
+    private var noteCards: some View {
+        VStack(spacing: 12) {
+            ForEach(notes, id: \.id) { note in
+                NoteCardView(
+                    note: note,
+                    isPinned: LiveActivityManager.isPinned(noteId: note.id),
+                    onTap: { editorMode = .edit(note.id) },
+                    onToggleDone: { toggleDone(note) },
+                    onTogglePin: { togglePin(note) },
+                    onDelete: { deleteNote(note) },
+                    onShare: { shareNote = note }
+                )
+            }
+        }
+    }
+
+    // MARK: - Widget Hint Banner（Soft Companion 风格）
+
+    private var widgetHintBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "plus.rectangle.on.rectangle.fill")
+                .font(.title2)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Add PawIt to Your Home Screen")
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                Text("Touch and hold your Home Screen, tap +, then find PawIt.")
+                    .font(AppTheme.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Got it") {
+                OnboardingGate.widgetHintShown = true
+                withAnimation { showWidgetHint = false }
+            }
+            .font(.system(.caption, design: .rounded, weight: .bold))
+            .buttonStyle(.bordered)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .fill(Color.orange.opacity(0.1))
+                .shadow(
+                    color: AppTheme.lightShadow.color,
+                    radius: AppTheme.lightShadow.radius,
+                    y: AppTheme.lightShadow.y
+                )
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Onboarding
+
+    private func startOnboardingIfNeeded() {
+        guard let store = SharedStore.cachedAppGroup() else { return }
+        let hasPet = ((try? store.selectedPet()) ?? nil) != nil
+        let count = (try? store.countNotes()) ?? 0
+        if OnboardingGate.shouldShowOnboarding(hasSelectedPet: hasPet, noteCount: count) {
+            showOnboarding = true
+        }
+    }
+
+    private func finishOnboardingIfNeeded() {
+        guard onboardingInProgress else { return }
+        onboardingInProgress = false
+        if !notes.isEmpty, !OnboardingGate.widgetHintShown {
+            withAnimation { showWidgetHint = true }
+        }
     }
 
     // MARK: - Actions
-
-    private func deleteNotes(at offsets: IndexSet) {
-        guard let repository else { return }
-        let toDelete = offsets.map { notes[$0] }
-        let reminderManager = ReminderManager()
-        Task {
-            for note in toDelete {
-                try? await repository.deleteNote(id: note.id)
-                await reminderManager.cancelReminder(noteID: note.id)
-                NoteChangeCoordinator.noteDeleted(noteId: note.id)
-            }
-            reloadNotes()
-        }
-    }
 
     private func deleteNote(_ note: Note) {
         guard let repository else { return }
@@ -260,8 +369,6 @@ struct NoteListView: View {
         }
     }
 
-    /// 勾选便签 + 喂食逻辑（W7-3）。
-    /// 当 toggle 结果 = done → 触发喂养（store.feedPet 单事务原子读-改-写）。
     private func toggleDone(_ note: Note) {
         guard let repository else { return }
         Task {
@@ -270,12 +377,10 @@ struct NoteListView: View {
                 await feedPet()
             }
             reloadNotes()
-            // 变更副作用（Watch 同步 + 锁屏补刷）单点化——不再手抄。
             NoteChangeCoordinator.noteChanged(noteId: note.id)
         }
     }
 
-    /// 钉/取消钉便签到锁屏 Live Activity。
     private func togglePin(_ note: Note) {
         if LiveActivityManager.isPinned(noteId: note.id) {
             LiveActivityManager.unpin(noteId: note.id)
@@ -287,8 +392,6 @@ struct NoteListView: View {
         }
     }
 
-    /// 喂养宠物：store.feedPet 单事务原子读-改-写（P0-5 修复——此前的三步
-    /// 读-改-写在 App/Widget 双进程并发勾选时会丢更新）。
     private func feedPet() async {
         guard let store = SharedStore.cachedAppGroup(),
               let pet = try? store.selectedPet(),
@@ -297,8 +400,6 @@ struct NoteListView: View {
         _ = try? await store.feedPet(petId: pet.id)
     }
 
-    /// 重载列表与头部宠物区（纯 UI 状态,渲染零查询）；
-    /// 跨表面副作用（Watch/锁屏）走 NoteChangeCoordinator。
     func reloadNotes() {
         if let repository {
             notes = (try? repository.allNotes()) ?? []
@@ -323,7 +424,6 @@ enum EditorMode: Identifiable {
         }
     }
 
-    /// 关联便签（create 模式无——新建流程的锁屏补刷由协调层按 nil 处理）。
     var noteID: UUID? {
         switch self {
         case .create: return nil
@@ -332,43 +432,87 @@ enum EditorMode: Identifiable {
     }
 }
 
-// MARK: - Note Row
+// MARK: - Note Card View（卡片式便签行）
 
-struct NoteRowView: View {
+struct NoteCardView: View {
     let note: Note
+    let isPinned: Bool
+    let onTap: () -> Void
+    let onToggleDone: () -> Void
+    let onTogglePin: () -> Void
+    let onDelete: () -> Void
+    let onShare: () -> Void
 
     private var preset: NoteStylePreset {
         NoteStylePreset.resolve(note.style)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(displayTitle)
-                .font(.body)
-                .lineLimit(2)
-                .strikethrough(NoteEngine.strikethrough(isDone: note.done))
-                .foregroundStyle(note.done ? .secondary : .primary)
-            HStack(spacing: 8) {
-                if note.done {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption)
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                // 标题行
+                HStack {
+                    Text(displayTitle)
+                        .font(AppTheme.body)
+                        .lineLimit(2)
+                        .strikethrough(NoteEngine.strikethrough(isDone: note.done))
+                        .foregroundStyle(note.done ? .secondary : preset.textColor)
+
+                    Spacer()
+
+                    if isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
                 }
-                if let due = note.dueDate {
-                    Label(due.formatted(.dateTime.month().day().hour().minute()),
-                          systemImage: "bell")
-                        .font(.caption)
+
+                // 状态行
+                HStack(spacing: 8) {
+                    if note.done {
+                        Label("Done", systemImage: "checkmark.circle.fill")
+                            .font(AppTheme.badge)
+                            .foregroundStyle(.green)
+                    }
+
+                    if let due = note.dueDate {
+                        Label(
+                            due.formatted(.dateTime.month().day().hour().minute()),
+                            systemImage: "bell.fill"
+                        )
+                        .font(AppTheme.badge)
                         .foregroundStyle(
                             NoteEngine.isOverdue(note, now: .now) ? .red : .orange
                         )
+                    }
+
+                    Spacer()
+
+                    Text(note.createdAt.formatted(.dateTime.month().day()))
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(preset.textColor.opacity(0.5))
                 }
-                Spacer()
-                Text(note.createdAt.formatted(.dateTime.month().day()))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+            }
+            .noteCard(preset: preset)
+        }
+        .pressable()
+        .contextMenu {
+            Button { onToggleDone() } label: {
+                Label(note.done ? "Undo" : "Done",
+                      systemImage: note.done ? "arrow.uturn.backward" : "checkmark")
+            }
+            Button { onTogglePin() } label: {
+                Label(isPinned ? "Unpin" : "Pin",
+                      systemImage: isPinned ? "pin.slash.fill" : "pin.fill")
+            }
+            Button { onShare() } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            Divider()
+            Button(role: .destructive) { onDelete() } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
-        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityDescription)
     }
