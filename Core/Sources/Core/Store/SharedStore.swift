@@ -63,11 +63,20 @@ public struct SharedStore: Sendable {
     }
 
     /// 在指定路径打开（必要时创建）共享数据库；目录不存在时自动创建，首次运行自动建表。
+    ///
+    /// 默认迁移执行器**不能**写成另一个初始化器的默认参数值：非 library-evolution 模块里，
+    /// 默认参数表达式会被编进*调用方*，调用方模块（例如 App 的测试包）就得自己链接 GRDB 的符号，
+    /// 否则链接失败。单独一个重载把它留在 Core 内部，客户端只依赖 Core。
+    public init(databasePath: String) throws {
+        try self.init(databasePath: databasePath, migratorRunner: { try $1.migrate($0) })
+    }
+
+    /// 在指定路径打开（必要时创建）共享数据库，迁移由调用方注入（测试专用的注入点）。
     /// - Parameters:
-    ///   - migratorRunner: 迁移执行器（W2-1 评审项 2 可注入点，默认即 GRDB migrate）。
+    ///   - migratorRunner: 迁移执行器（W2-1 评审项 2 可注入点；生产路径用上面的无参重载，即 GRDB migrate）。
     public init(
         databasePath: String,
-        migratorRunner: (DatabasePool, DatabaseMigrator) throws -> Void = { try $1.migrate($0) }
+        migratorRunner: (DatabasePool, DatabaseMigrator) throws -> Void
     ) throws {
         let fileURL = URL(fileURLWithPath: databasePath)
         try FileManager.default.createDirectory(

@@ -518,6 +518,31 @@ public struct NoteRepository: Sendable {
         return try encoder.encode(envelope)
     }
 
+    /// 只看信封、不解密、不碰库:判断一份导出文件是否为本 App 的备份,以及要不要口令。
+    ///
+    /// 与 `import` 共用同一套信封校验(`decodeEnvelope`),口径与顺序永远一致——
+    /// 恢复流程据此在**询问口令之前**就拒掉选错的文件(typed 错误同 `import`)。
+    public static func inspectExport(_ data: Data) throws -> ExportEncryption {
+        try decodeEnvelope(data).salt == nil ? .plaintext : .passphrase
+    }
+
+    /// 解析并校验信封的格式标识与版本(`import` 与 `inspectExport` 共用)。
+    private static func decodeEnvelope(_ data: Data) throws -> ExportEnvelope {
+        let envelope: ExportEnvelope
+        do {
+            envelope = try JSONDecoder().decode(ExportEnvelope.self, from: data)
+        } catch {
+            throw NoteRepositoryError.malformedEnvelope
+        }
+        guard envelope.format == exportFormat else {
+            throw NoteRepositoryError.unsupportedFormat(envelope.format)
+        }
+        guard envelope.version == exportVersion else {
+            throw NoteRepositoryError.unsupportedVersion(envelope.version)
+        }
+        return envelope
+    }
+
     /// 导入并 **replace-all**:校验通过后在**单一写事务**内删除现有全部数据并写入导入集。
     ///
     /// 校验(reject-all:任一违规 → 整包拒绝,库零改动):
@@ -533,18 +558,7 @@ public struct NoteRepository: Sendable {
     /// 完成后(iOS)对库文件与 WAL 边车**重设文件保护**(移交项⑩):replace-all
     /// 的大量写入会重写/重建 -wal 边车,保护属性需补设。
     public func `import`(data: Data, passphrase: String?) async throws {
-        let envelope: ExportEnvelope
-        do {
-            envelope = try JSONDecoder().decode(ExportEnvelope.self, from: data)
-        } catch {
-            throw NoteRepositoryError.malformedEnvelope
-        }
-        guard envelope.format == Self.exportFormat else {
-            throw NoteRepositoryError.unsupportedFormat(envelope.format)
-        }
-        guard envelope.version == Self.exportVersion else {
-            throw NoteRepositoryError.unsupportedVersion(envelope.version)
-        }
+        let envelope = try Self.decodeEnvelope(data)
 
         let payloadData: Data
         switch (envelope.salt, passphrase) {

@@ -530,4 +530,40 @@ struct ExportImportTests {
         let catState = try #require(payload.growthStates.first { $0.petId == "cat" })
         #expect(catState.unlockedOutfits == ["bowtie", "crown"])  // 字段类型就是 [String]
     }
+
+    // MARK: - inspectExport:只看信封,决定恢复时要不要问口令
+
+    @Test func inspectExportTellsPlaintextFromPassphraseProtected() async throws {
+        let source = makePath("inspect")
+        try await seed(source)
+        let repo = try makeRepository(path: source)
+
+        let plain = try await repo.export(passphrase: nil)
+        let sealed = try await repo.export(passphrase: "correct horse battery")
+
+        #expect(try NoteRepository.inspectExport(plain) == .plaintext)
+        #expect(try NoteRepository.inspectExport(sealed) == .passphrase)
+    }
+
+    /// 与 `import` 同口径同顺序的信封校验——UI 在问口令**之前**就能拒掉“不是备份”的文件,
+    /// 而不是等用户输完口令才发现选错了文件。
+    @Test func inspectExportRejectsWhatImportWouldRejectAtTheEnvelope() throws {
+        for garbage in [Data("不是 JSON".utf8), Data("{}".utf8), Data("[1,2,3]".utf8)] {
+            #expect(throws: NoteRepositoryError.malformedEnvelope) {
+                try NoteRepository.inspectExport(garbage)
+            }
+        }
+        let wrongFormat = try JSONEncoder().encode(
+            ExportEnvelope(format: "other.app", version: 1, salt: nil, kdf: nil, payload: "{}")
+        )
+        let wrongVersion = try JSONEncoder().encode(
+            ExportEnvelope(format: "pawit.export", version: 999, salt: nil, kdf: nil, payload: "{}")
+        )
+        #expect(throws: NoteRepositoryError.unsupportedFormat("other.app")) {
+            try NoteRepository.inspectExport(wrongFormat)
+        }
+        #expect(throws: NoteRepositoryError.unsupportedVersion(999)) {
+            try NoteRepository.inspectExport(wrongVersion)
+        }
+    }
 }

@@ -14,6 +14,14 @@ import CommonCrypto
 // * 日期以 JSON number(1970 秒,double)编码,与 GRDB `.datetime` 毫秒文本
 //   毫秒截断规则一致,round-trip 相等成立。
 
+/// 导出文件的保护口径:恢复时据此决定要不要向用户索要口令。
+public enum ExportEncryption: Equatable, Sendable {
+    /// 明文——无需口令。
+    case plaintext
+    /// 口令加密——必须提供导出时的口令才能解开。
+    case passphrase
+}
+
 /// 导出信封(顶层 JSON)。
 public struct ExportEnvelope: Codable, Equatable, Sendable {
     /// 固定为 "pawit.export";导入时严格校验,陌生格式拒绝。
