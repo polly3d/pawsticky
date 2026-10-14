@@ -29,6 +29,9 @@ struct PawItApp: App {
                         deepLinkNoteID = noteID
                     }
                 }
+                // 小组件点击（`widgetURL`）：先挂到路由器，由列表页在就绪后取走。
+                // 冷启动时本回调可能早于列表页出现，所以不直接改界面状态。
+                .onOpenURL { DeepLinkRouter.shared.receive($0) }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {

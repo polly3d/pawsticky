@@ -9,6 +9,14 @@ struct PawItWidgetEntryView: View {
     var entry: PawItEntry
 
     var body: some View {
+        familyView
+            // 点小组件里「不是按钮」的区域：有便签就直达该便签，空状态（"Tap to add a note"）
+            // 直接进新建页——不再只是打开列表。勾选 / 翻页按钮是 App Intent，不受影响。
+            .widgetURL(DeepLink.widgetTap(note: entry.content.note).url)
+    }
+
+    @ViewBuilder
+    private var familyView: some View {
         // 全部家族从 entry 携带的数据快照渲染（P1-1）——含锁屏三家族，
         // 逾期判定统一用 entry.date（P0-3 口径修正的使能点）。
         switch family {

@@ -16,6 +16,16 @@ struct WidgetDataProvider {
         store = SharedStore.cachedAppGroup()
     }
 
+    /// 画廊预览 / 占位用的示例内容：不读便签、不写库。
+    /// 宠物取用户已选的（选过宠物但还没写便签的人看到的是自己的宠物），没选过就是猫。
+    func sampleContent(now: Date) -> WidgetContent {
+        let selectedPet: PetProfile? = store.flatMap { try? $0.selectedPet() }
+        let sample = WidgetSample.make(now: now, selectedPet: selectedPet)
+        return WidgetContent(
+            note: sample.note, items: sample.items, pet: sample.pet, noteCount: 1
+        )
+    }
+
     /// 一次渲染所需的全部数据快照（provider 阶段抓取，随 entry 进入渲染层）。
     func fetchContent() -> WidgetContent {
         guard let store else { return .empty }

@@ -104,6 +104,12 @@ for target in PawIt PawItWidget PawItWatch PawItWatchWidget; do
      "$(plist "$target/Info.plist" CFBundleVersion)" '$(CURRENT_PROJECT_VERSION)'
 done
 
+# 站内跳转 scheme：Core 的 DeepLink.scheme 与 Info.plist 的 CFBundleURLTypes 是同一个约定的两半。
+# 只改一边，Safari / 快捷指令 / simctl openurl 里的链接就打不开 App；小组件点击不依赖注册，光点小组件发现不了。
+deeplink_scheme=$(grep -E 'static let scheme *= *"' Core/Sources/Core/Intents/DeepLink.swift | sed -E 's/.*"([^"]+)".*/\1/')
+eq "PawIt/Info.plist 注册了站内跳转 scheme（与 DeepLink.scheme 一致）" \
+   "$(plist PawIt/Info.plist CFBundleURLTypes.0.CFBundleURLSchemes.0)" "$deeplink_scheme"
+
 # 相册 API 的调用（排除注释行）：没有用途描述字符串时，运行期访问会直接终止进程
 photos_use=$(grep -rnE --include='*.swift' --exclude-dir=.build \
   'UIImageWriteToSavedPhotosAlbum|PHPhotoLibrary|PHAssetCreationRequest' \

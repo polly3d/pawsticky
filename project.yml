@@ -45,6 +45,12 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         NSSupportsLiveActivities: true
+        # 站内跳转 scheme：小组件点击 → 新建便签 / 打开某条便签。
+        # 与 Core 的 `DeepLink.scheme` 是同一个约定的两半（PawItTests 与 preflight 都会核对）。
+        CFBundleURLTypes:
+          - CFBundleURLName: com.fitpetgo.pawsticky
+            CFBundleURLSchemes:
+              - pawsticky
         # v1.0 锁定浅色外观：AppTheme 的背景 / 气泡是固定亮色,文字却用随外观变化的 .primary,
         # 深色模式下欢迎页与列表文字会消失。v1.1 做完整深色主题后移除此行。
         # 只影响 App 本体;Widget / Live Activity / Watch 不受影响。

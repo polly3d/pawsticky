@@ -166,6 +166,37 @@ struct NoteListView: View {
                 editorMode = .edit(noteID)
             }
         }
+        // 小组件点击：`onOpenURL` 把链接挂在路由器上，这里取走。
+        // `initial: true` 是冷启动的关键——链接可能在本视图出现之前就已经挂上了。
+        .onChange(of: DeepLinkRouter.shared.pending, initial: true) { _, link in
+            guard let link else { return }
+            DeepLinkRouter.shared.pending = nil
+            openDeepLink(link)
+        }
+    }
+
+    // MARK: - Deep link（小组件点击）
+
+    private func openDeepLink(_ link: DeepLink) {
+        guard let mode = DeepLinkResolver.editorMode(
+            for: link,
+            onboardingNeeded: showOnboarding || isFreshInstall,
+            noteExists: { ((try? repository?.note(id: $0)) ?? nil) != nil }
+        ) else { return }
+
+        // 同一时刻只能开一个 sheet：设置 / 选宠 / 成长 / 分享开着时先收起，等收起动画走完再开编辑器。
+        // （App 被挂起时这些页面可能还开着，用户从主屏点了小组件回来。）
+        let hasOtherSheet = showSettings || showPetSelection || showGrowthDashboard || shareNote != nil
+        showSettings = false
+        showPetSelection = false
+        showGrowthDashboard = false
+        shareNote = nil
+
+        if hasOtherSheet {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { editorMode = mode }
+        } else {
+            editorMode = mode
+        }
     }
 
     // MARK: - Pet Companion Header（更大、更有存在感）
@@ -358,13 +389,17 @@ struct NoteListView: View {
 
     // MARK: - Onboarding
 
-    private func startOnboardingIfNeeded() {
-        guard let store = SharedStore.cachedAppGroup() else { return }
+    /// 是否全新安装（无选中宠物且无便签）——每次现算，不依赖 `showOnboarding` 是否已被触发：
+    /// 冷启动时小组件跳转的处理可能先于 `.task` 里的引导触发。
+    private var isFreshInstall: Bool {
+        guard let store = SharedStore.cachedAppGroup() else { return false }
         let hasPet = ((try? store.selectedPet()) ?? nil) != nil
         let count = (try? store.countNotes()) ?? 0
-        if OnboardingGate.shouldShowOnboarding(hasSelectedPet: hasPet, noteCount: count) {
-            showOnboarding = true
-        }
+        return OnboardingGate.shouldShowOnboarding(hasSelectedPet: hasPet, noteCount: count)
+    }
+
+    private func startOnboardingIfNeeded() {
+        if isFreshInstall { showOnboarding = true }
     }
 
     private func finishOnboardingIfNeeded() {
@@ -482,7 +517,7 @@ struct NoteListView: View {
 
 // MARK: - EditorMode
 
-enum EditorMode: Identifiable {
+enum EditorMode: Identifiable, Equatable {
     case create
     case edit(UUID)
 

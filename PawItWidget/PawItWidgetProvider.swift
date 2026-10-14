@@ -26,12 +26,25 @@ struct PawItProvider: TimelineProvider {
         )
     }
 
-    func placeholder(in context: Context) -> PawItEntry {
-        makeEntry(now: .now)
+    /// 示例条目——画廊预览与占位用，**不读便签库**。
+    private func sampleEntry(now: Date) -> PawItEntry {
+        PawItEntry(
+            date: now,
+            slot: planner.entries(now: now)[0],
+            content: data.sampleContent(now: now)
+        )
     }
 
+    /// 占位（系统会自动套上骨架屏样式）：用示例内容，而不是去读库。
+    func placeholder(in context: Context) -> PawItEntry {
+        sampleEntry(now: .now)
+    }
+
+    /// 画廊预览（`isPreview`）：新装用户的库是空的，读真实数据只会看到一张空状态，
+    /// 而画廊恰好是他们决定要不要添加小组件的时刻——这里给示例内容（有便签、有清单、有宠物）。
+    /// 非预览的快照（已添加的小组件）仍读真实数据，空库就如实显示空状态。
     func getSnapshot(in context: Context, completion: @escaping (PawItEntry) -> Void) {
-        completion(makeEntry(now: .now))
+        completion(context.isPreview ? sampleEntry(now: .now) : makeEntry(now: .now))
     }
 
     /// D3 时间线策略：预计算双条目（今天 + 明日 00:01），每日至多 1 次预算内刷新。
