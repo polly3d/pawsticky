@@ -135,7 +135,8 @@ struct NoteListView: View {
             .sheet(item: $shareNote) { note in
                 ShareCardSheet(note: note) { shareNote = nil }
             }
-            .sheet(isPresented: $showSettings) {
+            // 设置页里可能恢复了备份（整库替换）——关闭后重新加载列表与宠物头部
+            .sheet(isPresented: $showSettings, onDismiss: reloadNotes) {
                 SettingsView { showSettings = false }
             }
             .overlay(alignment: .bottom) { undoOverlay }

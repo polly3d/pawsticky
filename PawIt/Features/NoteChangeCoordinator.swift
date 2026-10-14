@@ -1,4 +1,5 @@
 import Foundation
+import WidgetKit
 import Core
 
 /// 变更副作用单点（P1-2）：便签变更后的跨表面同步集中于此。
@@ -26,5 +27,34 @@ enum NoteChangeCoordinator {
     static func noteDeleted(noteId: UUID) {
         PhoneSessionManager.shared.syncToWatch()
         LiveActivityManager.unpin(noteId: noteId)
+    }
+
+    /// 整库被替换（备份恢复）之后：把库外状态一次性对齐到新数据。
+    ///
+    /// 逐条便签走 `noteChanged / noteDeleted` 会让 Watch 同步跑 N 次；这里提醒与锁屏钉住逐条处理，
+    /// Watch 与小组件只刷新一次。
+    static func storeReplaced(_ result: RestoreResult) async {
+        let reminders = ReminderManager()
+        let restoredIds = Set(result.restoredNotes.map(\.id))
+
+        // ① 被替换掉的便签：撤掉它们的提醒与锁屏钉住，不留“幽灵”。
+        for id in result.previousNoteIds.subtracting(restoredIds) {
+            await reminders.cancelReminder(noteID: id)
+            LiveActivityManager.unpin(noteId: id)
+        }
+
+        // ② 备份里的便签：按各自的到期日重排提醒；已钉住的锁屏内容刷新成备份里的版本。
+        //    换机恢复时这台设备还没被问过通知权限——有未过期的到期日才在此刻（上下文清楚）询问。
+        if result.restoredNotes.contains(where: { ($0.dueDate ?? .distantPast) > .now }) {
+            await reminders.ensureAuthorization()
+        }
+        for note in result.restoredNotes {
+            await reminders.syncReminder(for: note)
+            LiveActivityManager.refreshFromStore(noteId: note.id)
+        }
+
+        // ③ Watch 与小组件各刷新一次。
+        PhoneSessionManager.shared.syncToWatch()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }

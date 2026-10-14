@@ -4,7 +4,17 @@ import Core
 /// 设置页面（Soft Companion 风格）——暖色背景一致。
 struct SettingsView: View {
     @State private var growthEnabled: Bool = GrowthSettings.isEnabled
+    @State private var backup: BackupController
+    @State private var showImporter = false
     let onDismiss: () -> Void
+
+    init(
+        repository: NoteRepository? = NoteRepository.cachedAppGroup(),
+        onDismiss: @escaping () -> Void
+    ) {
+        _backup = State(initialValue: BackupController(service: repository.map(BackupService.init)))
+        self.onDismiss = onDismiss
+    }
 
     var body: some View {
         NavigationStack {
@@ -20,10 +30,22 @@ struct SettingsView: View {
                     Text("When disabled, completing tasks won't feed your pet or track streaks. Your existing progress is preserved.")
                 }
 
+                dataSection
+                BackupRestoreCard(controller: backup)
                 aboutSection
             }
             .scrollContentBackground(.hidden)
             .warmBackground()
+            // 文件选择器挂在独立的空视图上，避免与其它呈现修饰符抢槽位
+            .background {
+                Color.clear.fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
+                    Task { await backup.filePicked(result) }
+                }
+            }
+            .onChange(of: backup.restoreOutcome) { _, outcome in
+                guard let outcome else { return }
+                AccessibilityNotification.Announcement(outcome.message).post()
+            }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -31,6 +53,40 @@ struct SettingsView: View {
                     Button("Done") { onDismiss() }
                 }
             }
+        }
+    }
+
+    // MARK: - Data
+
+    /// 备份 / 恢复：v1.0 没有账号与云端，换机 / 防丢靠用户自己保管的备份文件。
+    private var dataSection: some View {
+        Section {
+            NavigationLink {
+                BackupExportView(controller: backup)
+            } label: {
+                Label("Back Up Notes", systemImage: "square.and.arrow.up")
+            }
+            .disabled(backup.isWorking)
+
+            Button {
+                showImporter = true
+            } label: {
+                HStack {
+                    Label("Restore from Backup", systemImage: "square.and.arrow.down")
+                    Spacer()
+                    if backup.isWorking { ProgressView() }
+                }
+            }
+            // 确认卡片还开着时，先处理完（替换或取消）再选下一个文件
+            .disabled(backup.isWorking || backup.prompt != nil)
+
+            if let outcome = backup.restoreOutcome {
+                BackupStatusRow(message: outcome.message, isSuccess: outcome.isSuccess)
+            }
+        } header: {
+            Text("Data")
+        } footer: {
+            Text("Backups are files you save wherever you like, such as iCloud Drive. PawSticky never uploads your notes.")
         }
     }
 
