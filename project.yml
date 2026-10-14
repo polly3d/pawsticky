@@ -44,6 +44,11 @@ targets:
         # 深色模式下欢迎页与列表文字会消失。v1.1 做完整深色主题后移除此行。
         # 只影响 App 本体;Widget / Live Activity / Watch 不受影响。
         UIUserInterfaceStyle: Light
+        # 出口合规:加密只来自系统自带框架(CryptoKit AES-GCM / CommonCrypto PBKDF2,仅用于加密
+        # 用户自己的导出备份文件),没有自实现算法,也没有网络通信加密。按"仅使用系统自带加密 → 豁免"
+        # 口径声明为 false,上传时不再弹合规问卷。
+        # ⚠ 这是对公司的合规声明,提审前请由公司确认;结论不同就改成 true 并按 ASC 问卷补材料。
+        ITSAppUsesNonExemptEncryption: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky
