@@ -63,7 +63,7 @@
 - [x] **C4 宠物名字统一(P1-1)** 🟡 — ✅ 已完成:头部叫 Tabby,对话里它却自称 Mochi(而 Mochi 是另一只柴犬)。两份私有台词 switch 收敛成 `PetDialogue`(选宠 / 换宠),名字一律读 `PetAsset.displayName`。先写 `PetDialogueTests`(名字 = 卡片名、不提别的宠物)并看它因旧台词失败(14 个断言),改完全绿。
 - [ ] **C5 删除撤销(P1-7)+ 备份 / 恢复最小界面(P1-6)** 🟡 · 1.5–2 天 — 你在决议 #5 选了"做"。后端早有 `export / import / restore / history` 并有测试,缺的是界面:设置页 "Back Up Notes" / "Restore from Backup",删除后 "Note deleted · Undo"(现在长按便签 → Delete 是立刻删除)。完成标准:导出 → 导入 → 回滚往返后数据逐条一致(QA 场景 #11)。**想更快上线可以砍,代价见 [§想更快上线](#想更快上线)。**
 - [ ] **C6 Widget 两项体验(P1-5、P1-4)** 🟡 · 3–5h — ① "添加小组件"画廊里现在是空状态(`context.isPreview` 没处理),新装用户和审核员恰好在这一刻决定要不要加:改成示例内容 ② 点 Widget 现在只进列表页:加 `widgetURL` + `onOpenURL`,直达新建 / 对应便签("一秒速记")。
-- [ ] **C7 装扮文案(P1-3)** 🟡 · 0.5–1h · 依赖 A5 — 按 A5 的选择改:成长页标题 "Outfits"、"All outfits unlocked!"、分享卡 "n/12 outfits" → "Collection" 口径;选 (b) 则把 SF Symbol 换成 emoji。
+- [x] **C7 装扮文案(P1-3)** 🟡 — ✅ 已完成(按 A5(a)):成长页标题 "Outfits" → "Collection"、统计块 "Outfits"(原 T 恤图标)→ "Collected"(sparkles 图标)、"All outfits unlocked!" → "Collection complete!"、分享卡 "n/12 outfits" → "n/12 collected";SF Symbol 网格不变。另给 preflight 加了守卫:用户可见字符串里再出现 outfit 就失败(先让它抓到 4 处,改完变绿)。
 - [ ] **C8 每批收尾回归** 🔴 · 随每次改动 — `xcodegen generate` → 构建 → `xcodebuild test` → `scripts/preflight.sh` 0 失败(命令见[附录](#附录常用命令))。
 
 ---

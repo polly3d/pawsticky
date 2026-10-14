@@ -135,7 +135,7 @@ struct ShareCardView: View {
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                 Spacer()
                 let unlocked = GrowthEngine.unlockedOutfits(state: gs).count
-                Text("\(unlocked)/\(Outfit.allCases.count) outfits")
+                Text("\(unlocked)/\(Outfit.allCases.count) collected")
                     .font(.system(size: 20))
                     .foregroundStyle(.secondary)
             }

@@ -99,8 +99,8 @@ struct GrowthDashboardView: View {
             )
             StatBubble(
                 value: "\(GrowthEngine.unlockedOutfits(state: state).count)",
-                label: "Outfits",
-                icon: "tshirt.fill",
+                label: "Collected",
+                icon: "sparkles",
                 color: .purple
             )
         }
@@ -150,7 +150,7 @@ struct GrowthDashboardView: View {
                         .foregroundStyle(AppTheme.secondaryText)
                 }
             } else {
-                Text("All outfits unlocked!")
+                Text("Collection complete!")
                     .font(AppTheme.subtitle)
                     .frame(maxWidth: .infinity)
             }
@@ -174,7 +174,8 @@ struct GrowthDashboardView: View {
         let columns = [GridItem(.adaptive(minimum: 70), spacing: 12)]
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Outfits")
+            // v1.0 没有换装功能：对外一律叫 Collection（决策 A5(a)），preflight 会拦截 outfit 字样
+            Text("Collection")
                 .font(AppTheme.cardTitle)
 
             LazyVGrid(columns: columns, spacing: 12) {

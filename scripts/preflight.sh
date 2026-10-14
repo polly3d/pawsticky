@@ -54,6 +54,17 @@ else
   printf '%s\n' "$leftover" | sed 's/^/       /'
 fi
 
+# v1.0 没有换装功能（决策 A5(a)：保持锁 / 解锁网格，对外叫 Collection）。用户可见文案里不得再出现 outfit，
+# 否则审核 / 用户会以为能给宠物换装。先剥掉 \( … ) 插值（里面常有类型名 Outfit），再看字符串字面量。
+outfit_copy=$(grep -rnE --include='*.swift' '"[^"]*"' PawIt PawItWidget PawItWatch PawItWatchWidget Shared 2>/dev/null \
+  | sed -E 's/\\\([^)]*\)//g' | grep -E '"[^"]*[Oo]utfit[^"]*"' | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//')
+if [[ -z "$outfit_copy" ]]; then
+  ok "用户可见文案里没有 outfit 字样（统一叫 Collection）"
+else
+  bad "用户可见文案仍含 outfit（v1.0 没有换装功能，应叫 Collection）："
+  printf '%s\n' "$outfit_copy" | sed 's/^/       /'
+fi
+
 # ---------------------------------------------------------------------------
 section "源码：生成的 Info.plist（Info.plist 由 XcodeGen 生成，改 project.yml）"
 
