@@ -2,7 +2,7 @@
 
 > **用法(中文备注,发布时删掉这一段):** 这是可直接发布的英文稿。发布到 fitpetgo.com 上的**新页面**(如 `/pawsticky-privacy`),然后把 URL 告诉我,我换进设置页常量并核对 ASC 填写。
 > 每一条都对照过 `f36d2d4` 之后的源码(无网络 / 分析 / 广告 / 定位 / 相册 API;唯一第三方库 GRDB;历史保留 7 天;文件保护 `completeUntilFirstUserAuthentication`)。**以后加任何 SDK、网络请求或新权限,必须同步改这份政策和 ASC 的 App Privacy 问卷。** 我不是律师,公司法务如有要求可调整措辞,但**不要删掉"App 收集什么 / 怎么用 / 保留与删除"这几项**——审核指南 5.1.1(i) 要求明确写出。
-> 备份功能(C5)随 v1.0 一起发布时,第 5 节的 "Backups" 一条才成立——如果你们决定先发不带备份的版本,请删掉那一条。
+> 备份功能(C5)已在 App 里实现,第 5 节的 "Backups" 一条与现状一致(口令**可选**:留空 = 明文文件,填了 = 加密)。如果你们决定先发不带备份的版本,请删掉那一条。
 
 ---
 
@@ -33,7 +33,7 @@ We have no server that receives this data, so **we cannot see, recover, or delet
 
 - **Apple Watch.** Your notes and pet are synced between your iPhone and your Apple Watch using Apple's system connection between your own devices. No cloud service of ours is involved.
 - **Sharing.** When you share a note card, the app creates an image and hands it to the iOS share sheet. The app or service you pick (for example Messages, or "Save Image" to your photo library) receives that image and handles it under its own privacy policy.
-- **Backups.** When you choose to back up your notes, the app creates a file encrypted with a passphrase you choose, and you decide where to save or send it. We cannot recover your passphrase, and we never receive your backup file.
+- **Backups.** When you choose to back up your notes, the app creates a file and you decide where to save or send it. If you set a passphrase, the file is encrypted with it; if you leave the passphrase blank, the file is readable plain text, so keep it somewhere you trust. We cannot recover a forgotten passphrase, and we never receive your backup file.
 
 ## 6. Retention and deletion
 
