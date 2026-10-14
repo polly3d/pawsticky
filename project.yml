@@ -34,6 +34,10 @@ targets:
       path: PawIt/Info.plist
       properties:
         CFBundleDisplayName: PawSticky
+        # XcodeGen 生成的 Info.plist 默认写死 1.0 / 1,必须显式引用构建设置,
+        # 否则改 MARKETING_VERSION / CURRENT_PROJECT_VERSION 不生效。
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         NSSupportsLiveActivities: true
     settings:
@@ -56,6 +60,8 @@ targets:
       path: PawItWidget/Info.plist
       properties:
         CFBundleDisplayName: PawSticky Widget
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -79,6 +85,8 @@ targets:
       path: PawItWatch/Info.plist
       properties:
         CFBundleDisplayName: PawSticky
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.fitpetgo.pawsticky
     settings:
@@ -100,6 +108,8 @@ targets:
       path: PawItWatchWidget/Info.plist
       properties:
         CFBundleDisplayName: PawSticky Widget
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
