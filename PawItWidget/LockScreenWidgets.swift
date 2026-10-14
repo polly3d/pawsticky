@@ -173,7 +173,7 @@ struct RectangularLockScreenWidget: View {
                         Image(systemName: "pawprint.fill")
                             .font(.system(size: 10))
                     }
-                    Text("PawIt")
+                    Text("PawSticky")
                         .font(.system(.subheadline, weight: .bold))
                         .widgetAccentable()
                 }
@@ -215,7 +215,7 @@ struct InlineLockScreenWidget: View {
                 }
             }
         } else {
-            Label("PawIt — No notes", systemImage: "pawprint")
+            Label("PawSticky — No notes", systemImage: "pawprint")
         }
     }
 }

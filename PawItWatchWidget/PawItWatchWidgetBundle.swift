@@ -185,7 +185,7 @@ struct WatchRectangularWidget: View {
             VStack(spacing: 4) {
                 Image(systemName: "pawprint.fill")
                     .font(.caption)
-                Text("PawIt")
+                Text("PawSticky")
                     .font(.system(.caption, weight: .bold))
                     .widgetAccentable()
                 Text("Open iPhone app")
@@ -267,7 +267,7 @@ struct WatchInlineWidget: View {
         } else if entry.allDone {
             Label("All done!", systemImage: "checkmark.seal.fill")
         } else {
-            Label("PawIt", systemImage: "pawprint")
+            Label("PawSticky", systemImage: "pawprint")
         }
     }
 }
@@ -326,7 +326,7 @@ struct PawItWatchNoteWidget: Widget {
         StaticConfiguration(kind: kind, provider: WatchNoteProvider()) { entry in
             WatchWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("PawIt Note")
+        .configurationDisplayName("PawSticky Note")
         .description("Your pet remembers things for you")
         .supportedFamilies([
             .accessoryRectangular,

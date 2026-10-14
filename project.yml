@@ -33,7 +33,7 @@ targets:
     info:
       path: PawIt/Info.plist
       properties:
-        CFBundleDisplayName: PawIt
+        CFBundleDisplayName: PawSticky
         UILaunchScreen: {}
         NSSupportsLiveActivities: true
     settings:
@@ -55,7 +55,7 @@ targets:
     info:
       path: PawItWidget/Info.plist
       properties:
-        CFBundleDisplayName: PawIt Widget
+        CFBundleDisplayName: PawSticky Widget
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -78,7 +78,7 @@ targets:
     info:
       path: PawItWatch/Info.plist
       properties:
-        CFBundleDisplayName: PawIt
+        CFBundleDisplayName: PawSticky
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.fitpetgo.pawsticky
     settings:
@@ -99,7 +99,7 @@ targets:
     info:
       path: PawItWatchWidget/Info.plist
       properties:
-        CFBundleDisplayName: PawIt Widget
+        CFBundleDisplayName: PawSticky Widget
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

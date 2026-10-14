@@ -52,7 +52,7 @@ enum LiveActivityManager {
         let attributes = NoteActivityAttributes(
             noteId: noteIdStr,
             petSpecies: pet?.species.rawValue ?? "cat",
-            petName: pet.map { PetAsset.displayName(species: $0.species) } ?? "PawIt"
+            petName: pet.map { PetAsset.displayName(species: $0.species) } ?? "PawSticky"
         )
         let content = ActivityContent(state: state, staleDate: staleDate())
 

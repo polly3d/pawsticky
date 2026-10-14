@@ -168,7 +168,7 @@ struct ShareCardView: View {
         HStack(spacing: 8) {
             Image(systemName: "pawprint.fill")
                 .font(.system(size: 20))
-            Text("PawIt")
+            Text("PawSticky")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
         }
         .foregroundStyle(.secondary.opacity(0.6))

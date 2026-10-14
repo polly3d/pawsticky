@@ -82,7 +82,7 @@ struct OnboardingView: View {
 
             // 标题区
             VStack(spacing: 12) {
-                Text("Welcome to PawIt")
+                Text("Welcome to PawSticky")
                     .font(AppTheme.largeTitle)
                     .multilineTextAlignment(.center)
 

@@ -32,7 +32,7 @@ struct WatchNoteListView: View {
                     emptyState
                 }
             }
-            .navigationTitle("PawIt")
+            .navigationTitle("PawSticky")
         }
         .task { loadPayload() }
     }
@@ -82,7 +82,7 @@ struct WatchNoteListView: View {
             Image(systemName: "pawprint.fill")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("Open PawIt on iPhone")
+            Text("Open PawSticky on iPhone")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text("Notes sync automatically")

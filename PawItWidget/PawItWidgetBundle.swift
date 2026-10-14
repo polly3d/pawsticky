@@ -37,7 +37,7 @@ struct PawItWidget: Widget {
         StaticConfiguration(kind: "PawItWidget", provider: PawItProvider()) { entry in
             PawItWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("PawIt Note")
+        .configurationDisplayName("PawSticky Note")
         .description("Your pet remembers things for you")
         .supportedFamilies([
             .systemSmall,

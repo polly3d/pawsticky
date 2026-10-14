@@ -383,7 +383,7 @@ struct LargeNoteWidget: View {
             Text("No notes yet")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("Open PawIt to create your first note")
+            Text("Open PawSticky to create your first note")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }

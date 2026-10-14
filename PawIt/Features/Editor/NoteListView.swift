@@ -61,7 +61,7 @@ struct NoteListView: View {
                 .padding(.bottom, 80)
             }
             .warmBackground()
-            .navigationTitle("PawIt")
+            .navigationTitle("PawSticky")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -308,9 +308,9 @@ struct NoteListView: View {
                 .foregroundStyle(.orange)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Add PawIt to Your Home Screen")
+                Text("Add PawSticky to Your Home Screen")
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                Text("Touch and hold your Home Screen, tap +, then find PawIt.")
+                Text("Touch and hold your Home Screen, tap +, then find PawSticky.")
                     .font(AppTheme.caption)
                     .foregroundStyle(AppTheme.secondaryText)
             }

@@ -26,7 +26,7 @@ public final class LiveNotificationScheduler: NotificationScheduling, @unchecked
 
     public func schedule(noteID: UUID, at date: Date, body: String) async throws {
         let content = UNMutableNotificationContent()
-        content.title = "PawIt"
+        content.title = "PawSticky"
         content.body = body.isEmpty ? "You have a note due" : String(body.prefix(200))
         content.sound = .default
         content.userInfo = ["noteID": noteID.uuidString]
