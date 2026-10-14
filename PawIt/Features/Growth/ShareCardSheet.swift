@@ -1,7 +1,11 @@
 import SwiftUI
 import Core
 
-/// 分享卡片预览+导出（W7-4）——预览 + 导出到相册/IG Story。
+/// 分享卡片预览+导出（W7-4）——预览 + 经系统分享面板导出（"Save Image" / IG Story 等）。
+///
+/// 不直接调用 `UIImageWriteToSavedPhotosAlbum`：Info.plist 没有相册用途描述时,
+/// iOS 会在受保护资源访问时直接终止进程。保存到相册走分享面板自带的 "Save Image"，
+/// 由系统界面完成，无需相册权限。
 struct ShareCardSheet: View {
 
     let note: Note
@@ -9,7 +13,6 @@ struct ShareCardSheet: View {
     @State private var growthState: GrowthState?
     @State private var showShareSheet = false
     @State private var renderedImage: UIImage?
-    @State private var showSavedAlert = false
 
     let onDismiss: () -> Void
 
@@ -29,24 +32,14 @@ struct ShareCardSheet: View {
                     .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
 
                 // 按钮
-                VStack(spacing: 12) {
-                    Button {
-                        exportAndShare()
-                    } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
-
-                    Button {
-                        saveToPhotos()
-                    } label: {
-                        Label("Save to Photos", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
+                Button {
+                    exportAndShare()
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
                 .padding(.horizontal, 40)
             }
             .padding()
@@ -61,9 +54,6 @@ struct ShareCardSheet: View {
                 if let image = renderedImage {
                     ActivityView(items: [image])
                 }
-            }
-            .alert("Saved to Photos", isPresented: $showSavedAlert) {
-                Button("OK") { }
             }
         }
         .task { loadData() }
@@ -82,14 +72,6 @@ struct ShareCardSheet: View {
             note: note, pet: pet, growthState: growthState
         )
         showShareSheet = true
-    }
-
-    private func saveToPhotos() {
-        guard let image = ShareCardView.renderImage(
-            note: note, pet: pet, growthState: growthState
-        ) else { return }
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-        showSavedAlert = true
     }
 }
 
