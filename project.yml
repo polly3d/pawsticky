@@ -52,6 +52,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky
+        # v1.0 仅 iPhone(决议 #3):iPad 布局是被拉伸的手机界面,且声明支持 iPad 就必须提供 iPad 截图。
+        # iPad 用户仍可在兼容模式下运行 iPhone App。
+        TARGETED_DEVICE_FAMILY: "1"
   PawItWidget:
     type: app-extension
     platform: iOS
@@ -76,6 +79,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky.widgets
+        TARGETED_DEVICE_FAMILY: "1"
         SKIP_INSTALL: true
   PawItWatch:
     type: application
