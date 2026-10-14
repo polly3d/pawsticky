@@ -12,6 +12,9 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 
+# 本机签名配置（含 Team ID，见 Config/Signing.local.xcconfig.example）
+Config/Signing.local.xcconfig
+
 # art pipeline
 art/scripts/.tmp/
 art/scripts/failed.log

@@ -1,0 +1,8 @@
+// 所有 target 共用的构建配置入口（由 project.yml 的 configFiles 引用）。
+//
+// 签名团队（DEVELOPMENT_TEAM）放在被 git 忽略的本地文件里：
+//   cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig
+// 然后把 ABCDE12345 换成自己的 10 位 Team ID。
+// `#include?` 的问号表示「文件不存在也不报错」——没有本地文件时和以前一样
+// （Xcode 里手选 Team），CI / 新同事 clone 下来不会被卡住。
+#include? "Signing.local.xcconfig"

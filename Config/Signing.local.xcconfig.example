@@ -1,0 +1,8 @@
+// 本机签名配置模板：复制为 Config/Signing.local.xcconfig（已被 .gitignore 忽略）后使用。
+//
+//   cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig
+//
+// Team ID：developer.apple.com → Account → Membership details → Team ID（10 位字母数字）。
+// 填好后不需要重新 `xcodegen generate`：xcconfig 在构建时读取，
+// 已实测 `xcodebuild -showBuildSettings` 会直接拿到这里的 DEVELOPMENT_TEAM。
+DEVELOPMENT_TEAM = ABCDE12345
