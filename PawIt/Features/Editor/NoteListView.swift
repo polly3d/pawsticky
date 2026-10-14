@@ -28,6 +28,9 @@ struct NoteListView: View {
     /// Deep link 入口
     @State var deepLinkNoteID: UUID?
 
+    /// 场景阶段——回到前台时重新加载列表（见 `.onChange(of: scenePhase)`）。
+    @Environment(\.scenePhase) private var scenePhase
+
     let repository: NoteRepository?
 
     init(repository: NoteRepository? = NoteRepository.cachedAppGroup()) {
@@ -136,6 +139,12 @@ struct NoteListView: View {
         .task {
             reloadNotes()
             startOnboardingIfNeeded()
+        }
+        // 回前台重载：Widget 勾选 / Watch 新增 / Siri 追加都发生在 App 进程之外，
+        // App 在后台时数据库已变；而列表只在 .task 和各 sheet 关闭时加载一次，
+        // 不补这一步就会一直显示旧数据，直到用户杀掉 App 重开。
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { reloadNotes() }
         }
         .onChange(of: deepLinkNoteID) { _, noteID in
             guard let noteID else { return }
