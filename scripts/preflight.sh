@@ -156,7 +156,7 @@ fi
 for icon_dir in PawIt/Assets.xcassets/AppIcon.appiconset PawItWatch/Assets.xcassets/AppIcon.appiconset; do
   png=$(ls "$icon_dir"/*.png 2>/dev/null | head -1)
   if [[ -z "$png" ]]; then
-    pending "$icon_dir 没有图标 PNG（美术：docs/launch-art-prompts.md §A）"
+    pending "$icon_dir 没有图标 PNG（见 docs/launch-todo.md 的 A4 / C2）"
   else
     w=$(sips -g pixelWidth "$png" | awk '/pixelWidth/{print $2}')
     h=$(sips -g pixelHeight "$png" | awk '/pixelHeight/{print $2}')

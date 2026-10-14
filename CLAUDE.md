@@ -12,12 +12,15 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - `docs/w1-risk-elimination.md` — W1 详细任务与完成记录
 - `docs/w2-data-layer.md` — W2 详细任务与完成记录
 - `docs/w3-editor-ui.md` — W3 详细任务与完成记录
-- `docs/launch-readiness.md` — v1.0 上线就绪审计（P0/P1/P2 差距清单 / ASC 提审清单 / 命名评估 / 待决策项）
-- `docs/launch-art-prompts.md` — 上线美术资源清单与 gpt-image-2.5 提示词包（图标 / 举牌 / front / 装扮 / 营销）
-- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09）
+- **`docs/launch-todo.md` — v1.0 上线 TODO：唯一回答"现在该做什么、做到哪了"的文档（A 拍板 / B 真机 / C 代码 / D 站点+ASC / E 出包；已完成项折叠在文末）。状态一律以它为准。**
+- `docs/launch-readiness.md` — v1.0 上线就绪审计快照（P0/P1/P2 差距清单 / ASC 提审清单 / 命名评估 / 决策记录）；只保留"为什么"，不再记进度
+- `docs/launch-art-prompts.md` — 美术提示词包；**v1.0 不需要生成新图**（零生成方案见 todo），仅供以后补图
+- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09、零生成复用对比 10、图标三选一 11）
 - `Config/` — 构建配置：`Base.xcconfig`（由 `project.yml` 引用）+ 本地签名模板 `Signing.local.xcconfig.example`
 - `scripts/preflight.sh` — 上线验收脚本（Bundle ID / App Group / 品牌名 / 版本号 / 隐私清单 / 外观 / 合规键 / 设备族）
 - `art/` — 美术资产与生成管线（风格已冻结 B 扁平矢量+描边，见 `art/style-pack/style-notes.md`）
+  - `art/scripts/gen-images.sh` — 文生图（**无参考图输入**，禁止用它批量重抽宠物，会风格漂移）
+  - `art/scripts/extract-from-sheets.sh` — **零生成**：从已有角色卡抠出完整正面图 + 胸像并描边（v1.0 宠物图的来源）
 - `research/` — 一手调研数据（iTunes API 抓取，2026-09-29）
   - `lookup-*.json` — 竞品元数据（iTunes Lookup API）
   - `reviews-*-p[1-4].json` — 竞品用户评论原始 JSON（iTunes RSS API）

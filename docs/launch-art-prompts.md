@@ -1,5 +1,9 @@
 # 上线美术资源清单 & gpt-image-2.5 提示词包
 
+> ## ⚠️ 2026-10-14 更新:v1.0 不需要生成任何新图
+> 已有素材够用且零成本:图标 = 现有举牌猫 `B_cat-sitting` 合成;6 物种的 `front` / `full` = 从现有角色卡重新抠出(`art/scripts/extract-from-sheets.sh`)。依据、对比图与做法见 [`launch-todo.md` §美术方案](launch-todo.md#美术方案零生成)。
+> **本文改为"以后补图"手册:** 只有决定补装扮图标(§D)、4 物种举牌图(§C)、happy / sleeping(§E)或营销背景(§F)时才用;§A / §B 的提示词 v1.0 用不上。下文"缺 / 需要出图"的状态列是**审计时**的口径,以 todo 为准。
+
 > **日期:** 2026-10-14 · 配套 [`launch-readiness.md`](launch-readiness.md)(P0-1 / P1-2 / P1-3 / §6)
 > **风格已冻结:** B 扁平矢量 + 后期统一描边(`art/style-pack/style-notes.md`)。本文件只给"上线前还缺的图"的提示词,**不改风格**。
 > **你来出图,我来接入。** 每一节末尾写明了"文件名 / 尺寸 / 放哪",出完图告诉我路径即可。
@@ -40,7 +44,7 @@
 - [ ] **与角色卡同一只**:毛色 / 斑纹 / 眼睛颜色 / 口鼻形状逐项对照 §0.3。
 - [ ] **全身完整**:耳尖、尾巴、双脚都在画面内,四周 ≥ 10% 留白(旧 `front` 图的问题正是被切)。
 - [ ] 同批 4 张并排,线条 / 上色风格一致;头身比 ≈ 1:1。
-- [ ] (举牌图)便签**完全空白**、面向观众、占画面下 1/3,大小与位置接近 cat / corgi 已有图(Widget 叠层按它们调过)。
+- [ ] (举牌图)便签**完全空白**、面向观众、占画面下 1/3,大小与位置接近 cat / corgi 已有图,风格统一即可。(~~Widget 叠层按它们调过~~ ← **此前这句是错的**:Widget 里宠物只是便签旁的装饰角标,便签由 SwiftUI 绘制,并不存在与举牌图的叠层对位。)
 - [ ] 无文字 / 水印 / 地面阴影 / 多余道具。
 - [ ] 抠图描边后,在**奶油 `#FFF8F0`** 与**深色 `#2B2B30`** 两种底上各看一次(白毛物种尤其要看)。
 - [ ] 缩到 60px 剪影仍可辨识。
@@ -89,6 +93,7 @@ JSON
 要点:
 - `process_sprite` 先从四周 floodfill 去底(不会误伤毛发里的白色),再**内缩 1px**去掉抠图白边,再按风格包规格描边(`disk:3`,`#5B4636`)。
 - `export_imageset` 统一把精灵缩进 **88%** 的画布并居中(每边留 6%),所以不同姿势 / 物种的屏上大小一致。
+- ⚠️ `fuzz 8%` 适合**生成图**(纯白底 + 饱和毛色)。**从角色卡里抠白毛物种**(graycat / rabbit,与背景只差 4–5%)必须用 `fuzz 2%`,否则白毛被一起吃掉——现成脚本见 `art/scripts/extract-from-sheets.sh`。
 - ⚠️ **宠物图集在 4 个 catalog 里各有一份副本**:`PawIt/`、`PawItWidget/`、`PawItWatch/`(仅 `front`)、`PawItWatchWidget/`。漏拷一个,对应 target 就会显示旧图或空白——所以函数支持一次写多个目录:
 
 ```bash
@@ -115,6 +120,8 @@ export_imageset cat-front.png     pet-cat-front     180 PawIt PawItWidget PawItW
 | **E** | `happy` 庆祝 / `sleeping` 睡觉 | P2 | 各 6 | 喂食反馈 / 空列表 / Widget 空状态 | 缺(代码里的状态机目前没用到) |
 | **F** | 营销:商店截图背景、官网主视觉 / OG 图 | P1 | 3–5 | App Store / 官网 | 缺 |
 | — | 装扮叠加层(12×6) | v1.1 | 72 | 真换装 | **不在 v1.0** |
+
+**v1.0 的实际处理方式(以此为准):** A → 复用 `B_cat-sitting` 合成;B → 复用角色卡(含完整图 `full`);C → 不需要;D → 默认不做(todo A5 三选一);E → P2;F → 用真实截图。
 
 ---
 
@@ -218,7 +225,7 @@ A cute golden-orange hamster with a cream muzzle and belly, round ears with pink
 
 ## C. 4 物种 `holding` 举牌(P1)
 
-**目的:** graycat / shiba / rabbit / hamster 目前没有举牌图,Widget 退化成被裁切的 `front`。
+**目的:** graycat / shiba / rabbit / hamster 目前没有举牌图,Widget 退化成被裁切的 `front`。**(非必需:** 宠物在 Widget 里只是装饰角标,回退到 `front` 即可;`front` 换成新抠的胸像后已够用。仅在想让 6 物种的举牌造型完全统一时才做。**)**
 **挂两张参考图,并在提示词前加一句:** `Use the first reference image for the character's identity and colors, and the second reference image only for the pose, camera angle, and the size and position of the blank note.`(第一张 = 该物种角色卡;第二张 = `B_cat-sitting`。)
 
 **模板(沿用冻结的"主体段模板"原文):**

@@ -1,11 +1,14 @@
 # 上线就绪审计 · v1.0 免费版差距清单
 
+> ## ⚠️ 这是审计快照,不再记录进度
+> **要做什么、做到哪了、下一步是什么 → 只看 [`launch-todo.md`](launch-todo.md)。** 本文保留审计时的证据与推理("为什么"),章节里零星的 ✅ / ~~删除线~~ 是当时顺手标的,**状态一律以 todo 为准**。
+
 > **审计日期:** 2026-10-14 · **代码基线:** `dev` @ `8966f96`(审计开始时工作区干净)
 > **范围:** v1.0 免费版(W8 商业化 / W9 AI 宠物已移至 v1.1,见 `plan.md` v1.3)
 > **审计方式:** 构建 + 全量测试 + 模拟器实跑(iPhone 17 Pro / iPad Pro 11" · iOS 26.5 · 亮/暗外观,含"外部进程改库后回前台")+ 全仓静态审查(Info.plist / project.yml / 资产 / 代码路径)。
 > **未覆盖(需真机/账号):** 真机行为、交互式 Widget 实际点击、Live Activity、Watch 配对同步、App Store Connect 校验 → 见 §8。
 > **配套文档:** 美术资源与 gpt-image-2.5 提示词 → [`launch-art-prompts.md`](launch-art-prompts.md)
-> **实施进度(2026-10-14):** P0 里"能用代码解决的"已全部落地(分小提交,见 §2.0)。剩下的 P0 都依赖外部输入:图标美术、Team ID、开发者后台注册、ASC 物料、出口合规的公司确认。本文以下章节保留审计时的原始描述;凡标 ✅ 的以 §2.0 为准。
+> **后续(2026-10-14):** P0 里"能用代码解决的"已全部落地(详情 → todo「已完成」);其余转成 todo 的 A–E 任务。**美术结论变更:** v1.0 不需要生成任何新图——复用已有素材(→ todo「美术方案」),所以下文所有"需要你出图 / 重新出图"的表述作废。
 
 ---
 
@@ -22,7 +25,7 @@
 | **P0** | 不做就不能提审 / 会崩溃 / 首屏不可读 | 10 | 代码 ≈ 2–3 天,账号与物料并行 |
 | **P1** | 应修:口碑、兑现承诺、审核风险 | 12 | ≈ 4–6 天(取决于 §10 的取舍) |
 | **P2** | 打磨,可随 v1.0.x 补 | 见 §4 | ≈ 1–2 天 |
-| **美术** | 需要你出图 | P0×1 / P1×~28 / 营销若干 | 生成 + 验收 ≈ 1–2 天 |
+| **美术** | ~~需要你出图~~ → **零生成,复用已有素材** | ~~P0×1 / P1×~28 / 营销若干~~ → 0 张 | 接入 0.5–1 天(todo C2 / C3) |
 
 > 估时是量级判断,不是承诺。~~账号类事项(尤其公司主体需要 D-U-N-S)可能比写代码更慢~~ → **已确认:公司开发者账号已加入(§10 决议 #4),账号不再是瓶颈**;剩下的账号侧工作是注册 App ID / 创建 ASC 记录 / 填 Team ID。
 
@@ -49,33 +52,14 @@
 
 ## 2. P0 阻塞项
 
-### 2.0 实施状态(2026-10-14,分支 `dev`,**尚未 push**)
+### 2.0 实施状态
 
-验证口径:`xcodebuild test`(iPhone 17 Pro 模拟器)**172/172 通过**(Core 168 + App 4);干净构建成功,编译警告仍是审计时的那 2 条(`ToggleItemIntent.swift:34`、`PawItTests.swift:15`),没有新增;[`scripts/preflight.sh`](../scripts/preflight.sh) **41 通过 · 3 等待外部输入 · 0 失败**。该脚本是配置类 P0 的可重复验收(先在改动前跑出红灯,再逐项转绿):**每次出包前先构建、再跑它**。
-
-| P0 | 状态 | 提交 | 怎么验证的 / 还差什么 |
-|---|---|---|---|
-| P0-1 图标 | ⏳ **等美术** | — | 接线已实测:临时放 1024 PNG 后构建通过,`CFBundleIconName = AppIcon`、`Assets.car` 含各尺寸,preflight 的图标检查转 ✅;随后已撤掉,**未提交占位图**。出图 → [art §A](launch-art-prompts.md),放进 iOS 与 Watch 两个 `AppIcon.appiconset`(`Contents.json` 加 `filename`)即可 |
-| P0-2 签名 | ✅ 机制就绪 · ⏳ **等你的 Team ID** | `1fbd2e2` | `Config/Signing.local.xcconfig`(git 忽略,模板见 `.example`)。实测:无本地文件时 `DEVELOPMENT_TEAM` 为空且构建不受影响;有文件时 PawIt / PawItWatch 都拿到,且**不需要重新 `xcodegen generate`**。也可以直接把 Team ID 发给我写进 `project.yml` |
-| P0-3 隐私清单 | ✅ | `f051d15` | 4 个 bundle 各一份(App:`CA92.1` + `1C8F.1`;其余:`1C8F.1`),`NSPrivacyTracking=false`;preflight 在构建产物里逐个核对 |
-| P0-4 版本号 / 构建号 | ✅ | `5973522` | 行为验证:用 `MARKETING_VERSION=9.9 CURRENT_PROJECT_VERSION=99` 构建,4 个 bundle 的 Info.plist 全部变成 9.9 / 99 |
-| P0-5 出口合规键 | ✅ 已写入 · ⚠️ **需公司确认** | `72379d7` | `ITSAppUsesNonExemptEncryption = false`(口径见 §10 决策记录 #3)。**这是代你公司做出的合规声明**,提交 ASC 前请确认;不同意就改成 `true` |
-| P0-6 保存到相册崩溃 | ✅ | `23f3ffb` `1b98d12` | 移除直接调 `UIImageWriteToSavedPhotosAlbum` 的按钮与"已保存"弹窗;保存改走分享面板(沿用现有 `ActivityView`)。preflight 守卫:源码里再出现相册 API 却没有用途描述会报红。**没有在模拟器里复现过崩溃**(代码审计结论);"分享面板里有 Save Image"是系统对图片的标准行为,**本轮没有在模拟器里点开确认**,真机 QA 时看一眼 |
-| P0-7 深色模式 | ✅ 止血(v1.1 做完整适配) | `8c103aa` | `UIUserInterfaceStyle = Light`。模拟器把系统切到深色后重新验证:欢迎页与列表文字均清晰可读,见 `assets/launch-audit/09-darkmode-locked-light-after.png`(对比审计时的 01 / 02)。Widget / Live Activity / Watch 不受此键影响,仍按系统外观渲染(审计结论:Widget 便签色固定,安全) |
-| P0-8 回前台不刷新 | ✅ | `192fc59` | 同一套"外部进程改库后回前台"步骤跑两遍:修复前列表仍是旧的,修复后勾选划线 / 新名称 / 新便签都出现(宠物头也刷新),见 `assets/launch-audit/08-foreground-refresh-before-after.png`(左:修复前,右:修复后)。SwiftUI 的 `scenePhase` 接线没有可单测的接缝,所以验收用模拟器复现而不是单元测试 |
-| P0-9 命名与不可逆 ID | ✅ 代码已改 · ⏳ **等你核对 ID 字符串后再去后台注册** | `1dcde49` `8b84084` | Bundle ID / App Group 迁移是测试先行(先改期望值看红,再改常量转绿);用户可见字符串与 4 个显示名已改为 PawSticky,preflight 守卫防止旧品牌名回流。ID 映射是对"`com.fitpetgo.pawsticky`"的一种解读,见 §10 决策记录 #1 |
-| P0-10 ASC 物料 | ⏳ **你** | — | 隐私政策站点 / 支持页 / 截图 / 描述 / 年龄分级 / 隐私标签,见 §6、附录 C / F |
-
-**同批顺手落地:** 仅 iPhone(P1-9 选 a,`6a25d64`);通知标题改为 PawSticky(§4 第一条)。
-
-**没有做的 P1:** 你在 §10 里明确选了"做"的 **P1-6 备份 / 恢复最小界面、P1-7 删除撤销、P1-3 装扮收集册(需要美术)** 是下一批的主体;另有 P1-1 宠物名字对不上、P1-4 Widget 深链、P1-5 Widget 画廊预览、P1-8 设置页、P1-10 Siri 短语(P1-11 zh-Hans 已决定顺延到 v1.0.x)。
-
-**没有验证的东西(模拟器做不到):** 真机签名与 App Group 容器、交互式 Widget 点击、Live Activity、Watch 配对同步、重启后首次解锁前的读写——这些仍是 §8 的真机 QA。
+> **已搬走。** 10 个 P0 的提交、验证口径与遗留项,统一放在 [`launch-todo.md` 的「已完成」](launch-todo.md#已完成);没做完的已转成 todo 里的 A–E 任务。下面的 P0-1 ~ P0-10 保留**审计时**的原始描述。
 
 ### P0-1 App 图标为空
 - **证据:** `PawIt` / `PawItWatch` / `PawItWatchWidget` 三个 `Assets.xcassets/AppIcon.appiconset/Contents.json` 只声明 1024 槽位,目录里没有任何 PNG。ASC 上传校验会因缺图标失败。
-- **修法:** 出图([art §A](launch-art-prompts.md))→ 1024×1024 **不透明** PNG(无圆角、无 alpha)放进 iOS 与 Watch 的 AppIcon。min iOS 17 用单张 1024 即可;暗色/着色版本可放 v1.0.1。
-- **估时:** 美术 0.5 天 + 接入 0.5h
+- **修法:** ~~出图([art §A](launch-art-prompts.md))~~ → **用已有的举牌猫 `B_cat-sitting` 合成**(零生成,三种底色见 [todo A4](launch-todo.md))→ 1024×1024 **不透明** PNG(无圆角、无 alpha)放进 iOS 与 Watch 的 AppIcon。min iOS 17 用单张 1024 即可;暗色/着色版本可放 v1.0.1。
+- **估时:** ~~美术 0.5 天~~ + 接入 0.5h(todo C2)
 
 ### P0-2 开发者账号 / 签名 / 真机从未验证
 - **证据:** `project.yml` 无 `DEVELOPMENT_TEAM`(`CODE_SIGN_STYLE: Automatic`);`docs/w1-architecture.md` 把"真机部署 / 文件保护重启测试"记为待办。
@@ -144,8 +128,8 @@
 | ID | 问题 | 证据 / 位置 | 修法 | 估时 |
 |---|---|---|---|---|
 | **P1-1** | 宠物名字对不上 | `OnboardingView.selectionDialogue`(L233–240)与 `PetSelectionView.switchDialogue`(L106–113)台词用 Mochi/Luna/Coco/Hachi/Mimi/Peanut;`PetAsset.displayName` 实际是 Tabby/Misty/Biscuit/Mochi/Bun/Nugget。头部写 "Tabby",对话里它自称别的名字 | 台词一律读 `PetAsset.displayName`(单一事实源) | 0.5h |
-| **P1-2** | 宠物图质量(见下方图 ①) | 6 个物种的 `front` 图是从 450px 角色卡视图**硬裁**出来的:头顶/耳尖被切平、下半身被切掉;白色口鼻与奶油底融在一起。风格包规定的 `#5B4636` 描边后处理**没执行**(对已入包的 `holding` / `front` @3x 实测,边缘像素平均色是浅橙/米色,如 `(233,164,103)`,而不是深棕 `(91,70,54)`);`front@3x` 仅 300px,却用在 180pt 的欢迎页英雄位(放大 1.8×)。另 4 个物种(graycat / shiba / rabbit / hamster)没有 `holding` 举牌图,Widget 里退化成这张裁切图。`PetAvatarView` 的 `pose` 参数被忽略(永远加载 `front`);`PetNoteRenderer` 的"姿势×心情"状态机运行时没被 Widget 用到 | 重新出图([art §B/§C](launch-art-prompts.md))+ 描边管线 + 导出 @1x/2x/3x;`PetAvatarView.pose` 要么接上要么删 | 美术 1–2 天 + 接入 0.5 天 |
-| **P1-3** | 装扮解锁没有视觉兑现 | `Outfit.symbolName` 是 SF Symbol 占位(`gift` / `bolt.shield` / `bird`…);没有"已装备"状态,宠物图永远不变。喂养→解锁 12 件的循环,奖励在屏幕上看不到 | 见 §10-6:(a) v1.0 当"收集册"(12 张图标 + 解锁动画,不承诺换装,**推荐**);(b) 做真换装(12 件 × 6 物种叠加图 + 锚点系统,量大);(c) 先隐藏。无论哪种,商店文案先别写 "dress up" | (a) 美术 0.5 天 + 接入 0.5 天 |
+| **P1-2** | 宠物图质量(见下方图 ①) | 6 个物种的 `front` 图是从 450px 角色卡视图**硬裁**出来的:头顶/耳尖被切平、下半身被切掉;白色口鼻与奶油底融在一起。风格包规定的 `#5B4636` 描边后处理**没执行**(对已入包的 `holding` / `front` @3x 实测,边缘像素平均色是浅橙/米色,如 `(233,164,103)`,而不是深棕 `(91,70,54)`);`front@3x` 仅 300px,却用在 180pt 的欢迎页英雄位(放大 1.8×)。另 4 个物种(graycat / shiba / rabbit / hamster)没有 `holding` 举牌图,Widget 里退化成这张裁切图。`PetAvatarView` 的 `pose` 参数被忽略(永远加载 `front`);`PetNoteRenderer` 的"姿势×心情"状态机运行时没被 Widget 用到 | ~~重新出图([art §B/§C](launch-art-prompts.md))~~ → **复用已有角色卡重新抠图**(零生成;证据与脚本 `art/scripts/extract-from-sheets.sh` 见 [todo「美术方案」](launch-todo.md#美术方案零生成))+ 描边 + 导出 @1x/2x/3x;`PetAvatarView.pose` 要么接上要么删 | 接入 0.5–1 天(todo C3) |
+| **P1-3** | 装扮解锁没有视觉兑现 | `Outfit.symbolName` 是 SF Symbol 占位(`gift` / `bolt.shield` / `bird`…);没有"已装备"状态,宠物图永远不变。喂养→解锁 12 件的循环,奖励在屏幕上看不到 | 见 §10-6:(a) v1.0 当"收集册"(12 张图标 + 解锁动画,不承诺换装,**推荐**);(b) 做真换装(12 件 × 6 物种叠加图 + 锚点系统,量大);(c) 先隐藏。无论哪种,商店文案先别写 "dress up"。**更新:** 图标取舍见 [todo A5](launch-todo.md)(默认不生成新图) | (a) 接入 0.5–1h |
 | **P1-4** | 点 Widget 没有深链,"一秒速记"落空 | 全仓无 `widgetURL` / `Link` / `onOpenURL`;深链只存在于通知点击(`NotificationDelegate` → `pawItDeepLink` → `pawItOpenNote`)。空状态 Widget 写着 "Tap to add a note" / "Open PawIt to create your first note",点了只落到列表页。商业计划 §4.2 把"点 Widget → 光标直接在文本框"列为 MVP 项 | `widgetURL(URL(string: "<scheme>://new"))` + `onOpenURL` 打开 `.create` 编辑器(已有 `isTextEditorFocused = true`);有便签时点非按钮区域打开该便签;Info.plist 注册 URL scheme(用新品牌名) | 2–3h |
 | **P1-5** | Widget 画廊预览用真实数据 | `PawItWidgetProvider.placeholder` 与 `getSnapshot` 都走 `makeEntry` → `data.fetchContent()` 读真库,无 `context.isPreview` 分支。新装用户与审核员在"添加小组件"画廊里看到的是空状态——这正是用户决定"要不要加"的瞬间 | `isPreview` 返回示例内容(宠物 + 示例便签 + 清单进度);`placeholder` 返回不读库的静态示例 | 1–2h |
 | **P1-6** | 导出 / 导入 / 历史回滚有后端无界面 | `NoteRepository.export(passphrase:)`(L409)/ `import(data:passphrase:)`(L475)/ `restore(`(L282)/ `history(`(L377)均已实现并有测试,但 App 内**没有任何调用方**。商业计划 §4.2/§4.4 把"数据导出 + 7 天可回滚"作为可靠性承诺 | 见 §10-5:(a) v1.0 最小 UI:设置页 "Back Up Notes"(分享加密文件)+ "Restore from Backup"(选文件→口令)+ 删除后 Undo(P1-7);(b) 全推 v1.1,**同时**从商店文案/官网删掉 backup / history 字样 | (a) 1–1.5 天 |
@@ -198,6 +182,8 @@
 
 ## 6. App Store Connect 提审清单
 
+> 逐项执行版(带负责人、顺序、完成标准)→ [`launch-todo.md`](launch-todo.md) 的 D / E 两节。本节保留为检查依据。
+
 **账号与协议**
 - [x] Apple Developer Program 已注册——**公司主体**(2026-10-14 确认)。商店卖家名将显示公司法定名称;注册 App ID、创建 ASC 记录需要 Account Holder / Admin 权限。
 - [ ] 免费 App 只需接受 Free Apps 协议,不需要银行/税务(以后做内购/订阅再补 Paid Apps 协议)。
@@ -213,7 +199,7 @@
 - [ ] 出口合规(P0-5)、内容版权、IDFA:否。
 
 **版本信息**
-- [ ] 截图:iPhone 6.9"(iPhone 17 Pro Max 原生 1320×2868;以 ASC 当前要求为准);iPad 13" 仅在支持 iPad 时需要;**含 watchOS App 时需要 Apple Watch 截图**。
+- [ ] 截图:iPhone 必需 "iPhone with Dynamic Island (medium display)" 的 **1206×2622**(iPhone 17 Pro 原生)或 1179×2556,至少 1 张、最多 10 张,不能带 alpha(Apple 截图规格页,2026-10-14 核对;大屏 1320×2868 是可选项);iPad 13" 仅在支持 iPad 时需要(v1.0 仅 iPhone,不需要);**含 watchOS App 时必须提供 Apple Watch 截图**(如 416×496,各语言同一尺寸)。
 - [ ] 副标题 ≤30、关键词 ≤100、描述、宣传文本、What's New。草稿见附录 C(标注了哪些句子取决于 P1 取舍)。
 - [ ] 本地化:en-US(必须);zh-Hans(§10-8)。
 - [ ] 审核备注:说明无需账号;如何添加 Widget(长按主屏 → + → 搜索品牌名);Live Activity / Watch 如何触发;一段 30 秒操作路径。
@@ -222,7 +208,7 @@
 - [ ] `xcodegen generate` → Archive(Release)→ Validate → Upload(Xcode Organizer,或 `xcodebuild -exportArchive`)。
 - [ ] TestFlight 内测(最多 100 人,无需审核)→ 外测(需 Beta App Review,可开公开链接)。
 - [ ] 提审前:无调试开关/种子数据;无占位 SF Symbol 暴露给用户(P1-3)。
-- [ ] 审核指南快检:**2.3**(元数据准确,截图须为 App 实际界面;关键词不得含竞品名,如 "Sticky Widgets" / "Stickies")、**4.2**(最低功能:Widget + 宠物成长已足够)、**5.1.1**(隐私政策与权限用途描述)、Live Activity 只放与任务相关的实时信息,不做推广。
+- [ ] 审核指南快检:**2.3**(元数据准确,截图须为 App 实际界面;关键词不得含竞品名,如 "Sticky Widgets" / "Stickies")、**4.2**(最低功能:Widget + 宠物成长已足够)、**5.1.1**(隐私政策与权限用途描述;**5.1.1(i) 要求隐私政策链接同时出现在 ASC 元数据与 App 内**——原文已于 2026-10-14 核对)、Live Activity 只放与任务相关的实时信息,不做推广。
 - [ ] 商标/名称初筛:USPTO(美)、IPONZ(新西兰)、CNIPA(中)。
 
 ---
@@ -307,7 +293,7 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 
 ## 8. QA / TestFlight 计划
 
-每次出包前先 `xcodegen generate` → 构建 → 跑 [`scripts/preflight.sh`](../scripts/preflight.sh)(需要 0 失败;⏳ 项依赖外部输入,见 §2.0)。
+每次出包前先 `xcodegen generate` → 构建 → 跑 [`scripts/preflight.sh`](../scripts/preflight.sh)(需要 0 失败;⏳ 项依赖外部输入,见 [todo「已完成」](launch-todo.md#已完成))。
 
 沿用 `plan.md` 的 QA 协议(P1 / P2 / W / I / W-午夜 / AW / DW),下列是**上线前必须在真机补跑的增量项**:
 
@@ -332,11 +318,13 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 
 ## 9. 建议路线(粗估;公司账号已就绪)
 
+> 最新排期与负责人见 [`launch-todo.md` §0](launch-todo.md);本节是审计时的粗估。
+
 | 阶段 | 内容 | 粗估 |
 |---|---|---|
 | **今天** | ~~拍板 §10 的决策~~(已完成,见 §10);注册 `pawsticky.com` / `.app`;在开发者后台注册 App ID / App Group | — |
-| **T+0 ~ 2 天** | 创建 ASC 记录与 Bundle ID;美术并行出图(图标 → 举牌 → front → 装扮图标) | 并行 |
-| **T+1 ~ 4 天** | ✅ **已完成(2026-10-14)**:P0 代码 P0-3 ~ P0-8 + 改名(P0-9),见 §2.0 | ≈ 2–3 天 |
+| **T+0 ~ 2 天** | 创建 ASC 记录与 Bundle ID;美术:零生成复用已有素材(todo C2 / C3) | 并行 |
+| **T+1 ~ 4 天** | ✅ **已完成(2026-10-14)**:P0 代码 P0-3 ~ P0-8 + 改名(P0-9),见 [todo「已完成」](launch-todo.md#已完成) | ≈ 2–3 天 |
 | **T+4 ~ 8 天** | P1(按 §10 裁剪)+ 美术接入 + 本地化 | ≈ 4–6 天 |
 | **T+8 ~ 15 天** | 真机 QA + TestFlight + 截图 / 元数据 / 建站 | ≈ 1 周 |
 | **之后** | 提审(审核通常 1–2 天,首次可能更久)→ 软启动 NZ → CA → US | plan.md W12 |
@@ -383,12 +371,14 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 | 图标背景色对比 | `assets/launch-audit/07-icon-bg-options.png` |
 | **修复后** 回前台刷新(左:修复前 · 右:修复后) | `assets/launch-audit/08-foreground-refresh-before-after.png` |
 | **修复后** 系统深色外观下 App 保持浅色(左:欢迎页 · 右:列表) | `assets/launch-audit/09-darkmode-locked-light-after.png` |
+| 零生成复用:现在入包的 `front` vs 从角色卡重新抠出的胸像 / 完整图 | `assets/launch-audit/10-art-reuse-before-after.jpg` |
+| 图标三选一(同一只举牌猫 × 薄荷 / 天蓝 / 淡紫,浅 / 深壁纸与 60px) | `assets/launch-audit/11-icon-options-from-existing-cat.jpg` |
 
 **复现 P0-8 的方法:** 模拟器装好 App(`com.fitpetgo.pawsticky`)并用 `sqlite3` 往 App Group 容器的 `pawit.sqlite3` 里种一只选中的宠物(`pet_profile` + `growth_state`)和几条便签(种了宠物与便签就不会弹欢迎页)→ 启动 App → `xcrun simctl launch <udid> com.apple.Preferences` 把 App 推到后台 → 再用 `sqlite3` 改库(勾选 / 改名 / 新增)→ `xcrun simctl launch <udid> com.fitpetgo.pawsticky` 回前台 → 截图。容器路径:`xcrun simctl get_app_container <udid> com.fitpetgo.pawsticky groups`,库文件在其下的 `Library/Application Support/pawit.sqlite3`。**注意:** 日期列是 GRDB 文本格式 `YYYY-MM-DD HH:MM:SS.SSS`(UTC),便签 `id` 是大写 UUID 文本;`08` / `09` 两张图就是这样截的。
 
 ## 附录 B. 美术资源
 
-见 [`launch-art-prompts.md`](launch-art-prompts.md)。
+见 [`launch-art-prompts.md`](launch-art-prompts.md)——**v1.0 不需要生成**,该文件改为"以后补图"手册;现行做法见 [`launch-todo.md` §美术方案](launch-todo.md#美术方案零生成)。
 
 ## 附录 C. App Store 元数据草稿(英文)
 
