@@ -2,7 +2,7 @@
 
 > **这是唯一回答"现在该做什么、做到哪了"的文档。** 勾了 = 做完;没勾 = 没做。
 > *为什么*要做某一项 → 看审计依据 [`launch-readiness.md`](launch-readiness.md)(只读快照,不再记状态)。
-> **更新:** 2026-10-14 · 代码基线 `f36d2d4`(其后只有文档与美术脚本的提交)· v1.0 免费版 · 仅 iPhone(+ Watch)
+> **更新:** 2026-10-14 · C 阶段(代码 + 美术)已全部做完,提交都在 `dev` 上(`main` 仍停在 `f36d2d4`,没推送;合并见 E1)· v1.0 免费版 · 仅 iPhone(+ Watch)
 
 **怎么用:** 从上往下做;做完把 `- [ ]` 改成 `- [x]`(或回复我任务编号,我来改)。
 **图例:** 🔴 不做就不能提审 · 🟡 应做(口碑 / 兑现承诺)· ⚪ 可推迟 ｜ **[你]** 只有你能做(账号、审美拍板、对外发布)· **[我]** 我来写代码 / 文档
@@ -16,11 +16,11 @@
 | ✅ 工程 P0 | 改名 / ID / 隐私清单 / 版本号 / 合规键 / 相册崩溃 / 回前台刷新 / 锁浅色 / 仅 iPhone | 我 | **已完成** → [文末](#已完成) |
 | **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | 4 / 6(还差 A2 Team ID、A3 合规结论) |
 | **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | 0 / 5(B4 仅出错时才做) |
-| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | 0 / 8 |
+| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **8 / 8 已完成**(请你过目 C3 的新宠物图) |
 | **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 0 / 6(D1、D8 可推迟) |
 | **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4 |
 
-**👉 现在:** 你补 A2(Team ID)、A3(公司合规结论),并处理 **D2 的隐私政策页**(现有页面只覆盖网站,见下)。我已开工 C1–C7。
+**👉 现在:** 代码和美术我这边做完了。轮到你:**A2** Team ID、**A3** 公司的合规结论、**D2** 发布 PawSticky 专属隐私政策页(现有页面只覆盖网站,见下)——然后做 **B 真机冒烟**:模拟器验不了的东西(Widget 画廊与点按、系统文件面板、Watch、真机签名)全攒在 B5,那是目前最大的未知数。另请过目 C3 的新宠物图。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -49,7 +49,7 @@
 - [ ] **B2 填 Team ID** 🔴 — `cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig`,填 `DEVELOPMENT_TEAM = <Team ID>`(文件被 git 忽略;已实测**不需要**重新 `xcodegen generate`)。A2 若已发我,跳过。
 - [ ] **B3 真机跑起来** 🔴 — `xcodegen generate` → 打开 `PawIt.xcodeproj` → 选真机 → Run。自动签名会替你在开发者后台注册 App ID 与 App Group。
 - [ ] **B4 (仅 B3 报 App Group 错才做)** — developer.apple.com → Certificates, IDs & Profiles → Identifiers:手动建 App Group `group.com.fitpetgo.pawsticky.shared`,再到 4 个 App ID(App / Widget / Watch / Watch Widget)的 App Groups 能力里勾上它。
-- [ ] **B5 真机冒烟 15 分钟** 🔴 — 启动不崩 → 选宠物 → 记一条 → 加小 / 中 / 大 / 锁屏 Widget(**画廊里应是示例便签,而不是空状态**)→ **在 Widget 上勾选 → 回 App,列表已同步**(P0-8 的真机回归)→ **点空状态的 Widget 直达新建页、点有便签的 Widget 直达那一条(C6);开着设置页回主屏再点一次** → Watch 配对后能看到数据 → **设置 → Back Up Notes 存到“文件”,删 App 重装后 Restore from Backup(明文、加密各一次;系统文件面板只有真机能验,见 C5)**。完成标准:无崩溃,Widget 读到了 App 写的数据(= App Group 在真机生效),且备份能原样恢复。
+- [ ] **B5 真机冒烟 15 分钟** 🔴 — 启动不崩 → 选宠物 → 记一条 → 加小 / 中 / 大 / 锁屏 Widget(**画廊里应是示例便签,而不是空状态**;锁屏圆形款看一眼新头像的耳尖有没有被圆裁掉)→ **在 Widget 上勾选 → 回 App,列表已同步**(P0-8 的真机回归)→ **点空状态的 Widget 直达新建页、点有便签的 Widget 直达那一条(C6);开着设置页回主屏再点一次** → Watch 配对后能看到数据与新头像 → **设置 → Back Up Notes 存到“文件”,删 App 重装后 Restore from Backup(明文、加密各一次;系统文件面板只有真机能验,见 C5)**。完成标准:无崩溃,Widget 读到了 App 写的数据(= App Group 在真机生效),且备份能原样恢复。
 
 ---
 
@@ -71,7 +71,7 @@
   - **没验证的:** ① 画廊本身(模拟器无法脚本化打开);`isPreview` 分支只有一行条件,示例内容的“看起来是好的”由上面 7 个测试守住。② 真实的“点 Widget → `onOpenURL`”(系统投递 Widget 链接时没有确认框;模拟器里加不了 Widget)。③ 设置页开着时从主屏点 Widget 的“先收起再开编辑器”时序(决策函数有单测,收起动画没跑过)。→ **B5 真机请看:画廊里是示例便签而不是空状态;点空状态的 Widget 直达新建;点有便签的 Widget 直达那一条;开着设置页回主屏再点 Widget。**
   - **没做(不在 C6 范围):** Live Activity(锁屏 / 灵动岛上钉住的便签)点按仍只是打开 App,没接这套链接——接法一样(`widgetURL` + `DeepLink.openNote`),可放 v1.0.x。
 - [x] **C7 装扮文案(P1-3)** 🟡 — ✅ 已完成(按 A5(a)):成长页标题 "Outfits" → "Collection"、统计块 "Outfits"(原 T 恤图标)→ "Collected"(sparkles 图标)、"All outfits unlocked!" → "Collection complete!"、分享卡 "n/12 outfits" → "n/12 collected";SF Symbol 网格不变。另给 preflight 加了守卫:用户可见字符串里再出现 outfit 就失败(先让它抓到 4 处,改完变绿)。
-- [ ] **C8 每批收尾回归** 🔴 · 随每次改动 — `xcodegen generate` → 构建 → `xcodebuild test` → `scripts/preflight.sh` 0 失败(命令见[附录](#附录常用命令))。
+- [x] **C8 每批收尾回归** 🔴 — ✅ 本批已跑(**之后每次改动仍要再跑**):`xcodegen generate` 后入库的生成物零差异 → **干净**构建成功 → `xcodebuild test` **254 / 254 通过**(Core 194 + App 60)→ `scripts/preflight.sh` **51 通过 · 2 ⏳ · 0 失败**(两个 ⏳ 是 Team ID 与"隐私政策 URL 仍是通用页",都在等你)。编译警告仍是审计时的那 2 条(`ToggleItemIntent.swift:34`、`PawItTests.swift:15`),没有新增。命令见[附录](#附录常用命令)。
 
 ---
 
@@ -119,6 +119,8 @@
 ---
 
 ## 想更快上线
+
+> C 阶段已经全部做完,下表只在你想回头砍范围(比如 B5 真机发现 Widget / 备份有大问题时)才有参考价值。
 
 | 砍什么 | 省 | 代价 |
 |---|---|---|
@@ -170,6 +172,26 @@
 **同批顺手落地:** 仅 iPhone(P1-9 选 a,`6a25d64`);通知标题改为 PawSticky。
 
 **模拟器做不到、只能真机验的:** 真机签名与 App Group 容器、交互式 Widget 点击、Live Activity、Watch 配对同步、重启后首次解锁前的读写 → 对应 B5 与 E2。
+
+</details>
+
+<details>
+<summary>C 阶段(代码 + 美术):提交与验证口径</summary>
+
+**验证口径(2026-10-14):** **干净**构建 + `xcodebuild test`(iPhone 17 Pro 模拟器)**254 / 254 通过**(Core 194 + App 60;P0 时是 172,多出来的 82 个都按“先看它因正确的原因失败、再实现转绿”的顺序写成);编译警告仍是审计时的那 2 条,没有新增;[`scripts/preflight.sh`](../scripts/preflight.sh) **51 通过 · 2 等待外部输入 · 0 失败**。
+
+| 项 | 提交(都在 `dev`,没推送) |
+|---|---|
+| A 阶段决议、TODO 文档 | `ea17828` `cffd2a4` |
+| C2 App 图标 | `1aec30d` |
+| C3 宠物图零生成接入 | `348c096`(抠图脚本)`62e7dee`(替换入包) |
+| C4 宠物名字统一 | `c14dacf` |
+| C7 装扮文案 → Collection | `d4fcb0f` |
+| C1 设置页(版本 / 隐私政策 / 支持 / 致谢) | `9067a6c` |
+| C5 删除撤销 + 备份 / 恢复 | `b821021` `673c0c8` `a890868`(文档 `5e1ad3f`) |
+| C6 Widget 画廊示例 + 点按直达 | `da96aad` `fcdcfbc`(文档 `7067909`) |
+
+**C 阶段新增、只能真机验的:** Widget 画廊里是示例便签(不是空状态);点 Widget(空状态 / 有便签)直达新建 / 那一条;设置页开着时再点 Widget;系统“存储到文件 / 选择文件”面板下的备份与恢复;锁屏圆形 Widget 里新头像的耳尖;Watch 上的新头像。→ 都已写进 B5。
 
 </details>
 
