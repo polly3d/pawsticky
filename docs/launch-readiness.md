@@ -5,6 +5,7 @@
 > **审计方式:** 构建 + 全量测试 + 模拟器实跑(iPhone 17 Pro / iPad Pro 11" · iOS 26.5 · 亮/暗外观,含"外部进程改库后回前台")+ 全仓静态审查(Info.plist / project.yml / 资产 / 代码路径)。
 > **未覆盖(需真机/账号):** 真机行为、交互式 Widget 实际点击、Live Activity、Watch 配对同步、App Store Connect 校验 → 见 §8。
 > **配套文档:** 美术资源与 gpt-image-2.5 提示词 → [`launch-art-prompts.md`](launch-art-prompts.md)
+> **实施进度(2026-10-14):** P0 里"能用代码解决的"已全部落地(分小提交,见 §2.0)。剩下的 P0 都依赖外部输入:图标美术、Team ID、开发者后台注册、ASC 物料、出口合规的公司确认。本文以下章节保留审计时的原始描述;凡标 ✅ 的以 §2.0 为准。
 
 ---
 
@@ -47,6 +48,29 @@
 ---
 
 ## 2. P0 阻塞项
+
+### 2.0 实施状态(2026-10-14,分支 `dev`,**尚未 push**)
+
+验证口径:`xcodebuild test`(iPhone 17 Pro 模拟器)**172/172 通过**(Core 168 + App 4);干净构建成功,编译警告仍是审计时的那 2 条(`ToggleItemIntent.swift:34`、`PawItTests.swift:15`),没有新增;[`scripts/preflight.sh`](../scripts/preflight.sh) **41 通过 · 3 等待外部输入 · 0 失败**。该脚本是配置类 P0 的可重复验收(先在改动前跑出红灯,再逐项转绿):**每次出包前先构建、再跑它**。
+
+| P0 | 状态 | 提交 | 怎么验证的 / 还差什么 |
+|---|---|---|---|
+| P0-1 图标 | ⏳ **等美术** | — | 接线已实测:临时放 1024 PNG 后构建通过,`CFBundleIconName = AppIcon`、`Assets.car` 含各尺寸,preflight 的图标检查转 ✅;随后已撤掉,**未提交占位图**。出图 → [art §A](launch-art-prompts.md),放进 iOS 与 Watch 两个 `AppIcon.appiconset`(`Contents.json` 加 `filename`)即可 |
+| P0-2 签名 | ✅ 机制就绪 · ⏳ **等你的 Team ID** | `1fbd2e2` | `Config/Signing.local.xcconfig`(git 忽略,模板见 `.example`)。实测:无本地文件时 `DEVELOPMENT_TEAM` 为空且构建不受影响;有文件时 PawIt / PawItWatch 都拿到,且**不需要重新 `xcodegen generate`**。也可以直接把 Team ID 发给我写进 `project.yml` |
+| P0-3 隐私清单 | ✅ | `f051d15` | 4 个 bundle 各一份(App:`CA92.1` + `1C8F.1`;其余:`1C8F.1`),`NSPrivacyTracking=false`;preflight 在构建产物里逐个核对 |
+| P0-4 版本号 / 构建号 | ✅ | `5973522` | 行为验证:用 `MARKETING_VERSION=9.9 CURRENT_PROJECT_VERSION=99` 构建,4 个 bundle 的 Info.plist 全部变成 9.9 / 99 |
+| P0-5 出口合规键 | ✅ 已写入 · ⚠️ **需公司确认** | `72379d7` | `ITSAppUsesNonExemptEncryption = false`(口径见 §10 决策记录 #3)。**这是代你公司做出的合规声明**,提交 ASC 前请确认;不同意就改成 `true` |
+| P0-6 保存到相册崩溃 | ✅ | `23f3ffb` `1b98d12` | 移除直接调 `UIImageWriteToSavedPhotosAlbum` 的按钮与"已保存"弹窗;保存改走分享面板(沿用现有 `ActivityView`)。preflight 守卫:源码里再出现相册 API 却没有用途描述会报红。**没有在模拟器里复现过崩溃**(代码审计结论);"分享面板里有 Save Image"是系统对图片的标准行为,**本轮没有在模拟器里点开确认**,真机 QA 时看一眼 |
+| P0-7 深色模式 | ✅ 止血(v1.1 做完整适配) | `8c103aa` | `UIUserInterfaceStyle = Light`。模拟器把系统切到深色后重新验证:欢迎页与列表文字均清晰可读,见 `assets/launch-audit/09-darkmode-locked-light-after.png`(对比审计时的 01 / 02)。Widget / Live Activity / Watch 不受此键影响,仍按系统外观渲染(审计结论:Widget 便签色固定,安全) |
+| P0-8 回前台不刷新 | ✅ | `192fc59` | 同一套"外部进程改库后回前台"步骤跑两遍:修复前列表仍是旧的,修复后勾选划线 / 新名称 / 新便签都出现(宠物头也刷新),见 `assets/launch-audit/08-foreground-refresh-before-after.png`(左:修复前,右:修复后)。SwiftUI 的 `scenePhase` 接线没有可单测的接缝,所以验收用模拟器复现而不是单元测试 |
+| P0-9 命名与不可逆 ID | ✅ 代码已改 · ⏳ **等你核对 ID 字符串后再去后台注册** | `1dcde49` `8b84084` | Bundle ID / App Group 迁移是测试先行(先改期望值看红,再改常量转绿);用户可见字符串与 4 个显示名已改为 PawSticky,preflight 守卫防止旧品牌名回流。ID 映射是对"`com.fitpetgo.pawsticky`"的一种解读,见 §10 决策记录 #1 |
+| P0-10 ASC 物料 | ⏳ **你** | — | 隐私政策站点 / 支持页 / 截图 / 描述 / 年龄分级 / 隐私标签,见 §6、附录 C / F |
+
+**同批顺手落地:** 仅 iPhone(P1-9 选 a,`6a25d64`);通知标题改为 PawSticky(§4 第一条)。
+
+**没有做的 P1:** 你在 §10 里明确选了"做"的 **P1-6 备份 / 恢复最小界面、P1-7 删除撤销、P1-3 装扮收集册(需要美术)** 是下一批的主体;另有 P1-1 宠物名字对不上、P1-4 Widget 深链、P1-5 Widget 画廊预览、P1-8 设置页、P1-10 Siri 短语(P1-11 zh-Hans 已决定顺延到 v1.0.x)。
+
+**没有验证的东西(模拟器做不到):** 真机签名与 App Group 容器、交互式 Widget 点击、Live Activity、Watch 配对同步、重启后首次解锁前的读写——这些仍是 §8 的真机 QA。
 
 ### P0-1 App 图标为空
 - **证据:** `PawIt` / `PawItWatch` / `PawItWatchWidget` 三个 `Assets.xcassets/AppIcon.appiconset/Contents.json` 只声明 1024 槽位,目录里没有任何 PNG。ASC 上传校验会因缺图标失败。
@@ -127,7 +151,7 @@
 | **P1-6** | 导出 / 导入 / 历史回滚有后端无界面 | `NoteRepository.export(passphrase:)`(L409)/ `import(data:passphrase:)`(L475)/ `restore(`(L282)/ `history(`(L377)均已实现并有测试,但 App 内**没有任何调用方**。商业计划 §4.2/§4.4 把"数据导出 + 7 天可回滚"作为可靠性承诺 | 见 §10-5:(a) v1.0 最小 UI:设置页 "Back Up Notes"(分享加密文件)+ "Restore from Backup"(选文件→口令)+ 删除后 Undo(P1-7);(b) 全推 v1.1,**同时**从商店文案/官网删掉 backup / history 字样 | (a) 1–1.5 天 |
 | **P1-7** | 删除便签无确认 / 撤销 | `NoteListView.deleteNote` 立即删除。后端已有 7 天历史,撤销几乎免费 | 删除后底部提示 "Note deleted · Undo",点 Undo → `restore` | 0.5–1 天含测试 |
 | **P1-8** | 设置页过于简陋 | `SettingsView` 只有一个 "Growth System" 开关 | 补:版本/Build 号、Privacy Policy、Support(mailto)、Rate、开源许可页(GRDB 为 MIT,二进制分发需保留版权声明)、备份入口(P1-6)、通知权限状态 + 跳系统设置 | 3–4h |
-| **P1-9** | iPad 布局被拉伸(见下方图 ②) | `TARGETED_DEVICE_FAMILY = 1,2`,iPad 上是被拉伸的手机布局(卡片横跨整个 11" 宽)。声明支持 iPad 就必须提供 iPad(13")截图,并接受审核员在 iPad 上测试。商业计划 §4.2 曾写"iPad 支持" | 见 §10-3:(a) v1.0 仅 iPhone(`TARGETED_DEVICE_FAMILY=1`,零代码;iPad 仍能以兼容模式运行,**推荐**);(b) 自适应:内容最大宽度 + 双列 + iPad 截图 + 真机 QA | (b) 1.5–2 天 |
+| **P1-9** | iPad 布局被拉伸(见下方图 ②) | `TARGETED_DEVICE_FAMILY = 1,2`,iPad 上是被拉伸的手机布局(卡片横跨整个 11" 宽)。声明支持 iPad 就必须提供 iPad(13")截图,并接受审核员在 iPad 上测试。商业计划 §4.2 曾写"iPad 支持" | 见 §10-3:(a) v1.0 仅 iPhone(`TARGETED_DEVICE_FAMILY=1`,零代码;iPad 仍能以兼容模式运行,**推荐;已执行,`6a25d64`**);(b) 自适应:内容最大宽度 + 双列 + iPad 截图 + 真机 QA | (b) 1.5–2 天 |
 | **P1-10** | 无 `AppShortcutsProvider` | 全仓无 `AppShortcutsProvider` / `AppShortcut(`。`AppendNoteIntent` 注释写着 "Hey Siri, add Buy cat food to PawIt",但没有注册短语,Siri / Spotlight / 快捷指令 App 不会自动出现 | 加 `AppShortcutsProvider`(1–2 条"新增便签"短语,含新品牌名);Intents 在 SPM 包内,iOS 17.4+ 需 `AppIntentsPackage` 才能让主 App 元数据收录(真机验证) | 2–3h |
 | **P1-11** | 无 zh-Hans 本地化资源 | 仓库无 `.lproj` / `.strings` / `.xcstrings`。`CLAUDE.md` 的 v1.0 约定是 EN + zh-Hans | 量级:`Text("…")` 字面量 App 31 + Widget 21 + Watch 3 + Watch Widget 7,加 `Label/Button/navigationTitle/alert/通知`,粗估 100–150 条;另需 `InfoPlist.strings`(显示名)与手动复数改走 `String(localized:)` 复数规则(`moodForHeader` / `petGreeting`)。见 §10-8:软启动是 NZ→CA→US(英语市场),可 v1.0 先 EN | 0.5–1 天 |
 | **P1-12** | 所有 Widget 共用同一"当前便签" | `StaticConfiguration` + 全局 `WidgetPreferences.currentNoteIndex`:放两个 Widget 显示同一张便签;`ToggleItemIntent` 只切换便签整体完成状态,清单条目在 Widget 内不可点 | 非阻塞。**`research/` 的评论样本里我没找到直接证据**,所以不宣称这是竞品差评点。建议 v1.1 用 `AppIntentConfiguration` 做"每 Widget 选便签 + 条目级勾选";v1.0 文案不要承诺 | v1.1 |
@@ -142,7 +166,7 @@
 
 ## 4. P2 打磨项(可随 v1.0.x)
 
-- 通知标题硬编码 `"PawIt"`(`NotificationScheduling.swift:29`)→ 随改名走 `AppBranding`。
+- ~~通知标题硬编码 `"PawIt"`(`NotificationScheduling.swift:29`)→ 随改名走 `AppBranding`。~~ ✅ 已随改名改为 `"PawSticky"`(`8b84084`);仍是字面量,没有抽 `AppBranding`(下次改名前再抽)。
 - `UILaunchScreen: {}` 为空 → 启动闪白;可配奶油底色 + 宠物剪影。
 - 未声明 `UISupportedInterfaceOrientations`,iPhone 横屏未验 → 锁竖屏更省 QA。
 - `LiveActivityManager` 仅在前台续期(`staleDate` 12h);`ToggleItemIntent.swift:34` 未使用的 `try?`;`PawItTests.swift:15` actor 隔离警告。
@@ -248,6 +272,8 @@
 
 ### 7.4 改名的影响面(`PawIt` → 新名)
 
+> **已执行(2026-10-14):** ID 与 App Group 见 `1dcde49`,用户可见字符串与显示名见 `8b84084`;"可保持不动"那一栏原样保留。下表的行号是审计基线 `8966f96` 的,仅作历史参考。**没有抽 `AppBranding.name`**——字面量一次性替换后由 `scripts/preflight.sh` 守卫防回流,代价低于新增抽象。
+
 **必须改(用户可见,约 20 处 + 4 个显示名)**
 
 | 位置 | 内容 |
@@ -281,12 +307,14 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 
 ## 8. QA / TestFlight 计划
 
+每次出包前先 `xcodegen generate` → 构建 → 跑 [`scripts/preflight.sh`](../scripts/preflight.sh)(需要 0 失败;⏳ 项依赖外部输入,见 §2.0)。
+
 沿用 `plan.md` 的 QA 协议(P1 / P2 / W / I / W-午夜 / AW / DW),下列是**上线前必须在真机补跑的增量项**:
 
 | # | 场景 | 通过标准 |
 |---|---|---|
 | 1 | 全新安装 → 引导 → 添加 Widget(小 / 中 / 大 / 锁屏 / StandBy)→ 记一条 → 勾选 → 喂养 | 全流程无崩溃、无空白、文字可读 |
-| 2 | **Widget 勾选后打开 App**(P0-8 回归) | 列表与宠物头立刻与 Widget 一致 |
+| 2 | **Widget 勾选后打开 App**(P0-8 回归;模拟器已验证,真机再确认一次) | 列表与宠物头立刻与 Widget 一致 |
 | 3 | 重启后**首次解锁前**触发 Widget 刷新 | 不崩溃、不丢数据(文件保护) |
 | 4 | 午夜 / 时区 / DST 切换 | 时间线正确翻日(W-午夜) |
 | 5 | 低电量模式、后台刷新关闭、存储空间不足 | 降级但可用 |
@@ -308,7 +336,7 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 |---|---|---|
 | **今天** | ~~拍板 §10 的决策~~(已完成,见 §10);注册 `pawsticky.com` / `.app`;在开发者后台注册 App ID / App Group | — |
 | **T+0 ~ 2 天** | 创建 ASC 记录与 Bundle ID;美术并行出图(图标 → 举牌 → front → 装扮图标) | 并行 |
-| **T+1 ~ 4 天** | P0 代码:P0-3 ~ P0-8 + 改名(P0-9) | ≈ 2–3 天 |
+| **T+1 ~ 4 天** | ✅ **已完成(2026-10-14)**:P0 代码 P0-3 ~ P0-8 + 改名(P0-9),见 §2.0 | ≈ 2–3 天 |
 | **T+4 ~ 8 天** | P1(按 §10 裁剪)+ 美术接入 + 本地化 | ≈ 4–6 天 |
 | **T+8 ~ 15 天** | 真机 QA + TestFlight + 截图 / 元数据 / 建站 | ≈ 1 周 |
 | **之后** | 提审(审核通常 1–2 天,首次可能更久)→ 软启动 NZ → CA → US | plan.md W12 |
@@ -353,8 +381,10 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 | iPad 拉伸布局 | `assets/launch-audit/05-ipad-stretched-layout.png` |
 | 抠图 + 描边管线实测 | `assets/launch-audit/06-outline-recipe-preview.png` |
 | 图标背景色对比 | `assets/launch-audit/07-icon-bg-options.png` |
+| **修复后** 回前台刷新(左:修复前 · 右:修复后) | `assets/launch-audit/08-foreground-refresh-before-after.png` |
+| **修复后** 系统深色外观下 App 保持浅色(左:欢迎页 · 右:列表) | `assets/launch-audit/09-darkmode-locked-light-after.png` |
 
-**复现 P0-8 的方法:** 模拟器装好 App 并种几条便签 → 启动 App → `xcrun simctl launch <udid> com.apple.Preferences` 把 App 推到后台 → 用 `sqlite3` 直接改 App Group 容器里的 `pawit.sqlite3` → `xcrun simctl launch <udid> com.pawit.app` 回前台。
+**复现 P0-8 的方法:** 模拟器装好 App(`com.fitpetgo.pawsticky`)并用 `sqlite3` 往 App Group 容器的 `pawit.sqlite3` 里种一只选中的宠物(`pet_profile` + `growth_state`)和几条便签(种了宠物与便签就不会弹欢迎页)→ 启动 App → `xcrun simctl launch <udid> com.apple.Preferences` 把 App 推到后台 → 再用 `sqlite3` 改库(勾选 / 改名 / 新增)→ `xcrun simctl launch <udid> com.fitpetgo.pawsticky` 回前台 → 截图。容器路径:`xcrun simctl get_app_container <udid> com.fitpetgo.pawsticky groups`,库文件在其下的 `Library/Application Support/pawit.sqlite3`。**注意:** 日期列是 GRDB 文本格式 `YYYY-MM-DD HH:MM:SS.SSS`(UTC),便签 `id` 是大写 UUID 文本;`08` / `09` 两张图就是这样截的。
 
 ## 附录 B. 美术资源
 
@@ -438,7 +468,9 @@ Free to use.
 
 > 新增任何 required-reason API(文件时间戳、磁盘空间、系统启动时间等)时同步补条目。提交前用 Xcode "Generate Privacy Report" 汇总核对。
 
-## 附录 E. `project.yml` 补丁草案(未应用)
+## 附录 E. `project.yml` 补丁草案(**大部分已应用**,保留作历史参考)
+
+> 已应用:P0-4、P0-5(`false`)、P0-7、`TARGETED_DEVICE_FAMILY`、P0-2(改为经 `Config/Base.xcconfig` 注入本地 Team ID,不再写进 `settings.base`)。**未应用:** P1-4 深链用的 `CFBundleURLTypes`(P1-4 还没做);P0-6 选的是方案 1,所以**不需要** `NSPhotoLibraryAddUsageDescription`。
 
 ```yaml
 # 每个 target 的 info.properties(4 个 bundle 都要)
@@ -469,7 +501,7 @@ settings:
 1. **Summary:** PawSticky does not collect, transmit, or share any personal data. There are no accounts, ads, analytics, or third-party SDKs.
 2. **Where your data lives:** Notes, pets, and settings are stored only on your device (in an app-group container shared by the app, its widgets, and its Watch extension). Data protection is enabled.
 3. **Notifications:** Reminders are scheduled locally on your device; nothing is sent to a server.
-4. **Photos:** The app only saves an image to your photo library when you tap Save/Share on a note card. *(措辞随 P0-6 的方案调整。)*
+4. **Photos:** The app does not request access to your photo library. If you choose "Save Image" in the system share sheet for a note card, iOS saves that image for you. *(与 P0-6 方案 1 一致:App 不直接写相册。若日后加回直接保存,这条与 Info.plist 用途描述要一起改。)*
 5. **Apple Watch:** Notes sync between your iPhone and Apple Watch over the system connection; no cloud service is involved.
 6. **History & backups:** Deleted or edited notes may stay in an on-device history for 7 days. Backups are encrypted with a passphrase you choose and are created only when you export. *(随 P1-6 调整。)*
 7. **Children:** The app is not directed to children under 13 and collects no data from anyone.

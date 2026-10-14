@@ -14,7 +14,9 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - `docs/w3-editor-ui.md` — W3 详细任务与完成记录
 - `docs/launch-readiness.md` — v1.0 上线就绪审计（P0/P1/P2 差距清单 / ASC 提审清单 / 命名评估 / 待决策项）
 - `docs/launch-art-prompts.md` — 上线美术资源清单与 gpt-image-2.5 提示词包（图标 / 举牌 / front / 装扮 / 营销）
-- `docs/assets/launch-audit/` — 上线审计的证据截图
+- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09）
+- `Config/` — 构建配置：`Base.xcconfig`（由 `project.yml` 引用）+ 本地签名模板 `Signing.local.xcconfig.example`
+- `scripts/preflight.sh` — 上线验收脚本（Bundle ID / App Group / 品牌名 / 版本号 / 隐私清单 / 外观 / 合规键 / 设备族）
 - `art/` — 美术资产与生成管线（风格已冻结 B 扁平矢量+描边，见 `art/style-pack/style-notes.md`）
 - `research/` — 一手调研数据（iTunes API 抓取，2026-09-29）
   - `lookup-*.json` — 竞品元数据（iTunes Lookup API）
@@ -42,3 +44,9 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - **代码注释语言**：Swift 代码注释和文档注释使用中文（与商业计划书、开发计划保持一致）。
 - **i18n 就绪**：SwiftUI 的 `Text("...")` 天然支持 `LocalizedStringKey`，使用英文字面量即可在将来通过 `.strings` 文件扩展多语言，无需额外包装。
 - **Commit 消息**：英语，格式 `feat/fix/test/refactor/docs: <内容>`。
+
+## 构建与验收
+- 工程由 XcodeGen 生成：改 `project.yml` 后运行 `xcodegen generate`。`PawIt.xcodeproj` 不入库，但各 target 的 `Info.plist` 与 `*.entitlements` 是**入库的生成物**——不要手改，重新生成后一并提交。
+- 构建：`xcodebuild -project PawIt.xcodeproj -scheme PawIt -destination 'generic/platform=iOS Simulator' build`（**不要加 `-sdk iphonesimulator`**，会让 watchOS target 构建失败）。测试用 iOS 模拟器跑 `xcodebuild test`；macOS 上的 `swift test` 预期失败（原因见 `docs/launch-readiness.md` §1）。
+- 签名：Team ID 默认放在被 git 忽略的 `Config/Signing.local.xcconfig`（复制 `.example` 模板）；Team ID 不是机密，团队确定后也可以直接写进 `project.yml`。
+- 出包前：先构建，再运行 `scripts/preflight.sh`，要求 0 失败（⏳ 项依赖外部输入，不算失败）。
