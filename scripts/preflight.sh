@@ -64,9 +64,12 @@ for target in PawIt PawItWidget PawItWatch PawItWatchWidget; do
      "$(plist "$target/Info.plist" CFBundleVersion)" '$(CURRENT_PROJECT_VERSION)'
 done
 
-if grep -rqE --include='*.swift' --exclude-dir=.build \
-     'UIImageWriteToSavedPhotosAlbum|PHPhotoLibrary|PHAssetCreationRequest' \
-     Core PawIt PawItWidget PawItWatch PawItWatchWidget Shared 2>/dev/null; then
+# 相册 API 的调用（排除注释行）：没有用途描述字符串时，运行期访问会直接终止进程
+photos_use=$(grep -rnE --include='*.swift' --exclude-dir=.build \
+  'UIImageWriteToSavedPhotosAlbum|PHPhotoLibrary|PHAssetCreationRequest' \
+  Core PawIt PawItWidget PawItWatch PawItWatchWidget Shared 2>/dev/null \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//')
+if [[ -n "$photos_use" ]]; then
   if plist PawIt/Info.plist NSPhotoLibraryAddUsageDescription >/dev/null; then
     ok "使用了相册 API，且声明了 NSPhotoLibraryAddUsageDescription"
   else
