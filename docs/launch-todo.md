@@ -14,13 +14,13 @@
 | 阶段 | 内容 | 谁 | 进度 |
 |---|---|---|---|
 | ✅ 工程 P0 | 改名 / ID / 隐私清单 / 版本号 / 合规键 / 相册崩溃 / 回前台刷新 / 锁浅色 / 仅 iPhone | 我 | **已完成** → [文末](#已完成) |
-| **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | 0 / 6 |
+| **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | 4 / 6(还差 A2 Team ID、A3 合规结论) |
 | **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | 0 / 5(B4 仅出错时才做) |
 | **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | 0 / 8 |
-| **D** 站点 + ASC | 域名、隐私政策页、商店资料、截图 | 你(我起草文字) | 0 / 7(D8 可推迟) |
+| **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 0 / 6(D1、D8 可推迟) |
 | **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4 |
 
-**👉 现在:** 你答 A1–A6(约 10 分钟)。不依赖答案、我能立刻并行做的:C4、C5、C6。
+**👉 现在:** 你补 A2(Team ID)、A3(公司合规结论),并处理 **D2 的隐私政策页**(现有页面只覆盖网站,见下)。我已开工 C1–C7。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -31,13 +31,13 @@
 
 > 每项都给了我的默认。**没意见就回复"按默认"**——只有 A2(Team ID)和 A3(公司的合规结论)必须由你给出内容。
 
-- [ ] **A1 ID 映射** 🔴 — 在 ASC 创建 App 记录后,Bundle ID **永久不可改**,所以先核对。默认:App `com.fitpetgo.pawsticky` · Widget `….widgets` · Watch `….watchkitapp` · Watch Widget `….watchkitapp.widgets` · App Group `group.com.fitpetgo.pawsticky.shared`。→ 回复"ID OK",或给改法(一次查找替换,见审计 §10 决策记录 #1)。
+- [x] **A1 ID 映射** 🔴 — ✅ 你已确认 "ID OK"(2026-10-14):App `com.fitpetgo.pawsticky` · Widget `….widgets` · Watch `….watchkitapp` · Watch Widget `….watchkitapp.widgets` · App Group `group.com.fitpetgo.pawsticky.shared`。在 ASC 创建 App 记录(D3)后 Bundle ID 永久不可改。
 - [ ] **A2 Team ID** 🔴 — developer.apple.com → Account → Membership details 里的 10 位字符。→ 发我(我写进 `project.yml`),或自己按 B2 放进本地文件。
 - [ ] **A3 出口合规结论** 🔴 — App 用 CryptoKit(AES-GCM)与 CommonCrypto(PBKDF2)加密**用户导出的备份文件**。我按"仅系统自带加密、仅用于用户自己的备份"写入了 `ITSAppUsesNonExemptEncryption = false`。**Apple 的说法:是否豁免由开发者自己判断,误报豁免的责任也在开发者**([说明页](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance))。→ 请公司确认;结论是"非豁免"就告诉我翻成 `true`(ASC 会要求提交加密文档)。另:该页提到法国对"安全存储"类 App 另有管制——软启动 NZ → CA → US 不涉及,进法国前再评估。
-- [ ] **A4 图标底色** 🔴 — 同一只举牌猫(已有素材,零生成),三种底色,浅色 / 深色壁纸与 60px 下各看一遍。**我推荐 B 天蓝**:与橙猫、黄便签都是强对比,小尺寸最醒目;A 薄荷更清新,也行。→ 回复 A / B / C,或给色值。
+- [x] **A4 图标底色** 🔴 — ✅ 你选了 **B 天蓝**(2026-10-14)。下图保留以便回看:
   ![图标三选一:A 薄荷 / B 天蓝 / C 淡紫](assets/launch-audit/11-icon-options-from-existing-cat.jpg)
-- [ ] **A5 美术方案 + 装扮图标** 🔴 — 确认"v1.0 零生成"(依据见 [§美术方案](#美术方案零生成))。装扮 12 件的图标怎么办(现在是 SF Symbol 占位 + 锁 / 解锁网格):**(a)** 保持现状,UI 文案 "Outfits" 改成 "Collection"(0 成本,0.5h)**← 推荐**;**(b)** 改用系统 emoji(0 成本,1h,更贴切,但与插画风格不同);**(c)** 生成一张 4×3 图标网格(≈ $0.05–0.3,风格一致性要你验收;放 v1.0.x 也不迟)。无论哪种,商店文案**不写** dress up。
-- [ ] **A6 域名与站点页** 🔴 — 隐私政策与支持页必须是真能打开的 URL(审核会点)。`pawsticky.com` / `.app` 于 2026-10-14 RDAP 均返回 404(未注册,**不保证能买到**)。→ 选哪个作主域名?页面要我写吗(默认:我写 2 个纯静态页放进仓库 `site/`,你部署到 GitHub Pages / Cloudflare Pages / Vercel 任一免费托管)?
+- [x] **A5 美术方案 + 装扮图标** 🔴 — ✅ 你选了 **(a)**(2026-10-14):v1.0 零生成(依据见 [§美术方案](#美术方案零生成));装扮保持现在的 SF Symbol 锁 / 解锁网格,UI 文案 "Outfits" 改成 "Collection"。商店文案**不写** dress up。
+- [x] **A6 隐私政策与支持页的 URL** 🔴 — ✅ 你给了 `https://www.fitpetgo.com/privacy-policy` 与 `https://www.fitpetgo.com/contact-us`(2026-10-14),不再单独注册 pawsticky 域名。**⚠️ 隐私政策页内容不够用,见 D2。**
 
 ---
 
@@ -57,7 +57,7 @@
 
 > 每项一个小提交;做完我会跑 `xcodegen → 构建 → 测试 → preflight` 并给模拟器截图。依赖标在各项后。
 
-- [ ] **C1 设置页:隐私政策 / 支持 / 版本** 🔴 · 3–4h · 依赖 A6 — `SettingsView` 现在只有一个 "Growth System" 开关。补:版本 + Build 号、**Privacy Policy 链接**、Support 邮箱、Acknowledgements(GRDB,MIT)。**为什么是 🔴:** 审核指南 5.1.1(i) 原文——"All apps must include a link to their privacy policy in the App Store Connect metadata field and *within the app in an easily accessible manner*"(2026-10-14 核对 Apple 官网)。完成标准:设置页能点开真实 URL;我会加一条 preflight 守卫,防止占位 URL 漏网。
+- [ ] **C1 设置页:隐私政策 / 支持 / 版本** 🔴 · 3–4h · URL 先用 A6 给的,最终以 D2 的新页面为准 — `SettingsView` 现在只有一个 "Growth System" 开关。补:版本 + Build 号、**Privacy Policy 链接**、Support 邮箱、Acknowledgements(GRDB,MIT)。**为什么是 🔴:** 审核指南 5.1.1(i) 原文——"All apps must include a link to their privacy policy in the App Store Connect metadata field and *within the app in an easily accessible manner*"(2026-10-14 核对 Apple 官网)。完成标准:设置页能点开真实 URL;我会加一条 preflight 守卫,防止占位 URL 漏网。
 - [ ] **C2 App 图标接入(iOS + Watch)** 🔴 · 0.5h · 依赖 A4 — 用已有的 `B_cat-sitting` 按 A4 的底色合成 1024×1024 无 alpha PNG,放进 `PawIt/` 与 `PawItWatch/` 的 `AppIcon.appiconset`(`Contents.json` 补 `filename`)。完成标准:preflight 的两条图标检查由 ⏳ 变 ✅。
 - [ ] **C3 宠物图零生成接入(P1-2)** 🟡 · 0.5–1 天 · 依赖 A5 — ① 跑 [`art/scripts/extract-from-sheets.sh`](../art/scripts/extract-from-sheets.sh)(已验证,4 秒出 12 张)② 用新胸像替换 6 物种的 `pet-<sp>-front`(**名字不变**,约 20 处引用零改动;4 个 catalog,Watch 只放 front;@1x / 2x / 3x)③ 欢迎页英雄位(现硬编码 `pet-cat-front`)与选宠卡改用新增的 `pet-<sp>-full`(估 3 处代码)。cat / corgi 的举牌图不动。完成标准:模拟器截图 6 物种 × 列表头 / 欢迎 / 选宠 / 小中大 Widget / 锁屏,耳朵不再被切、兔子清晰可见;**你过目点头**。
 - [ ] **C4 宠物名字统一(P1-1)** 🟡 · 0.5h — 头部叫 Tabby,对话里它自称 Mochi。台词一律读 `PetAsset.displayName`。
@@ -70,9 +70,9 @@
 
 ## D. 站点 + App Store Connect(你 · 我起草文字 · 约 2–3 天,多数可与 C 并行)
 
-- [ ] **D1 注册域名** 🔴 · 15 分钟 · 依赖 A6 — 注册主域名(`.com` 与 `.app` 建议都买,防抢注与钓鱼)。
-- [ ] **D2 隐私政策页 + 支持页上线** 🔴 · 1–2h · 依赖 D1 — [我] 按审计附录 F 的提纲写(已与现状一致:不收集数据、无账号 / 广告 / SDK、不直接访问相册);[你] 部署,并在手机浏览器里确认 URL 能打开。支持页放一个你真会看的邮箱。完成标准:两个 URL 都能打开 → 回填 C1、D4。
-- [ ] **D3 ASC 创建 App 记录** 🔴 · 30 分钟 · 依赖 A1、B3 — App Store Connect → Apps → + → New App:平台 iOS;名称(草稿 `PawSticky: Notes Widget`,23 / 30 字);主语言 English (U.S.);Bundle ID 选 `com.fitpetgo.pawsticky`;SKU 自拟(如 `pawsticky-ios`)。**这一步之后 Bundle ID 永久不可改**;名称先到先得,建完即占位。
+- [ ] **D1 ⚪ 注册 pawsticky 域名(可选)** — 不再是必需:隐私 / 支持页用 fitpetgo.com 即可(A6)。仅当想要独立官网 / 防抢注时再买。
+- [ ] **D2 PawSticky 专属隐私政策页** 🔴 · [你] 发布 · 30 分钟 · **⚠️ 现有页面不能直接用** — 我读了 `fitpetgo.com/privacy-policy`:它第一段写明"只适用于本网站、**不适用于其他渠道**",内容是网站 cookies / 广告合作方 / 账号注册信息——既没提 App,也与我们"不收集数据、无广告"的隐私问卷(D5)矛盾。审核指南 5.1.1(i) 要求政策**明确说明 App 收集什么数据、怎么用、保留与删除方式**,拿这页去提审大概率被拒。做法:在 fitpetgo.com 新增一页(如 `/pawsticky-privacy`),贴 [`pawsticky-privacy-policy.md`](pawsticky-privacy-policy.md) 的英文稿(我按代码现状写好,已逐条对照源码),发布后把 URL 告诉我,我换进设置页常量(C1)。另请在手机上打开 `contact-us`,确认页面上**看得到联系方式**(邮箱或表单)——我这边抓取只看到标题,无法确认;ASC 的 Support URL 必须能联系到你。完成标准:新页面 URL 能打开且含 PawSticky 字样。
+- [ ] **D3 ASC 创建 App 记录** 🔴 · 30 分钟 · 依赖 B3(A1 已确认) — App Store Connect → Apps → + → New App:平台 iOS;名称(草稿 `PawSticky: Notes Widget`,23 / 30 字);主语言 English (U.S.);Bundle ID 选 `com.fitpetgo.pawsticky`;SKU 自拟(如 `pawsticky-ios`)。**这一步之后 Bundle ID 永久不可改**;名称先到先得,建完即占位。
 - [ ] **D4 填商店资料** 🔴 · 2–3h · 依赖 D2 — 副标题 / 宣传文本 / 关键词 / 描述 / What's New 用审计附录 C 的草稿(⚠ 句子取决于 C5:不做备份就删掉那一整段);类别 Productivity(主)+ Lifestyle(次);价格 Free;可用地区**先只选 NZ**(之后逐步加 CA、US);年龄分级问卷(预期 4+,**不要选 Kids 类别**);内容版权选"不含第三方内容";隐私政策 URL、支持 URL。关键词里**不要放竞品名**。
 - [ ] **D5 App 隐私问卷** 🔴 · 15 分钟 — 预期 **Data Not Collected**。我已在 `f36d2d4` 核对:全部 Swift 源码里没有 `URLSession` / 分析 / 广告 / 定位 / 相册等 API,唯一第三方依赖是 GRDB(本地 SQLite)。以后加任何 SDK 或网络请求,必须回来改这份问卷。
 - [ ] **D6 截图** 🔴 · 2–4h · 依赖 C2、C3、C5 做完(避免重拍) — iPhone:至少 1 张、最多 10 张,PNG / JPEG,**不能带 alpha**;必需尺寸是 "iPhone with Dynamic Island (medium display)":**1206×2622**(iPhone 17 Pro 模拟器的原生截图尺寸)或 1179×2556。Apple Watch:**含 Watch App 就必须提供**,选一种尺寸(如 Series 10 / 11:416×496),各语言必须同一尺寸。截图必须是 App 实际界面(审核指南 2.3)。仅 iPhone,不需要 iPad 截图。建议 5–6 张,画面脚本见 [art 提示词 §F.0](launch-art-prompts.md)。(尺寸依据:Apple 截图规格页,2026-10-14 核对。)
@@ -119,7 +119,7 @@
 | C6 Widget 两项 | 3–5h | 画廊里是空状态;点 Widget 只进列表,"一秒速记"落空 |
 | C3 里的 `full`(只换胸像) | 约 0.3 天 | 欢迎页英雄位用放大的胸像(可接受) |
 | C4 / C7 | 1–2h | 名字对不上、装扮文案仍写 Outfits(无害但不严谨) |
-| **不能砍** | — | A、B、C1、C2、C8、D1–D7、E |
+| **不能砍** | — | A、B、C1、C2、C8、D2–D7、E |
 
 ---
 
