@@ -168,7 +168,7 @@ struct OnboardingView: View {
                 // 选中后的对话气泡
                 if let species = selectedSpecies {
                     PetDialogueBubble(
-                        text: selectionDialogue(species),
+                        text: PetDialogue.selection(species),
                         maxWidth: 280
                     )
                     .padding(.top, 20)
@@ -230,16 +230,6 @@ struct OnboardingView: View {
         onComplete()
     }
 
-    private func selectionDialogue(_ species: PetSpecies) -> String {
-        switch species {
-        case .cat:     return "Mochi is ready to help! Warm & playful, just for you."
-        case .graycat: return "Luna will keep things calm and organized for you."
-        case .corgi:   return "Coco can't wait to get started! So much energy!"
-        case .shiba:   return "Hachi will remember everything. Count on it."
-        case .rabbit:  return "Mimi is curious about what you'll write first!"
-        case .hamster: return "Tiny but mighty! Peanut's got your back."
-        }
-    }
 }
 
 // MARK: - Step Enum

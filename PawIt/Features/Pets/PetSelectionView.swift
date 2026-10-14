@@ -49,7 +49,7 @@ struct PetSelectionView: View {
                     // 选中后的对话反馈
                     if let species = selectedSpecies {
                         PetDialogueBubble(
-                            text: switchDialogue(species),
+                            text: PetDialogue.switched(species),
                             maxWidth: 260
                         )
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
@@ -102,16 +102,6 @@ struct PetSelectionView: View {
         }
     }
 
-    private func switchDialogue(_ species: PetSpecies) -> String {
-        switch species {
-        case .cat:     return "Mochi is happy to see you again!"
-        case .graycat: return "Luna purrs softly. Ready to help."
-        case .corgi:   return "Coco's tail is wagging like crazy!"
-        case .shiba:   return "Hachi gives you a cool nod."
-        case .rabbit:  return "Mimi hops with excitement!"
-        case .hamster: return "Peanut squeaks with joy!"
-        }
-    }
 }
 
 // MARK: - Pet Card（Soft Companion 风格）
