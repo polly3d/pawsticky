@@ -19,6 +19,9 @@ struct NoteListView: View {
     @State private var showGrowthDashboard = false
     @State private var showSettings = false
     @State private var shareNote: Note?
+    /// 刚删除的便签的撤销条（几秒后自动收起）。
+    @State private var pendingUndo: PendingUndo?
+    @State private var showUndoFailed = false
 
     // Onboarding
     @State private var showOnboarding = false
@@ -134,6 +137,12 @@ struct NoteListView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView { showSettings = false }
+            }
+            .overlay(alignment: .bottom) { undoOverlay }
+            .alert("Couldn't Undo", isPresented: $showUndoFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The deleted note can no longer be restored.")
             }
         }
         .task {
@@ -370,11 +379,61 @@ struct NoteListView: View {
     private func deleteNote(_ note: Note) {
         guard let repository else { return }
         let reminderManager = ReminderManager()
+        // 清单项 id 必须在删除前读出：历史不记父子关系，撤销要靠它把清单项一并找回
+        let itemIds = ((try? repository.noteItems(noteId: note.id)) ?? []).map(\.id)
         Task {
-            try? await repository.deleteNote(id: note.id)
+            do {
+                try await repository.deleteNote(id: note.id)
+            } catch {
+                reloadNotes()  // 没删成：不弹撤销、不动提醒，只对齐界面与库
+                return
+            }
             await reminderManager.cancelReminder(noteID: note.id)
             NoteChangeCoordinator.noteDeleted(noteId: note.id)
             reloadNotes()
+            withAnimation(.spring(duration: 0.3)) {
+                pendingUndo = PendingUndo(noteId: note.id, itemIds: itemIds)
+            }
+        }
+    }
+
+    /// 撤销删除：便签 + 清单项同一事务复活；带到期日的便签补回提醒。
+    private func undoDelete(_ undo: PendingUndo) {
+        guard let repository else { return }
+        withAnimation(.spring(duration: 0.3)) { pendingUndo = nil }
+        let reminderManager = ReminderManager()
+        Task {
+            do {
+                try await repository.undoDeleteNote(id: undo.noteId, itemIds: undo.itemIds)
+            } catch NoteRepositoryError.noteAlreadyExists {
+                // 已经回来了（重复点击）——按成功处理，下面照常刷新
+            } catch {
+                reloadNotes()
+                showUndoFailed = true
+                return
+            }
+            if let restored = try? repository.note(id: undo.noteId) {
+                await reminderManager.syncReminder(for: restored)
+            }
+            NoteChangeCoordinator.noteChanged(noteId: undo.noteId)
+            reloadNotes()
+        }
+    }
+
+    /// 底部撤销条：5 秒后自动收起；新的删除会替换旧的（旧条的撤销机会随之失效）。
+    @ViewBuilder
+    private var undoOverlay: some View {
+        if let undo = pendingUndo {
+            UndoBanner(message: "Note deleted", actionTitle: "Undo") { undoDelete(undo) }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .task(id: undo.id) {
+                    AccessibilityNotification.Announcement("Note deleted. Undo available.").post()
+                    try? await Task.sleep(for: .seconds(5))
+                    guard !Task.isCancelled, pendingUndo?.id == undo.id else { return }
+                    withAnimation(.spring(duration: 0.3)) { pendingUndo = nil }
+                }
         }
     }
 

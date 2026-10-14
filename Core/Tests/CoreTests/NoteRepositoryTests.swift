@@ -182,6 +182,84 @@ struct NoteRepositoryTests {
         #expect(try after.noteItems(noteId: note.id) == [persistedBefore])
     }
 
+    // MARK: - undoDeleteNote:撤销删除(UI 的 "Note deleted · Undo")
+
+    /// 便签 + 全部清单项一步回来,且与删除前库内的持久态全等(含 done / position)。
+    @Test func undoDeleteNoteBringsBackTheNoteAndItsItemsExactly() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "误删后撤销")
+        let itemA = try await repo.addItem(to: note.id, text: "事项A")
+        let itemB = try await repo.addItem(to: note.id, text: "事项B")
+        _ = try await repo.toggleItem(noteId: note.id, itemId: itemB.id)  // B 已勾选,验证状态也回来
+
+        let before = try SharedStore(databasePath: path)
+        let notesBefore = try before.allNotes()
+        let itemsBefore = try before.noteItems(noteId: note.id)
+        try await Task.sleep(nanoseconds: 5_000_000)
+
+        try await repo.deleteNote(id: note.id)
+        #expect(try SharedStore(databasePath: path).allNotes().isEmpty)
+
+        try await repo.undoDeleteNote(id: note.id, itemIds: [itemA.id, itemB.id])
+
+        let after = try SharedStore(databasePath: path)
+        #expect(try after.allNotes() == notesBefore)
+        #expect(try after.noteItems(noteId: note.id) == itemsBefore)
+    }
+
+    /// 便签还在(撤销被重复触发 / 已经撤销过)时必须拒绝——否则 restore 的“覆盖更新”语义
+    /// 会把便签回滚到上一次编辑之前,悄悄吃掉用户的最新修改。
+    @Test func undoDeleteNoteRejectsALiveNoteAndLeavesItUntouched() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "旧文本")
+        try await Task.sleep(nanoseconds: 5_000_000)
+        var edited = note
+        edited.text = "新文本"
+        try await repo.updateNote(edited)  // 历史里最新一条是 “旧文本” 前像
+
+        do {
+            try await repo.undoDeleteNote(id: note.id, itemIds: [])
+            Issue.record("便签仍在时撤销删除必须被拒")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .noteAlreadyExists(note.id))
+        }
+        #expect(try SharedStore(databasePath: path).allNotes().first?.text == "新文本")
+    }
+
+    /// 清单项缺历史(如保留期已过)→ 整个撤销回滚:便签也不能半途复活。
+    @Test func undoDeleteNoteIsAtomicWhenAnItemHasNoHistory() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let note = try await repo.createNote(text: "要么全回来要么全不动")
+        let item = try await repo.addItem(to: note.id, text: "有历史的项")
+        try await Task.sleep(nanoseconds: 5_000_000)
+        try await repo.deleteNote(id: note.id)
+
+        let ghostItem = UUID()
+        do {
+            try await repo.undoDeleteNote(id: note.id, itemIds: [item.id, ghostItem])
+            Issue.record("清单项缺历史时必须抛错")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .nothingToRestore(entityType: .noteItem, entityId: ghostItem.uuidString))
+        }
+        #expect(try SharedStore(databasePath: path).allNotes().isEmpty, "便签不能在失败的撤销里半途复活")
+    }
+
+    @Test func undoDeleteNoteWithNoHistoryAtAllThrows() async throws {
+        let path = makePath()
+        let repo = try makeRepository(path: path)
+        let ghost = UUID()
+
+        do {
+            try await repo.undoDeleteNote(id: ghost, itemIds: [])
+            Issue.record("没有任何历史的便签无从撤销")
+        } catch let error as NoteRepositoryError {
+            #expect(error == .nothingToRestore(entityType: .note, entityId: ghost.uuidString))
+        }
+    }
+
     /// restore 本身也是变更:同样落快照(恢复动作进入审计链)。
     @Test func restoreAppendsItsOwnHistoryEntry() async throws {
         let path = makePath()

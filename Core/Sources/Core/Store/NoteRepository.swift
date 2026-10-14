@@ -57,6 +57,11 @@ public enum NoteRepositoryError: Error, Equatable, Sendable {
     case duplicateEntityInImport(String)
     /// 库内 unlockedOutfits 原文不是合法 JSON 数组(防御性)。
     case corruptUnlockedOutfits(String)
+    /// 该实体在保留窗内没有任何历史条目,无从恢复
+    /// (`undoDeleteNote` 用:便签 / 清单项从未有过历史,或 7 天保留期已过)。
+    case nothingToRestore(entityType: HistoryEntityType, entityId: String)
+    /// 便签仍然存在,撤销删除无意义——放行会让 restore 的“覆盖更新”语义把它回滚到上一次编辑之前。
+    case noteAlreadyExists(UUID)
 }
 
 public struct NoteRepository: Sendable {
@@ -285,88 +290,143 @@ public struct NoteRepository: Sendable {
         historyEntryId: UUID
     ) async throws {
         try await store.write { db in
-            guard let entry = try HistoryEntry.fetchOne(db, key: historyEntryId.uuidString),
-                  entry.entityType == entityType, entry.entityId == entityId else {
-                throw NoteRepositoryError.historyEntryNotFound(
-                    entityType: entityType, entityId: entityId, historyEntryId: historyEntryId
+            try Self.restoreEntry(
+                entityType: entityType, entityId: entityId, historyEntryId: historyEntryId, in: db
+            )
+        }
+    }
+
+    /// `restore` 的事务内本体——`restore` 与 `undoDeleteNote` 共用,保证两条路径的恢复语义完全一致。
+    private static func restoreEntry(
+        entityType: HistoryEntityType,
+        entityId: String,
+        historyEntryId: UUID,
+        in db: Database
+    ) throws {
+        guard let entry = try HistoryEntry.fetchOne(db, key: historyEntryId.uuidString),
+              entry.entityType == entityType, entry.entityId == entityId else {
+            throw NoteRepositoryError.historyEntryNotFound(
+                entityType: entityType, entityId: entityId, historyEntryId: historyEntryId
+            )
+        }
+        switch entityType {
+        case .note:
+            let restored = try PayloadCodec.decode(ExportNote.self, from: entry.payload).asRow
+            if let current = try Note.fetchOne(db, key: restored.id.uuidString) {
+                try HistoryLog.append(
+                    in: db, entityType: .note, entityId: entityId,
+                    payload: try PayloadCodec.encode(current)
+                )
+                try restored.update(db)
+            } else {
+                try restored.insert(db)
+                try HistoryLog.append(
+                    in: db, entityType: .note, entityId: entityId,
+                    payload: try PayloadCodec.encode(restored)
                 )
             }
-            switch entityType {
-            case .note:
-                let restored = try PayloadCodec.decode(ExportNote.self, from: entry.payload).asRow
-                if let current = try Note.fetchOne(db, key: restored.id.uuidString) {
-                    try HistoryLog.append(
-                        in: db, entityType: .note, entityId: entityId,
-                        payload: try PayloadCodec.encode(current)
-                    )
-                    try restored.update(db)
-                } else {
-                    try restored.insert(db)
-                    try HistoryLog.append(
-                        in: db, entityType: .note, entityId: entityId,
-                        payload: try PayloadCodec.encode(restored)
-                    )
-                }
-            case .noteItem:
-                let restored = try PayloadCodec.decode(ExportNoteItem.self, from: entry.payload).asRow
-                guard try Note.exists(db, key: restored.noteId.uuidString) else {
-                    throw NoteRepositoryError.restoreParentMissing(parentType: .note, parentId: restored.noteId.uuidString)
-                }
-                if let current = try NoteItem.fetchOne(db, key: restored.id.uuidString) {
-                    try HistoryLog.append(
-                        in: db, entityType: .noteItem, entityId: entityId,
-                        payload: try PayloadCodec.encode(current)
-                    )
-                    try restored.update(db)
-                } else {
-                    try restored.insert(db)
-                    try HistoryLog.append(
-                        in: db, entityType: .noteItem, entityId: entityId,
-                        payload: try PayloadCodec.encode(restored)
-                    )
-                }
-            case .petProfile:
-                let dto = try PayloadCodec.decode(ExportPetProfile.self, from: entry.payload)
-                guard let species = PetSpecies(rawValue: dto.species) else {
-                    throw NoteRepositoryError.corruptHistoryPayload(entry.payload)
-                }
-                let restored = PetProfile(
-                    id: dto.id, species: species, displayName: dto.displayName,
-                    isSelected: dto.isSelected, acquiredAt: dto.acquiredAt
+        case .noteItem:
+            let restored = try PayloadCodec.decode(ExportNoteItem.self, from: entry.payload).asRow
+            guard try Note.exists(db, key: restored.noteId.uuidString) else {
+                throw NoteRepositoryError.restoreParentMissing(parentType: .note, parentId: restored.noteId.uuidString)
+            }
+            if let current = try NoteItem.fetchOne(db, key: restored.id.uuidString) {
+                try HistoryLog.append(
+                    in: db, entityType: .noteItem, entityId: entityId,
+                    payload: try PayloadCodec.encode(current)
                 )
-                if let current = try PetProfile.fetchOne(db, key: restored.id) {
-                    try HistoryLog.append(
-                        in: db, entityType: .petProfile, entityId: entityId,
-                        payload: try PayloadCodec.encode(current)
-                    )
-                    try restored.update(db)
-                } else {
-                    try restored.insert(db)
-                    try HistoryLog.append(
-                        in: db, entityType: .petProfile, entityId: entityId,
-                        payload: try PayloadCodec.encode(restored)
+                try restored.update(db)
+            } else {
+                try restored.insert(db)
+                try HistoryLog.append(
+                    in: db, entityType: .noteItem, entityId: entityId,
+                    payload: try PayloadCodec.encode(restored)
+                )
+            }
+        case .petProfile:
+            let dto = try PayloadCodec.decode(ExportPetProfile.self, from: entry.payload)
+            guard let species = PetSpecies(rawValue: dto.species) else {
+                throw NoteRepositoryError.corruptHistoryPayload(entry.payload)
+            }
+            let restored = PetProfile(
+                id: dto.id, species: species, displayName: dto.displayName,
+                isSelected: dto.isSelected, acquiredAt: dto.acquiredAt
+            )
+            if let current = try PetProfile.fetchOne(db, key: restored.id) {
+                try HistoryLog.append(
+                    in: db, entityType: .petProfile, entityId: entityId,
+                    payload: try PayloadCodec.encode(current)
+                )
+                try restored.update(db)
+            } else {
+                try restored.insert(db)
+                try HistoryLog.append(
+                    in: db, entityType: .petProfile, entityId: entityId,
+                    payload: try PayloadCodec.encode(restored)
+                )
+            }
+        case .growthState:
+            let restored = try PayloadCodec.decode(ExportGrowthState.self, from: entry.payload).asRow
+            guard try PetProfile.exists(db, key: restored.petId) else {
+                throw NoteRepositoryError.restoreParentMissing(
+                    parentType: .petProfile, parentId: restored.petId
+                )
+            }
+            if let current = try GrowthState.fetchOne(db, key: restored.petId) {
+                try HistoryLog.append(
+                    in: db, entityType: .growthState, entityId: entityId,
+                    payload: try PayloadCodec.encode(current)
+                )
+                try restored.update(db)
+            } else {
+                try restored.insert(db)
+                try HistoryLog.append(
+                    in: db, entityType: .growthState, entityId: entityId,
+                    payload: try PayloadCodec.encode(restored)
+                )
+            }
+        }
+    }
+
+    /// 撤销刚发生的 `deleteNote`(UI 的 "Note deleted · Undo"):**同一事务**里先复活便签、
+    /// 再复活它的清单项,要么全回来、要么全不动。
+    ///
+    /// 每个实体取它**最新**的一条历史:`deleteNote` 把删除前像追加在最前,所以最新条目
+    /// 就是删除前的状态,恢复语义与 `restore` 完全一致(共用 `restoreEntry`)。
+    ///
+    /// - Parameters:
+    ///   - id: 被删便签的 id。
+    ///   - itemIds: 它被删时拥有的清单项 id。历史按实体存、不记父子关系,所以只能由调用方在
+    ///     **删除前**读出并持有(UI 的撤销条持有它)。
+    /// - Throws:
+    ///   * `noteAlreadyExists`——便签还在(重复撤销 / 已被别处恢复):拒绝,否则 restore 的
+    ///     “覆盖更新”会把它回滚到上一次编辑之前;
+    ///   * `nothingToRestore`——便签或某个清单项在保留窗内没有历史,整个撤销回滚。
+    public func undoDeleteNote(id: UUID, itemIds: [UUID]) async throws {
+        try await store.write { db in
+            if try Note.exists(db, key: id.uuidString) {
+                throw NoteRepositoryError.noteAlreadyExists(id)
+            }
+            guard let noteEntry = try HistoryLog.latestEntry(
+                entityType: .note, entityId: id.uuidString, in: db
+            ) else {
+                throw NoteRepositoryError.nothingToRestore(entityType: .note, entityId: id.uuidString)
+            }
+            try Self.restoreEntry(
+                entityType: .note, entityId: id.uuidString, historyEntryId: noteEntry.id, in: db
+            )
+            for itemId in itemIds {
+                guard let itemEntry = try HistoryLog.latestEntry(
+                    entityType: .noteItem, entityId: itemId.uuidString, in: db
+                ) else {
+                    throw NoteRepositoryError.nothingToRestore(
+                        entityType: .noteItem, entityId: itemId.uuidString
                     )
                 }
-            case .growthState:
-                let restored = try PayloadCodec.decode(ExportGrowthState.self, from: entry.payload).asRow
-                guard try PetProfile.exists(db, key: restored.petId) else {
-                    throw NoteRepositoryError.restoreParentMissing(
-                        parentType: .petProfile, parentId: restored.petId
-                    )
-                }
-                if let current = try GrowthState.fetchOne(db, key: restored.petId) {
-                    try HistoryLog.append(
-                        in: db, entityType: .growthState, entityId: entityId,
-                        payload: try PayloadCodec.encode(current)
-                    )
-                    try restored.update(db)
-                } else {
-                    try restored.insert(db)
-                    try HistoryLog.append(
-                        in: db, entityType: .growthState, entityId: entityId,
-                        payload: try PayloadCodec.encode(restored)
-                    )
-                }
+                // 便签已在本事务内复活,清单项的父行检查必然通过。
+                try Self.restoreEntry(
+                    entityType: .noteItem, entityId: itemId.uuidString, historyEntryId: itemEntry.id, in: db
+                )
             }
         }
     }
