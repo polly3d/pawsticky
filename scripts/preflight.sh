@@ -166,6 +166,13 @@ for icon_dir in PawIt/Assets.xcassets/AppIcon.appiconset PawItWatch/Assets.xcass
     else
       bad "${icon_dir}：图标须为 1024×1024 且无 alpha（实际 ${w}×${h}，hasAlpha=${a}）"
     fi
+    # 文件存在还不够：Contents.json 必须用 filename 引用它，否则 Xcode 当作“没有图标”
+    wired=$(plutil -extract images.0.filename raw -o - "$icon_dir/Contents.json" 2>/dev/null)
+    if [[ -n "$wired" && -f "$icon_dir/$wired" ]]; then
+      ok "${icon_dir}/Contents.json 引用了 $wired"
+    else
+      bad "${icon_dir}/Contents.json 没有引用图标文件（缺 filename，Xcode 会视为没有图标）"
+    fi
   fi
 done
 
