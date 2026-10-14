@@ -80,6 +80,32 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+section "源码：宠物素材（6 物种 × 各 catalog）"
+
+# front（胸像）四个 catalog 都要有；full（全身）只在 App 的 catalog，且目前只有欢迎页英雄位用的 cat。
+# 缺图时 Image("…") 静默显示空白，这里在出包前把它变成显式失败。
+# 素材由 art/scripts/extract-from-sheets.sh + export-pet-imagesets.sh 生成。
+missing_pet=""
+for sp in cat graycat corgi shiba rabbit hamster; do
+  for cat in PawIt PawItWidget PawItWatch PawItWatchWidget; do
+    for scale in 1x 2x 3x; do
+      f="$cat/Assets.xcassets/pet-$sp-front.imageset/pet-$sp-front@$scale.png"
+      [[ -f "$f" ]] || missing_pet="$missing_pet $f"
+    done
+  done
+done
+for scale in 1x 2x 3x; do
+  f="PawIt/Assets.xcassets/pet-cat-full.imageset/pet-cat-full@$scale.png"
+  [[ -f "$f" ]] || missing_pet="$missing_pet $f"
+done
+if [[ -z "$missing_pet" ]]; then
+  ok "宠物素材齐全：6 物种 front × 4 个 catalog，cat full（欢迎页）× PawIt"
+else
+  bad "缺宠物素材文件："
+  for f in $missing_pet; do printf '       %s\n' "$f"; done
+fi
+
+# ---------------------------------------------------------------------------
 section "构建产物"
 
 BS=$(xcodebuild -project PawIt.xcodeproj -scheme PawIt -destination 'generic/platform=iOS Simulator' -showBuildSettings 2>/dev/null)

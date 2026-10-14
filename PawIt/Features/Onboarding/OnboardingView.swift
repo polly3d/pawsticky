@@ -70,10 +70,11 @@ struct OnboardingView: View {
             }
 
             // 宠物入场（从底部滑入）
-            Image("pet-cat-front")
+            // 英雄位用全身图（full）：胸像的下沿是裁切线，放在无背景的大图位会像“漂浮的头”
+            Image("pet-cat-full")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 180, height: 180)
+                .frame(height: 200)
                 .offset(y: petEntered ? 0 : 200)
                 .opacity(petEntered ? 1 : 0)
 

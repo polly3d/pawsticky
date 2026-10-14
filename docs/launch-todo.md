@@ -59,7 +59,7 @@
 
 - [ ] **C1 设置页:隐私政策 / 支持 / 版本** 🔴 · 3–4h · URL 先用 A6 给的,最终以 D2 的新页面为准 — `SettingsView` 现在只有一个 "Growth System" 开关。补:版本 + Build 号、**Privacy Policy 链接**、Support 邮箱、Acknowledgements(GRDB,MIT)。**为什么是 🔴:** 审核指南 5.1.1(i) 原文——"All apps must include a link to their privacy policy in the App Store Connect metadata field and *within the app in an easily accessible manner*"(2026-10-14 核对 Apple 官网)。完成标准:设置页能点开真实 URL;我会加一条 preflight 守卫,防止占位 URL 漏网。
 - [x] **C2 App 图标接入(iOS + Watch)** 🔴 — ✅ 已完成:`art/scripts/make-app-icon.sh` 用 `B_cat-sitting` 合成天蓝底(`#D4E9FF → #9CCBF5`)1024×1024 sRGB 无 alpha PNG,写入 `PawIt/` 与 `PawItWatch/` 的 `AppIcon.appiconset`(`Contents.json` 已补 `filename`)。验证:preflight 两条图标检查 ⏳ → ✅(并新增“Contents.json 必须引用图标文件”检查,先造出失败再修好);构建后 `Assets.car` 与 `CFBundleIcons` 均含 AppIcon。想换底色:`ICON_TOP=… ICON_BOTTOM=… art/scripts/make-app-icon.sh`。
-- [ ] **C3 宠物图零生成接入(P1-2)** 🟡 · 0.5–1 天 · 依赖 A5 — ① 跑 [`art/scripts/extract-from-sheets.sh`](../art/scripts/extract-from-sheets.sh)(已验证,4 秒出 12 张)② 用新胸像替换 6 物种的 `pet-<sp>-front`(**名字不变**,约 20 处引用零改动;4 个 catalog,Watch 只放 front;@1x / 2x / 3x)③ 欢迎页英雄位(现硬编码 `pet-cat-front`)与选宠卡改用新增的 `pet-<sp>-full`(估 3 处代码)。cat / corgi 的举牌图不动。完成标准:模拟器截图 6 物种 × 列表头 / 欢迎 / 选宠 / 小中大 Widget / 锁屏,耳朵不再被切、兔子清晰可见;**你过目点头**。
+- [x] **C3 宠物图零生成接入(P1-2)** 🟡 — ✅ **代码与素材已完成,等你过目点头**:`extract-from-sheets.sh` 抠图 → 新增 [`art/scripts/export-pet-imagesets.sh`](../art/scripts/export-pet-imagesets.sh) 导出 6 物种 `pet-<sp>-front`(胸像,方形画布 88% 内接,@1x/2x/3x = 100/200/300px)覆盖 4 个 catalog(**名字不变**,约 20 处引用零改动;Watch 同样用胸像),并新增 `pet-cat-full`(全身,仅 PawIt)给欢迎页英雄位——胸像的下沿是裁切线,放在无背景的大图位像“漂浮的头”。**选宠卡仍用胸像**:我对比后发现 90pt 高的卡片里全身图脸太小,胸像更清楚,所以另外 5 个物种不需要 `full`,没打进包(省约 1 MB)。cat / corgi 的举牌图没动。验证:preflight 新增“宠物素材齐全”检查(先让它因缺 `pet-cat-full` 失败,再导出变绿);模拟器截图——欢迎页、选宠网格、6 物种各自的列表头,耳朵完整、兔子清晰可见:![欢迎页(全身英雄位)与选宠网格](assets/launch-audit/12-new-art-in-app.jpg) ![6 物种的列表头头像](assets/launch-audit/13-new-art-list-header-6-species.jpg)**Widget / 锁屏 / Watch 没在真机或模拟器里看过**(模拟器无法脚本化添加 Widget),它们复用同一批 `front` 图;圆形锁屏小组件对图片做了 `clipShape(Circle())`,实测 cat / corgi / hamster 的耳尖有 4–5% 像素落在圆外会被略微裁掉(≈ 1pt),可接受——**真机 B5 冒烟时请看一眼锁屏圆形组件**。
 - [ ] **C4 宠物名字统一(P1-1)** 🟡 · 0.5h — 头部叫 Tabby,对话里它自称 Mochi。台词一律读 `PetAsset.displayName`。
 - [ ] **C5 删除撤销(P1-7)+ 备份 / 恢复最小界面(P1-6)** 🟡 · 1.5–2 天 — 你在决议 #5 选了"做"。后端早有 `export / import / restore / history` 并有测试,缺的是界面:设置页 "Back Up Notes" / "Restore from Backup",删除后 "Note deleted · Undo"(现在长按便签 → Delete 是立刻删除)。完成标准:导出 → 导入 → 回滚往返后数据逐条一致(QA 场景 #11)。**想更快上线可以砍,代价见 [§想更快上线](#想更快上线)。**
 - [ ] **C6 Widget 两项体验(P1-5、P1-4)** 🟡 · 3–5h — ① "添加小组件"画廊里现在是空状态(`context.isPreview` 没处理),新装用户和审核员恰好在这一刻决定要不要加:改成示例内容 ② 点 Widget 现在只进列表页:加 `widgetURL` + `onOpenURL`,直达新建 / 对应便签("一秒速记")。
@@ -176,6 +176,8 @@ xcodebuild -project PawIt.xcodeproj -scheme PawIt -destination 'generic/platform
 xcodebuild test -project PawIt.xcodeproj -scheme PawIt -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 scripts/preflight.sh                                # 先构建再跑;要求 0 失败
 art/scripts/extract-from-sheets.sh                  # 从已有角色卡抠宠物图(输出到 art/scripts/.tmp/sheets-out/)
+art/scripts/export-pet-imagesets.sh                 # 把抠出的图导成 4 个 catalog 的 imageset(front × 6 物种 + cat full)
+art/scripts/make-app-icon.sh                        # 合成天蓝底 App 图标并写入 iOS / Watch 两个 AppIcon
 xcrun simctl io booted screenshot shot.png          # 模拟器截图;iPhone 17 Pro = 1206×2622
 ```
 

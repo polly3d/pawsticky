@@ -16,12 +16,14 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - `docs/launch-readiness.md` — v1.0 上线就绪审计快照（P0/P1/P2 差距清单 / ASC 提审清单 / 命名评估 / 决策记录）；只保留"为什么"，不再记进度
 - `docs/launch-art-prompts.md` — 美术提示词包；**v1.0 不需要生成新图**（零生成方案见 todo），仅供以后补图
 - `docs/pawsticky-privacy-policy.md` — 可直接发布的 App 隐私政策英文稿（fitpetgo.com 现有页面只覆盖网站，不能给 App 用；任何 SDK / 网络请求 / 新权限变化都要同步改它和 ASC 隐私问卷）
-- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09、零生成复用对比 10、图标三选一 11）
+- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09、零生成复用对比 10、图标三选一 11、新美术在 App 内的截图 12 / 13）
 - `Config/` — 构建配置：`Base.xcconfig`（由 `project.yml` 引用）+ 本地签名模板 `Signing.local.xcconfig.example`
 - `scripts/preflight.sh` — 上线验收脚本（Bundle ID / App Group / 品牌名 / 版本号 / 隐私清单 / 外观 / 合规键 / 设备族）
 - `art/` — 美术资产与生成管线（风格已冻结 B 扁平矢量+描边，见 `art/style-pack/style-notes.md`）
   - `art/scripts/gen-images.sh` — 文生图（**无参考图输入**，禁止用它批量重抽宠物，会风格漂移）
   - `art/scripts/extract-from-sheets.sh` — **零生成**：从已有角色卡抠出完整正面图 + 胸像并描边（v1.0 宠物图的来源）
+  - `art/scripts/export-pet-imagesets.sh` — 把抠出的图导出为 4 个 catalog 的 `pet-<sp>-front`（+ `pet-cat-full`）
+  - `art/scripts/make-app-icon.sh` — 用 `B_cat-sitting` 合成天蓝底 App 图标并写入 iOS / watchOS 的 AppIcon
 - `research/` — 一手调研数据（iTunes API 抓取，2026-09-29）
   - `lookup-*.json` — 竞品元数据（iTunes Lookup API）
   - `reviews-*-p[1-4].json` — 竞品用户评论原始 JSON（iTunes RSS API）
