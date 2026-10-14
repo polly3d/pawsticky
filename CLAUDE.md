@@ -3,6 +3,8 @@
 ## 项目概述
 PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业计划与调研项目。核心定位："由你的宠物帮你记住事情"——便签是骨，宠物是魂。
 
+**品牌名（2026-10-14 定稿）：PawSticky。** 用户可见字符串一律用 PawSticky；Bundle ID 前缀 `com.fitpetgo.pawsticky`，App Group `group.com.fitpetgo.pawsticky.shared`。代码内部名（target / module / 目录 `PawIt*`、Widget `kind`、`pawit.sqlite3` 等不透明标识）与历史文档沿用 PawIt，**不再改动**。依据见 `docs/launch-readiness.md` §7 / §10。
+
 ## 目录结构
 - `docs/plan.md` — 12 周开发实施计划（精简鸟瞰图）
 - `docs/business-plan.md` — 完整商业计划书（v1.1）
@@ -10,6 +12,9 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - `docs/w1-risk-elimination.md` — W1 详细任务与完成记录
 - `docs/w2-data-layer.md` — W2 详细任务与完成记录
 - `docs/w3-editor-ui.md` — W3 详细任务与完成记录
+- `docs/launch-readiness.md` — v1.0 上线就绪审计（P0/P1/P2 差距清单 / ASC 提审清单 / 命名评估 / 待决策项）
+- `docs/launch-art-prompts.md` — 上线美术资源清单与 gpt-image-2.5 提示词包（图标 / 举牌 / front / 装扮 / 营销）
+- `docs/assets/launch-audit/` — 上线审计的证据截图
 - `art/` — 美术资产与生成管线（风格已冻结 B 扁平矢量+描边，见 `art/style-pack/style-notes.md`）
 - `research/` — 一手调研数据（iTunes API 抓取，2026-09-29）
   - `lookup-*.json` — 竞品元数据（iTunes Lookup API）
