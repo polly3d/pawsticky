@@ -54,6 +54,35 @@ else
   printf '%s\n' "$leftover" | sed 's/^/       /'
 fi
 
+# 隐私政策 / 支持页 URL：审核指南 5.1.1(i) 要求 App 内可达，占位 URL 漏网会被拒。
+# 取值在 Core.swift 的 PawItInfo；这里只查"存在、https、带路径、不是占位"，内容是否合格见下方 ⏳ 项。
+legal_url() { grep -E "static let $1 *= *URL\(string: *\"" Core/Sources/Core/Core.swift | sed -E 's/.*"([^"]+)".*/\1/'; }
+for key in privacyPolicyURL supportURL; do
+  url=$(legal_url "$key")
+  if [[ "$url" =~ ^https://[^/]+/.+ ]] && [[ ! "$url" =~ (example\.|yourdomain|localhost|TODO|placeholder) ]]; then
+    ok "PawItInfo.$key = $url"
+  else
+    bad "PawItInfo.$key 缺失，或不是带路径的 https 真实 URL（实际 '${url:-<缺失>}'）"
+  fi
+done
+
+# 第三方开源声明：MIT 等许可要求随附版权声明。Core/Package.resolved 里的每个依赖
+# 都必须出现在设置页的 Acknowledgements（PawIt/Features/Settings/Acknowledgements.swift）。
+ack_file="PawIt/Features/Settings/Acknowledgements.swift"
+deps=$(grep -E '"identity" *:' Core/Package.resolved 2>/dev/null | sed -E 's/.*: *"([^"]+)".*/\1/')
+if [[ -z "$deps" ]]; then
+  ok "没有第三方 SwiftPM 依赖需要声明"
+else
+  for dep in $deps; do
+    base=${dep%.swift}   # grdb.swift → grdb
+    if grep -qi -- "$base" "$ack_file" 2>/dev/null; then
+      ok "第三方依赖 $dep 已在 Acknowledgements 中声明"
+    else
+      bad "第三方依赖 $dep 没有在 $ack_file 中声明（许可要求随附版权声明）"
+    fi
+  done
+fi
+
 # v1.0 没有换装功能（决策 A5(a)：保持锁 / 解锁网格，对外叫 Collection）。用户可见文案里不得再出现 outfit，
 # 否则审核 / 用户会以为能给宠物换装。先剥掉 \( … ) 插值（里面常有类型名 Outfit），再看字符串字面量。
 outfit_copy=$(grep -rnE --include='*.swift' '"[^"]*"' PawIt PawItWidget PawItWatch PawItWatchWidget Shared 2>/dev/null \
@@ -188,6 +217,13 @@ if [[ -n "${team// /}" ]]; then
   ok "DEVELOPMENT_TEAM = $team"
 else
   pending "DEVELOPMENT_TEAM 未设置——创建 Config/Signing.local.xcconfig（见 .example）后才能真机 / Archive"
+fi
+
+# fitpetgo.com 的通用隐私政策页第一段写明"只适用于本网站、不适用其他渠道"，也没提 App——
+# 用它提审大概率被拒（5.1.1(i) 要求政策明确说明 App 收集什么、怎么用、保留 / 删除方式）。
+# 发布 PawSticky 专属页（稿子：docs/pawsticky-privacy-policy.md）后改 PawItInfo.privacyPolicyURL，此项自动消失。
+if [[ "$(legal_url privacyPolicyURL)" == "https://www.fitpetgo.com/privacy-policy" ]]; then
+  pending "隐私政策 URL 仍是 fitpetgo.com 的网站通用页（不覆盖 App）——提审前换成 PawSticky 专属页，见 docs/launch-todo.md D2"
 fi
 
 for icon_dir in PawIt/Assets.xcassets/AppIcon.appiconset PawItWatch/Assets.xcassets/AppIcon.appiconset; do
