@@ -6,7 +6,7 @@ import Core
 /// 只钉住「App 层类型可从测试进程实例化」,保持链接真实有效(防挂空依赖)。
 struct PawItTests {
     @Test func smoke() {
-        #expect(PawItInfo.appGroupID == "group.com.pawit.shared")
+        #expect(PawItInfo.appGroupID == "group.com.fitpetgo.pawsticky.shared")
     }
 
     @Test func appEntryTypesInstantiateUnderTestHost() {

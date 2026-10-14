@@ -1,6 +1,6 @@
 name: PawIt
 options:
-  bundleIdPrefix: com.pawit
+  bundleIdPrefix: com.fitpetgo.pawsticky
   deploymentTarget:
     iOS: "17.0"
     watchOS: "10.0"
@@ -29,7 +29,7 @@ targets:
       path: PawIt/PawIt.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.pawit.shared
+          - group.com.fitpetgo.pawsticky.shared
     info:
       path: PawIt/Info.plist
       properties:
@@ -38,7 +38,7 @@ targets:
         NSSupportsLiveActivities: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky
   PawItWidget:
     type: app-extension
     platform: iOS
@@ -51,7 +51,7 @@ targets:
       path: PawItWidget/PawItWidget.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.pawit.shared
+          - group.com.fitpetgo.pawsticky.shared
     info:
       path: PawItWidget/Info.plist
       properties:
@@ -60,7 +60,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky.widgets
         SKIP_INSTALL: true
   PawItWatch:
     type: application
@@ -74,16 +74,16 @@ targets:
       path: PawItWatch/PawItWatch.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.pawit.shared
+          - group.com.fitpetgo.pawsticky.shared
     info:
       path: PawItWatch/Info.plist
       properties:
         CFBundleDisplayName: PawIt
         WKApplication: true
-        WKCompanionAppBundleIdentifier: com.pawit.app
+        WKCompanionAppBundleIdentifier: com.fitpetgo.pawsticky
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.watchkitapp
+        PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky.watchkitapp
   PawItWatchWidget:
     type: app-extension
     platform: watchOS
@@ -95,7 +95,7 @@ targets:
       path: PawItWatchWidget/PawItWatchWidget.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.pawit.shared
+          - group.com.fitpetgo.pawsticky.shared
     info:
       path: PawItWatchWidget/Info.plist
       properties:
@@ -104,7 +104,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.watchkitapp.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky.watchkitapp.widgets
         SKIP_INSTALL: true
   PawItTests:
     type: bundle.unit-test
@@ -116,7 +116,7 @@ targets:
       - target: PawIt   # W2 卡:宿主链接,App 层(ContentView/PawItApp)可测
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pawit.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky.tests
         GENERATE_INFOPLIST_FILE: true
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/PawIt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PawIt
         BUNDLE_LOADER: $(TEST_HOST)

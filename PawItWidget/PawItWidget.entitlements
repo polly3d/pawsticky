@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.pawit.shared</string>
+		<string>group.com.fitpetgo.pawsticky.shared</string>
 	</array>
 </dict>
 </plist>

@@ -23,6 +23,6 @@
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.pawit.app</string>
+	<string>com.fitpetgo.pawsticky</string>
 </dict>
 </plist>

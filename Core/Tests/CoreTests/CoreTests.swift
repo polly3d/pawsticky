@@ -4,7 +4,7 @@ import Testing
 
 struct CoreTests {
     @Test func smoke() {
-        #expect(PawItInfo.appGroupID == "group.com.pawit.shared")
+        #expect(PawItInfo.appGroupID == "group.com.fitpetgo.pawsticky.shared")
     }
 
     @Test func noteEquatable() {

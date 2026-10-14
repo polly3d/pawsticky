@@ -5,5 +5,5 @@ import Foundation
 
 public enum PawItInfo {
     /// 三 target(App / Widget / Watch)共享的 App Group 标识。
-    public static let appGroupID = "group.com.pawit.shared"
+    public static let appGroupID = "group.com.fitpetgo.pawsticky.shared"
 }
