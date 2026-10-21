@@ -2,7 +2,7 @@
 
 > **这是唯一回答"现在该做什么、做到哪了"的文档。** 勾了 = 做完;没勾 = 没做。
 > *为什么*要做某一项 → 看审计依据 [`launch-readiness.md`](launch-readiness.md)(只读快照,不再记状态)。
-> **更新:** 2026-10-14 · C 阶段(代码 + 美术)已全部做完,提交都在 `dev` 上(`main` 仍停在 `f36d2d4`,没推送;合并见 E1)· v1.0 免费版 · 仅 iPhone(+ Watch)
+> **更新:** 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 11/11 完成并通过真机复验**(C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **53 通过 · 0 ⏳ · 0 失败** · 测试 **258 / 258** · 提交都在 `dev` 上(`main` 仍停在 `f36d2d4`,没推送;合并见 E1)· v1.0 免费版 · 仅 iPhone(+ Watch)
 
 **怎么用:** 从上往下做;做完把 `- [ ]` 改成 `- [x]`(或回复我任务编号,我来改)。
 **图例:** 🔴 不做就不能提审 · 🟡 应做(口碑 / 兑现承诺)· ⚪ 可推迟 ｜ **[你]** 只有你能做(账号、审美拍板、对外发布)· **[我]** 我来写代码 / 文档
@@ -14,13 +14,13 @@
 | 阶段 | 内容 | 谁 | 进度 |
 |---|---|---|---|
 | ✅ 工程 P0 | 改名 / ID / 隐私清单 / 版本号 / 合规键 / 相册崩溃 / 回前台刷新 / 锁浅色 / 仅 iPhone | 我 | **已完成** → [文末](#已完成) |
-| **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | 4 / 6(还差 A2 Team ID、A3 合规结论) |
-| **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | 0 / 5(B4 仅出错时才做) |
-| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **8 / 8 已完成**(请你过目 C3 的新宠物图) |
-| **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 0 / 6(D1、D8 可推迟) |
+| **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | **6 / 6 已完成** |
+| **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | **5 / 5 已完成**(B4 未触发) |
+| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **11 / 11 已完成**(C9–C11 真机发现并修复,C10 已复验通过;请你过目 C3 的新宠物图) |
+| **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 4 / 6(剩 D4、D5、D7;D1、D8 可推迟) |
 | **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4 |
 
-**👉 现在:** 代码和美术我这边做完了。轮到你:**A2** Team ID、**A3** 公司的合规结论、**D2** 发布 PawSticky 专属隐私政策页(现有页面只覆盖网站,见下)——然后做 **B 真机冒烟**:模拟器验不了的东西(Widget 画廊与点按、系统文件面板、Watch、真机签名)全攒在 B5,那是目前最大的未知数。另请过目 C3 的新宠物图。
+**👉 现在:** A / B / C 收官,D 剩 **D4 / D5 / D7**(D4 文案已给,直接贴)。轮到你:贴 **D4** → 答 **D5** 隐私问卷 → 填 **D7** 审核信息,然后 **E1** 出包(我先合并 \`dev\`→\`main\` 打 tag)。另请过目 C3 的新宠物图。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -32,8 +32,8 @@
 > 每项都给了我的默认。**没意见就回复"按默认"**——只有 A2(Team ID)和 A3(公司的合规结论)必须由你给出内容。
 
 - [x] **A1 ID 映射** 🔴 — ✅ 你已确认 "ID OK"(2026-10-14):App `com.fitpetgo.pawsticky` · Widget `….widgets` · Watch `….watchkitapp` · Watch Widget `….watchkitapp.widgets` · App Group `group.com.fitpetgo.pawsticky.shared`。在 ASC 创建 App 记录(D3)后 Bundle ID 永久不可改。
-- [ ] **A2 Team ID** 🔴 — developer.apple.com → Account → Membership details 里的 10 位字符。→ 发我(我写进 `project.yml`),或自己按 B2 放进本地文件。
-- [ ] **A3 出口合规结论** 🔴 — App 用 CryptoKit(AES-GCM)与 CommonCrypto(PBKDF2)加密**用户导出的备份文件**。我按"仅系统自带加密、仅用于用户自己的备份"写入了 `ITSAppUsesNonExemptEncryption = false`。**Apple 的说法:是否豁免由开发者自己判断,误报豁免的责任也在开发者**([说明页](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance))。→ 请公司确认;结论是"非豁免"就告诉我翻成 `true`(ASC 会要求提交加密文档)。另:该页提到法国对"安全存储"类 App 另有管制——软启动 NZ → CA → US 不涉及,进法国前再评估。
+- [x] **A2 Team ID** 🔴 — ✅ 你已在 Xcode 里选好 Team(2026-10-21),Team ID = `X38QPV26TR`。我已把它持久化到 `Config/Signing.local.xcconfig`(git 忽略;Xcode UI 的设置会被 `xcodegen generate` 冲掉,xcconfig 不会),重新生成工程 + 构建 + preflight 验证通过(`DEVELOPMENT_TEAM = X38QPV26TR` ✅)。
+- [x] **A3 出口合规结论** 🔴 — ✅ 你已拍板(2026-10-21):**维持豁免声明** `ITSAppUsesNonExemptEncryption = false`(依据:App 仅用系统 CryptoKit AES-GCM / CommonCrypto PBKDF2 标准算法,只加密用户自建的备份文件,密钥由用户口令在设备上派生,无网络传输、无第三方加密库);**不做**年度自我分类报告。法国管制:ASC 的法国申报要求已取消多年,软启动 NZ → CA → US 不涉及,进欧盟前(D8)再核对。
 - [x] **A4 图标底色** 🔴 — ✅ 你选了 **B 天蓝**(2026-10-14)。下图保留以便回看:
   ![图标三选一:A 薄荷 / B 天蓝 / C 淡紫](assets/launch-audit/11-icon-options-from-existing-cat.jpg)
 - [x] **A5 美术方案 + 装扮图标** 🔴 — ✅ 你选了 **(a)**(2026-10-14):v1.0 零生成(依据见 [§美术方案](#美术方案零生成));装扮保持现在的 SF Symbol 锁 / 解锁网格,UI 文案 "Outfits" 改成 "Collection"。商店文案**不写** dress up。
@@ -45,11 +45,11 @@
 
 > 为什么要早做:**模拟器不强制 entitlement,真机才强制**。App Group、Widget 读写、Watch 同步只有真机能证明——越晚发现越贵。依赖 A1、A2。
 
-- [ ] **B1 登录账号** 🔴 — Xcode → Settings → Accounts 登录公司 Apple ID;确认角色是 Account Holder / Admin(注册 App ID、App Group、建 ASC 记录都要)。
-- [ ] **B2 填 Team ID** 🔴 — `cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig`,填 `DEVELOPMENT_TEAM = <Team ID>`(文件被 git 忽略;已实测**不需要**重新 `xcodegen generate`)。A2 若已发我,跳过。
-- [ ] **B3 真机跑起来** 🔴 — `xcodegen generate` → 打开 `PawIt.xcodeproj` → 选真机 → Run。自动签名会替你在开发者后台注册 App ID 与 App Group。
+- [x] **B1 登录账号** 🔴 — ✅ 你已在 Xcode 登录并选了公司 Team(2026-10-21,能在 Signing 里选 Team 即已登录)。角色是否 Account Holder / Admin 顺手在 appstoreconnect.apple.com 确认一下(D3 建 App 记录需要)。
+- [x] **B2 填 Team ID** 🔴 — ✅ 你在 Xcode UI 设置的 Team 只活在本地 pbxproj;我已写入 `Config/Signing.local.xcconfig`(`X38QPV26TR`)并在重新 `xcodegen generate`(UI 设置被冲掉)后验证构建设置仍读到它。
+- [x] **B3 真机跑起来** 🔴 — ✅ 你已真机跑通(2026-10-21),并抓到第一个真机问题:Live Activity 被关后 App 内无入口(→ C9,问题已代码确认)。
 - [ ] **B4 (仅 B3 报 App Group 错才做)** — developer.apple.com → Certificates, IDs & Profiles → Identifiers:手动建 App Group `group.com.fitpetgo.pawsticky.shared`,再到 4 个 App ID(App / Widget / Watch / Watch Widget)的 App Groups 能力里勾上它。
-- [ ] **B5 真机冒烟 15 分钟** 🔴 — 启动不崩 → 选宠物 → 记一条 → 加小 / 中 / 大 / 锁屏 Widget(**画廊里应是示例便签,而不是空状态**;锁屏圆形款看一眼新头像的耳尖有没有被圆裁掉)→ **在 Widget 上勾选 → 回 App,列表已同步**(P0-8 的真机回归)→ **点空状态的 Widget 直达新建页、点有便签的 Widget 直达那一条(C6);开着设置页回主屏再点一次** → Watch 配对后能看到数据与新头像 → **设置 → Back Up Notes 存到“文件”,删 App 重装后 Restore from Backup(明文、加密各一次;系统文件面板只有真机能验,见 C5)**。完成标准:无崩溃,Widget 读到了 App 写的数据(= App Group 在真机生效),且备份能原样恢复。
+- [x] **B5 真机冒烟 15 分钟** 🔴 — ✅ 完成(2026-10-21):全项通过——启动 / 选宠 / Widget 家族 / 勾选回 App 同步 / 点按直达(含设置页开着时)/ Watch 数据与新头像 / 备份恢复(明文 + 加密)。C9 回归也过(关掉 Live Activities 点 Pin 弹窗指路)。真机发现的 LA 次级文字偏灰 → C10 已修(待再瞄一眼)。
 
 ---
 
@@ -72,17 +72,20 @@
   - **没做(不在 C6 范围):** Live Activity(锁屏 / 灵动岛上钉住的便签)点按仍只是打开 App,没接这套链接——接法一样(`widgetURL` + `DeepLink.openNote`),可放 v1.0.x。
 - [x] **C7 装扮文案(P1-3)** 🟡 — ✅ 已完成(按 A5(a)):成长页标题 "Outfits" → "Collection"、统计块 "Outfits"(原 T 恤图标)→ "Collected"(sparkles 图标)、"All outfits unlocked!" → "Collection complete!"、分享卡 "n/12 outfits" → "n/12 collected";SF Symbol 网格不变。另给 preflight 加了守卫:用户可见字符串里再出现 outfit 就失败(先让它抓到 4 处,改完变绿)。
 - [x] **C8 每批收尾回归** 🔴 — ✅ 本批已跑(**之后每次改动仍要再跑**):`xcodegen generate` 后入库的生成物零差异 → **干净**构建成功 → `xcodebuild test` **254 / 254 通过**(Core 194 + App 60)→ `scripts/preflight.sh` **51 通过 · 2 ⏳ · 0 失败**(两个 ⏳ 是 Team ID 与"隐私政策 URL 仍是通用页",都在等你)。编译警告仍是审计时的那 2 条(`ToggleItemIntent.swift:34`、`PawItTests.swift:15`),没有新增。命令见[附录](#附录常用命令)。
+- [x] **C9 Live Activity 被系统关闭后无入口(B3 真机发现)** 🟡 — ✅ 已修(2026-10-21,方案你拍板:失败弹窗 + 设置页状态行):**问题**——锁屏移除 / 系统设置里关掉 Live Activities 后,`pin` 的 `areActivitiesEnabled` 守卫只写 os_log 就静默返回,`togglePin` 又用 `try?` 吞掉,点 Pin 零反馈且 App 内无任何"去系统设置打开"的入口(低电量也触发同一静默失败;只划掉 Activity 而开关还开着时再 Pin 本来就能恢复,`isPinned` 只认 `.active`)。**修法**:① `pin` 改为 throw `LiveActivityUnavailableError.activitiesDisabled`(授权探针参数可注入,测试用);② 列表 `togglePin` do/catch → `PinIssue` 归因弹窗("Live Activities Are Off" + **Open Settings** 直达 `openSettingsURLString`,全工程唯一出口;其他失败给通用重试文案);③ 设置页新增 Lock Screen 分组:Live Activities On/Off 状态行,点按直达系统设置,回前台(`scenePhase == .active`)自动刷新。**验证**:先写 4 个测试看红(缺类型 / 缺参数),实现后 **258 / 258 通过**(Core 194 + App 64,新增 4);preflight **53 通过 · 0 ⏳ · 0 失败**;改动文件无新增编译警告(增量构建)。**真机回归**:✅ 通过(2026-10-21)——弹窗指路、状态行刷新都验过;顺带发现 LA 文字偏灰 → C10。
+- [x] **C10 Live Activity 卡片发灰看不清(B5 真机反馈,三轮)** 🟡 — ✅ 已修(2026-10-21):**第一轮**按次级文字透明度修(0.4–0.6 → 0.75),复验仍灰;**第二轮**真机截图视觉分析定位到"粉彩底根本没画、系统深玻璃 + 系统灰阶文字",按 `containerBackgroundRemovable(false)` 修——真机复验**仍玻璃**(该开关对锁屏 LA 无效);**第三轮**查官方文档(Creating custom views for Live Activities)钉死真因:**锁屏 LA 的背景色归 `activityBackgroundTint(_:)` 管**(默认白 / 黑 / iOS 26 玻璃),`containerBackground(for: .widget)` 是主屏 Widget 的机制、对锁屏 LA 从未生效——粉彩其实一直没画上去过,iOS 26 把默认底改成玻璃才暴露。修法:`activityBackgroundTint(便签色)` + 文档配套的 `activitySystemActionForegroundColor(墨色)`(系统"结束"辅助按钮的文字色)。**真机复验**:✅ 通过(2026-10-21)——粉彩底 + 深字回来了。三轮终修的教训:锁屏 LA 的背景归 `activityBackgroundTint`,View 层的 `containerBackground` 管不到它。
+- [x] **C11 收敛运行目的地到仅 iPhone** 🟡 — ✅ 已做(2026-10-21):`project.yml` 给 PawIt / PawItWidget 显式 `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO`、`SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO`,重新生成后 Xcode 目的地列表只剩 iPhone(在 Xcode UI 里删活不过 `xcodegen generate`,持久层必须在 yml)。**注意**:这两个开关只管构建 / 运行目的地;商店侧的 Mac / Vision 兼容是 ASC 的 Availability 设置(D4 顺手关),且 Designed-for-* 渠道复用 iOS 截图、本来不需要额外截图。
 
 ---
 
 ## D. 站点 + App Store Connect(你 · 我起草文字 · 约 2–3 天,多数可与 C 并行)
 
 - [ ] **D1 ⚪ 注册 pawsticky 域名(可选)** — 不再是必需:隐私 / 支持页用 fitpetgo.com 即可(A6)。仅当想要独立官网 / 防抢注时再买。
-- [ ] **D2 PawSticky 专属隐私政策页** 🔴 · [你] 发布 · 30 分钟 · **⚠️ 现有页面不能直接用** — 我读了 `fitpetgo.com/privacy-policy`:它第一段写明"只适用于本网站、**不适用于其他渠道**",内容是网站 cookies / 广告合作方 / 账号注册信息——既没提 App,也与我们"不收集数据、无广告"的隐私问卷(D5)矛盾。审核指南 5.1.1(i) 要求政策**明确说明 App 收集什么数据、怎么用、保留与删除方式**,拿这页去提审大概率被拒。做法:在 fitpetgo.com 新增一页(如 `/pawsticky-privacy`),贴 [`pawsticky-privacy-policy.md`](pawsticky-privacy-policy.md) 的英文稿(我按代码现状写好,已逐条对照源码),发布后把 URL 告诉我,我换进设置页常量(C1)。另请在手机上打开 `contact-us`,确认页面上**看得到联系方式**(邮箱或表单)——我这边抓取只看到标题,无法确认;ASC 的 Support URL 必须能联系到你。完成标准:新页面 URL 能打开且含 PawSticky 字样。
-- [ ] **D3 ASC 创建 App 记录** 🔴 · 30 分钟 · 依赖 B3(A1 已确认) — App Store Connect → Apps → + → New App:平台 iOS;名称(草稿 `PawSticky: Notes Widget`,23 / 30 字);主语言 English (U.S.);Bundle ID 选 `com.fitpetgo.pawsticky`;SKU 自拟(如 `pawsticky-ios`)。**这一步之后 Bundle ID 永久不可改**;名称先到先得,建完即占位。
-- [ ] **D4 填商店资料** 🔴 · 2–3h · 依赖 D2 — 副标题 / 宣传文本 / 关键词 / 描述 / What's New 用审计附录 C 的草稿(C5 已做,备份那一段可以保留);类别 Productivity(主)+ Lifestyle(次);价格 Free;可用地区**先只选 NZ**(之后逐步加 CA、US);年龄分级问卷(预期 4+,**不要选 Kids 类别**);内容版权选"不含第三方内容";隐私政策 URL、支持 URL。关键词里**不要放竞品名**。
+- [x] **D2 隐私政策页** 🔴 — ✅ 你已拍板(2026-10-21):**直接用现有 `https://www.fitpetgo.com/privacy-policy`,不另发 PawSticky 专属页**。已知风险(拍板时接受):该页第一段写明"只适用于本网站、不适用于其他渠道",没提 App,内容(网站 cookies / 广告 / 账号注册)与"不收集数据"的问卷口径不一致——审核指南 5.1.1(i) 有拒审可能。**备用方案**(若真被 5.1.1(i) 拒):发布 [`pawsticky-privacy-policy.md`](pawsticky-privacy-policy.md)(留在库里不删)→ 改 `PawItInfo.privacyPolicyURL` → 重出包,损失一个审核周期(1–2 天)。preflight 的对应 ⏳ 已改为记录本决议的 ✅ 项;Core.swift 常量注释同步更新。遗留小项挪到 D4:手机确认 `contact-us` 看得到联系方式。
+- [x] **D3 ASC 创建 App 记录** 🔴 — ✅ 你已完成(2026-10-21)。Bundle ID `com.fitpetgo.pawsticky` 从此锁定;名称以你实际填写为准(D4 文案按草稿名对齐,若不同请告知我改文案)。
+- [ ] **D4 填商店资料** 🔴 · 2–3h · 依赖 D2 — 副标题 / 宣传文本 / 关键词 / 描述 / What's New 用审计附录 C 的草稿(C5 已做,备份那一段可以保留);类别 Productivity(主)+ Lifestyle(次);价格 Free;可用地区**先只选 NZ**(之后逐步加 CA、US);年龄分级问卷(预期 4+,**不要选 Kids 类别**);内容版权选"不含第三方内容";隐私政策 URL、支持 URL。关键词里**不要放竞品名**。另在手机打开 `contact-us` 确认看得到联系方式(邮箱或表单;ASC Support URL 硬要求,原 D2 遗留);再在 Availability 里关掉 Mac (Designed for iPad) / Apple Vision 兼容(C11 的商店侧动作)。
 - [ ] **D5 App 隐私问卷** 🔴 · 15 分钟 — 预期 **Data Not Collected**。我已在 `f36d2d4` 核对:全部 Swift 源码里没有 `URLSession` / 分析 / 广告 / 定位 / 相册等 API,唯一第三方依赖是 GRDB(本地 SQLite)。以后加任何 SDK 或网络请求,必须回来改这份问卷。
-- [ ] **D6 截图** 🔴 · 2–4h · 依赖 C2、C3、C5 做完(避免重拍) — iPhone:至少 1 张、最多 10 张,PNG / JPEG,**不能带 alpha**;必需尺寸是 "iPhone with Dynamic Island (medium display)":**1206×2622**(iPhone 17 Pro 模拟器的原生截图尺寸)或 1179×2556。Apple Watch:**含 Watch App 就必须提供**,选一种尺寸(如 Series 10 / 11:416×496),各语言必须同一尺寸。截图必须是 App 实际界面(审核指南 2.3)。仅 iPhone,不需要 iPad 截图。建议 5–6 张,画面脚本见 [art 提示词 §F.0](launch-art-prompts.md)。(尺寸依据:Apple 截图规格页,2026-10-14 核对。)
+- [x] **D6 截图** 🔴 — ✅ 完成(2026-10-21):iPhone 7 张(1170×2532 → **1179×2556**)+ Watch 2 张(**416×496**,Series 12 46mm 原生,无需缩放)均已转为无 alpha JPEG,在 `docs/assets/screenshots/asc-upload/`(原片未动);上传时挑 5–6 张 iPhone + 1–2 张 Watch。规格依据:Apple 截图规格页(2026-10-14 核对)+ MobileAction/appscreens 交叉确认(1170×2532 属旧类别,不能作必需集)。
 - [ ] **D7 审核信息** 🔴 · 30 分钟 — ASC "App Review Information":联系人姓名 / 电话 / 邮箱(必填)、取消勾选"需要登录"、审核备注贴[附录模板](#附录审核备注模板)。
 - [ ] **D8 ⚪ 进欧盟前再做** — DSA trader 声明(公司主体按 trader 申报,地址 / 电话 / 邮箱会公开展示在欧盟商店页);商标初筛(USPTO / IPONZ / CNIPA)。软启动 NZ → CA → US 阶段不需要。
 
@@ -90,7 +93,7 @@
 
 ## E. 出包 + 提审(你为主,我协助)
 
-- [ ] **E1 构建并上传** 🔴 · 1h · 依赖 B、C、D3 — 先 `xcodegen generate` → 构建 → `scripts/preflight.sh`(0 失败,⏳ 项要清零:Team ID、两处图标)。(推荐)把 `dev` 合到 `main` 并打 tag(如 `v1.0.0`),保证每个 build 能回溯到代码。Xcode:目标选 Any iOS Device → Product → Archive → Distribute App → App Store Connect → Upload。**每次上传 Build 号必须递增**(改 `project.yml` 的 `CURRENT_PROJECT_VERSION` 后重新 `xcodegen generate`)。完成标准:ASC 的 TestFlight 页出现该 build,状态不是 Invalid / Missing Compliance。
+- [ ] **E1 构建并上传** 🔴 · 1h · 依赖 B、C、D3 — 先 `xcodegen generate` → 构建 → `scripts/preflight.sh`(0 失败;两个历史 ⏳ 已于 2026-10-21 清零,现为 53 通过 · 0 ⏳ · 0 失败)。(推荐)把 `dev` 合到 `main` 并打 tag(如 `v1.0.0`),保证每个 build 能回溯到代码。Xcode:目标选 Any iOS Device → Product → Archive → Distribute App → App Store Connect → Upload。**每次上传 Build 号必须递增**(改 `project.yml` 的 `CURRENT_PROJECT_VERSION` 后重新 `xcodegen generate`)。完成标准:ASC 的 TestFlight 页出现该 build,状态不是 Invalid / Missing Compliance。
 - [ ] **E2 TestFlight 内测 + 真机 QA** 🔴 · 3–7 天 — 邀请自己 + 几位朋友(Internal Testing:ASC 用户最多 100 人,**无需审核**),按审计 §8 的 11 个场景在真机跑一遍;设备至少:最小屏 iPhone、带灵动岛的 iPhone、一块 Watch。崩溃以 Xcode Organizer 报告为准,门槛沿用商业计划:崩溃率 < 0.1%。
 - [ ] **E3 修复迭代** 🔴 · [我] — 把 QA 发现的问题(截图 + 复现步骤)给我,我修,你重传(Build 号 +1)。
 - [ ] **E4 提审与发布** 🔴 · 30 分钟 + 审核等待 — 在 ASC 的版本页选 build → 核对 D3–D7 全绿 → Submit for Review。审核通常 1–2 天,首次可能更久。发布方式选"手动发布",过审后自己按下按钮;地区先 NZ。被拒:把拒信贴给我,按条目处理。
@@ -190,6 +193,11 @@
 | C1 设置页(版本 / 隐私政策 / 支持 / 致谢) | `9067a6c` |
 | C5 删除撤销 + 备份 / 恢复 | `b821021` `673c0c8` `a890868`(文档 `5e1ad3f`) |
 | C6 Widget 画廊示例 + 点按直达 | `da96aad` `fcdcfbc`(文档 `7067909`) |
+| C9 Live Activity 失败引导(真机发现) | `c3909b3` |
+| C10 锁屏 LA 背景 activityBackgroundTint(真机发现,三轮) | `a44b624` |
+| C11 仅 iPhone 运行目的地 | `5696ed1` |
+
+**C9–C11 验证口径(2026-10-21)**:**258 / 258 通过**(Core 194 + App 64,C9 新增 4 测试,先红后绿);preflight **53 通过 · 0 ⏳ · 0 失败**;C9、C10 真机复验通过(C10 教训:锁屏 LA 背景归 `activityBackgroundTint`,View 层 `containerBackground` 管不到)。
 
 **C 阶段新增、只能真机验的:** Widget 画廊里是示例便签(不是空状态);点 Widget(空状态 / 有便签)直达新建 / 那一条;设置页开着时再点 Widget;系统“存储到文件 / 选择文件”面板下的备份与恢复;锁屏圆形 Widget 里新头像的耳尖;Watch 上的新头像。→ 都已写进 B5。
 

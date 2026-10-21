@@ -225,11 +225,11 @@ else
   pending "DEVELOPMENT_TEAM 未设置——创建 Config/Signing.local.xcconfig（见 .example）后才能真机 / Archive"
 fi
 
-# fitpetgo.com 的通用隐私政策页第一段写明"只适用于本网站、不适用其他渠道"，也没提 App——
-# 用它提审大概率被拒（5.1.1(i) 要求政策明确说明 App 收集什么、怎么用、保留 / 删除方式）。
-# 发布 PawSticky 专属页（稿子：docs/pawsticky-privacy-policy.md）后改 PawItInfo.privacyPolicyURL，此项自动消失。
+# 2026-10-21 拍板（docs/launch-todo.md D2）：隐私政策直接用 fitpetgo.com 的网站通用页，不另发专属页。
+# 已知风险：该页写明"只适用于本网站、不适用其他渠道"、没提 App，5.1.1(i) 有拒审可能；
+# 备用稿在 docs/pawsticky-privacy-policy.md——若被拒：发布 → 改 PawItInfo.privacyPolicyURL → 重出包。
 if [[ "$(legal_url privacyPolicyURL)" == "https://www.fitpetgo.com/privacy-policy" ]]; then
-  pending "隐私政策 URL 仍是 fitpetgo.com 的网站通用页（不覆盖 App）——提审前换成 PawSticky 专属页，见 docs/launch-todo.md D2"
+  ok "隐私政策 URL = 网站通用页（2026-10-21 拍板接受 5.1.1(i) 风险，备用稿 docs/pawsticky-privacy-policy.md）"
 fi
 
 for icon_dir in PawIt/Assets.xcassets/AppIcon.appiconset PawItWatch/Assets.xcassets/AppIcon.appiconset; do
