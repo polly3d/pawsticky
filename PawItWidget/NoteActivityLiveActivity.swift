@@ -15,6 +15,16 @@ struct NoteActivityLiveActivity: Widget {
         ActivityConfiguration(for: NoteActivityAttributes.self) { context in
             // ── 锁屏 / 通知横幅展示（全宽，主战场）──
             LockScreenActivityView(context: context)
+                // C10（第三轮，官方文档口径）：锁屏呈现的背景色由 activityBackgroundTint 管——
+                // 默认白（Light）/ 黑（Dark）/ 玻璃（iOS 26），自定义背景必须走这个修饰符；
+                // 此前只设 containerBackground（主屏 Widget 的机制），在真机上从未生效，
+                // iOS 26 把默认底改成玻璃后彻底暴露（粉彩被剥、文字变系统灰阶）。
+                .activityBackgroundTint(noteBackground(context.state.noteStyle))
+                // 文档配套要求：自定义背景时，系统"结束 Live Activity"辅助按钮的文字色
+                // 也要跟着设（否则可能在粉彩底上低对比）。
+                .activitySystemActionForegroundColor(
+                    NoteStylePreset.resolve(context.state.noteStyle).textColor
+                )
                 .containerBackground(for: .widget) {
                     noteBackground(context.state.noteStyle)
                 }
@@ -99,6 +109,10 @@ private struct LockScreenActivityView: View {
     /// 副本,与 App/Widget 的预设色天然漂移。
     private var preset: NoteStylePreset { NoteStylePreset.resolve(state.noteStyle) }
     private var textColor: Color { preset.textColor }
+    /// 次级文字（宠物名 / 进度 / 未勾图标）——保持墨色家族但对比度优先：
+    /// 此前 0.4–0.6 的透明度等效 #8C–#A6 浅灰，caption2 小字号在锁屏真机上看不清（C10）；
+    /// charcoal 预设的浅色墨对称适用（深底上的 0.75 浅灰仍可读）。
+    private var secondaryTextColor: Color { textColor.opacity(0.75) }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -138,7 +152,7 @@ private struct LockScreenActivityView: View {
                                 Image(systemName: item.done
                                       ? "checkmark.circle.fill" : "circle")
                                     .font(.caption2)
-                                    .foregroundStyle(item.done ? .green : textColor.opacity(0.4))
+                                    .foregroundStyle(item.done ? .green : secondaryTextColor)
                                 Text(item.text)
                                     .font(.caption)
                                     .foregroundStyle(textColor)
@@ -149,7 +163,7 @@ private struct LockScreenActivityView: View {
                         if state.items.count > 5 {
                             Text("+\(state.items.count - 5) more")
                                 .font(.caption2)
-                                .foregroundStyle(textColor.opacity(0.5))
+                                .foregroundStyle(secondaryTextColor)
                         }
                     }
                 }
@@ -160,12 +174,12 @@ private struct LockScreenActivityView: View {
                 HStack {
                     Text(attrs.petName)
                         .font(.caption2)
-                        .foregroundStyle(textColor.opacity(0.5))
+                        .foregroundStyle(secondaryTextColor)
                     Spacer()
                     if !state.items.isEmpty {
                         Text("\(state.items.doneCount)/\(state.items.count) done")
                             .font(.caption2.bold())
-                            .foregroundStyle(textColor.opacity(0.6))
+                            .foregroundStyle(secondaryTextColor)
                     } else if state.isDone {
                         Label("Done", systemImage: "checkmark.circle.fill")
                             .font(.caption2.bold())
