@@ -20,7 +20,7 @@
 | **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 4 / 6(剩 D4、D5、D7;D1、D8 可推迟) |
 | **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4 |
 
-**👉 现在:** A / B / C 收官,D 剩 **D4 / D5 / D7**(D4 文案已给,直接贴)。轮到你:贴 **D4** → 答 **D5** 隐私问卷 → 填 **D7** 审核信息,然后 **E1** 出包(我先合并 \`dev\`→\`main\` 打 tag)。另请过目 C3 的新宠物图。
+**👉 现在:** **E1 进行中**——`dev` 已合 `main` 并打 tag `v1.0.0`,轮到你 Xcode Archive → Upload;**D4**(贴文案 / 传截图)、**D5**、**D7** 在提审(E4)前完成即可。另请过目 C3 的新宠物图。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -82,7 +82,7 @@
 
 - [ ] **D1 ⚪ 注册 pawsticky 域名(可选)** — 不再是必需:隐私 / 支持页用 fitpetgo.com 即可(A6)。仅当想要独立官网 / 防抢注时再买。
 - [x] **D2 隐私政策页** 🔴 — ✅ 你已拍板(2026-10-21):**直接用现有 `https://www.fitpetgo.com/privacy-policy`,不另发 PawSticky 专属页**。已知风险(拍板时接受):该页第一段写明"只适用于本网站、不适用于其他渠道",没提 App,内容(网站 cookies / 广告 / 账号注册)与"不收集数据"的问卷口径不一致——审核指南 5.1.1(i) 有拒审可能。**备用方案**(若真被 5.1.1(i) 拒):发布 [`pawsticky-privacy-policy.md`](pawsticky-privacy-policy.md)(留在库里不删)→ 改 `PawItInfo.privacyPolicyURL` → 重出包,损失一个审核周期(1–2 天)。preflight 的对应 ⏳ 已改为记录本决议的 ✅ 项;Core.swift 常量注释同步更新。遗留小项挪到 D4:手机确认 `contact-us` 看得到联系方式。
-- [x] **D3 ASC 创建 App 记录** 🔴 — ✅ 你已完成(2026-10-21)。Bundle ID `com.fitpetgo.pawsticky` 从此锁定;名称以你实际填写为准(D4 文案按草稿名对齐,若不同请告知我改文案)。
+- [x] **D3 ASC 创建 App 记录** 🔴 — ✅ 你已完成(2026-10-21),**名称 = `PawSticky`**(D4 文案第一句即 PawSticky,兼容无需改)。Bundle ID `com.fitpetgo.pawsticky` 从此锁定。
 - [ ] **D4 填商店资料** 🔴 · 2–3h · 依赖 D2 — 副标题 / 宣传文本 / 关键词 / 描述 / What's New 用审计附录 C 的草稿(C5 已做,备份那一段可以保留);类别 Productivity(主)+ Lifestyle(次);价格 Free;可用地区**先只选 NZ**(之后逐步加 CA、US);年龄分级问卷(预期 4+,**不要选 Kids 类别**);内容版权选"不含第三方内容";隐私政策 URL、支持 URL。关键词里**不要放竞品名**。另在手机打开 `contact-us` 确认看得到联系方式(邮箱或表单;ASC Support URL 硬要求,原 D2 遗留);再在 Availability 里关掉 Mac (Designed for iPad) / Apple Vision 兼容(C11 的商店侧动作)。
 - [ ] **D5 App 隐私问卷** 🔴 · 15 分钟 — 预期 **Data Not Collected**。我已在 `f36d2d4` 核对:全部 Swift 源码里没有 `URLSession` / 分析 / 广告 / 定位 / 相册等 API,唯一第三方依赖是 GRDB(本地 SQLite)。以后加任何 SDK 或网络请求,必须回来改这份问卷。
 - [x] **D6 截图** 🔴 — ✅ 完成(2026-10-21):iPhone 7 张(1170×2532 → **1179×2556**)+ Watch 2 张(**416×496**,Series 12 46mm 原生,无需缩放)均已转为无 alpha JPEG,在 `docs/assets/screenshots/asc-upload/`(原片未动);上传时挑 5–6 张 iPhone + 1–2 张 Watch。规格依据:Apple 截图规格页(2026-10-14 核对)+ MobileAction/appscreens 交叉确认(1170×2532 属旧类别,不能作必需集)。
@@ -93,7 +93,7 @@
 
 ## E. 出包 + 提审(你为主,我协助)
 
-- [ ] **E1 构建并上传** 🔴 · 1h · 依赖 B、C、D3 — 先 `xcodegen generate` → 构建 → `scripts/preflight.sh`(0 失败;两个历史 ⏳ 已于 2026-10-21 清零,现为 53 通过 · 0 ⏳ · 0 失败)。(推荐)把 `dev` 合到 `main` 并打 tag(如 `v1.0.0`),保证每个 build 能回溯到代码。Xcode:目标选 Any iOS Device → Product → Archive → Distribute App → App Store Connect → Upload。**每次上传 Build 号必须递增**(改 `project.yml` 的 `CURRENT_PROJECT_VERSION` 后重新 `xcodegen generate`)。完成标准:ASC 的 TestFlight 页出现该 build,状态不是 Invalid / Missing Compliance。
+- [ ] **E1 构建并上传** 🔴 · 1h · 依赖 B、C、D3 — 先 `xcodegen generate` → 构建 → `scripts/preflight.sh`(0 失败;两个历史 ⏳ 已于 2026-10-21 清零,现为 53 通过 · 0 ⏳ · 0 失败)。**前置已完成(2026-10-21)**:`dev` 已合入 `main` 并打 tag `v1.0.0`,preflight 终检通过;待 Xcode Archive → Upload(首传 Build 号 = 1,重传前找我把 `CURRENT_PROJECT_VERSION` +1)。(推荐)把 `dev` 合到 `main` 并打 tag(如 `v1.0.0`),保证每个 build 能回溯到代码。Xcode:目标选 Any iOS Device → Product → Archive → Distribute App → App Store Connect → Upload。**每次上传 Build 号必须递增**(改 `project.yml` 的 `CURRENT_PROJECT_VERSION` 后重新 `xcodegen generate`)。完成标准:ASC 的 TestFlight 页出现该 build,状态不是 Invalid / Missing Compliance。
 - [ ] **E2 TestFlight 内测 + 真机 QA** 🔴 · 3–7 天 — 邀请自己 + 几位朋友(Internal Testing:ASC 用户最多 100 人,**无需审核**),按审计 §8 的 11 个场景在真机跑一遍;设备至少:最小屏 iPhone、带灵动岛的 iPhone、一块 Watch。崩溃以 Xcode Organizer 报告为准,门槛沿用商业计划:崩溃率 < 0.1%。
 - [ ] **E3 修复迭代** 🔴 · [我] — 把 QA 发现的问题(截图 + 复现步骤)给我,我修,你重传(Build 号 +1)。
 - [ ] **E4 提审与发布** 🔴 · 30 分钟 + 审核等待 — 在 ASC 的版本页选 build → 核对 D3–D7 全绿 → Submit for Review。审核通常 1–2 天,首次可能更久。发布方式选"手动发布",过审后自己按下按钮;地区先 NZ。被拒:把拒信贴给我,按条目处理。
