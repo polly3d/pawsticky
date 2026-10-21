@@ -1,4 +1,5 @@
 import SwiftUI
+import ActivityKit
 import Core
 
 /// 设置页面（Soft Companion 风格）——暖色背景一致。
@@ -6,6 +7,8 @@ struct SettingsView: View {
     @State private var growthEnabled: Bool = GrowthSettings.isEnabled
     @State private var backup: BackupController
     @State private var showImporter = false
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var liveActivitiesOn = ActivityAuthorizationInfo().areActivitiesEnabled
     let onDismiss: () -> Void
 
     init(
@@ -30,6 +33,7 @@ struct SettingsView: View {
                     Text("When disabled, completing tasks won't feed your pet or track streaks. Your existing progress is preserved.")
                 }
 
+                liveActivitiesSection
                 dataSection
                 BackupRestoreCard(controller: backup)
                 aboutSection
@@ -46,6 +50,11 @@ struct SettingsView: View {
                 guard let outcome else { return }
                 AccessibilityNotification.Announcement(outcome.message).post()
             }
+            // 用户可能去系统设置改了 Live Activities 再回来——回前台时刷新状态行
+            .onAppear(perform: refreshLiveActivitiesStatus)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshLiveActivitiesStatus() }
+            }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -54,6 +63,38 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Lock Screen（C9）
+
+    /// Live Activities 的开关在 iPhone 系统设置里，App 改不了它——这里给一个
+    /// 可发现的状态行：显示当前通 / 断，点按直达系统设置页。
+    private var liveActivitiesSection: some View {
+        Section {
+            Button {
+                SystemSettings.openAppSettings()
+            } label: {
+                HStack {
+                    Text("Live Activities")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(LiveActivityStatusText.text(activitiesEnabled: liveActivitiesOn))
+                        .foregroundStyle(AppTheme.secondaryText)
+                    Image(systemName: "arrow.up.right")
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.secondaryText)
+                }
+            }
+            .accessibilityHint("Opens iPhone Settings")
+        } header: {
+            Text("Lock Screen")
+        } footer: {
+            Text("Pinning notes to the Lock Screen requires Live Activities. If this shows Off, tap the row to turn it on in iPhone Settings.")
+        }
+    }
+
+    private func refreshLiveActivitiesStatus() {
+        liveActivitiesOn = ActivityAuthorizationInfo().areActivitiesEnabled
     }
 
     // MARK: - Data

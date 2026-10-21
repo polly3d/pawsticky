@@ -19,6 +19,8 @@ struct NoteListView: View {
     @State private var showGrowthDashboard = false
     @State private var showSettings = false
     @State private var shareNote: Note?
+    /// C9：pin 失败的呈现（弹窗）。nil = 无弹窗。
+    @State private var pinIssue: PinIssue?
     /// 刚删除的便签的撤销条（几秒后自动收起）。
     @State private var pendingUndo: PendingUndo?
     @State private var showUndoFailed = false
@@ -144,6 +146,24 @@ struct NoteListView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("The deleted note can no longer be restored.")
+            }
+            // C9：pin 失败的弹窗——被系统关闭时给"去设置"入口
+            .alert(
+                pinIssue?.alertTitle ?? "",
+                isPresented: Binding(
+                    get: { pinIssue != nil },
+                    set: { if !$0 { pinIssue = nil } }
+                ),
+                presenting: pinIssue
+            ) { issue in
+                if issue.showsSettingsShortcut {
+                    Button("Open Settings") { SystemSettings.openAppSettings() }
+                    Button("Not Now", role: .cancel) {}
+                } else {
+                    Button("OK", role: .cancel) {}
+                }
+            } message: { issue in
+                Text(issue.alertMessage)
             }
         }
         .task {
@@ -492,7 +512,12 @@ struct NoteListView: View {
             guard let store = SharedStore.cachedAppGroup() else { return }
             let items = (try? store.noteItems(noteId: note.id)) ?? []
             let pet = try? store.selectedPet()
-            try? LiveActivityManager.pin(note: note, items: items, pet: pet)
+            do {
+                try LiveActivityManager.pin(note: note, items: items, pet: pet)
+            } catch {
+                // C9：不再吞错——Live Activities 被关时指路系统设置
+                pinIssue = PinIssue.issue(for: error)
+            }
         }
     }
 

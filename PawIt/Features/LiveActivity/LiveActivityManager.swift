@@ -28,10 +28,19 @@ enum LiveActivityManager {
     // MARK: - Pin（启动 Live Activity）
 
     /// 将便签钉到锁屏。如果已钉则更新内容。
-    static func pin(note: Note, items: [NoteItem], pet: PetProfile?) throws {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+    ///
+    /// - Parameter activitiesEnabled: 授权探针，默认读系统真实状态，测试注入用。
+    /// - Throws: `LiveActivityUnavailableError.activitiesDisabled`——Live Activities
+    ///   被系统关闭（设置里关掉 / 低电量）。调用方必须把失败呈现给用户，不许再静默（C9）。
+    static func pin(
+        note: Note,
+        items: [NoteItem],
+        pet: PetProfile?,
+        activitiesEnabled: () -> Bool = { ActivityAuthorizationInfo().areActivitiesEnabled }
+    ) throws {
+        guard activitiesEnabled() else {
             logger.warning("Live Activities 未授权，无法钉便签")
-            return
+            throw LiveActivityUnavailableError.activitiesDisabled
         }
 
         let noteIdStr = note.id.uuidString
