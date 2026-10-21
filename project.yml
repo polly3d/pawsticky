@@ -66,6 +66,12 @@ targets:
         # v1.0 仅 iPhone(决议 #3):iPad 布局是被拉伸的手机界面,且声明支持 iPad 就必须提供 iPad 截图。
         # iPad 用户仍可在兼容模式下运行 iPhone App。
         TARGETED_DEVICE_FAMILY: "1"
+        # 同一决议的另一半:默认模板把 "My Mac (Designed for iPad)" 和
+        # "Apple Vision (Designed for iPad)" 运行目的地标成支持(Xcode 目的地列表里
+        # 会多出这两项)。在 Xcode UI 里删目的地活不过下一次 `xcodegen generate`,
+        # 持久层在这里。商店侧的 Mac / Vision 兼容另在 ASC 的 Availability 里关(D3/D4)。
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
   PawItWidget:
     type: app-extension
     platform: iOS
@@ -91,6 +97,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fitpetgo.pawsticky.widgets
         TARGETED_DEVICE_FAMILY: "1"
+        # 与 App target 同一决议:仅 iPhone,不留 Mac / Vision 运行目的地。
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
         SKIP_INSTALL: true
   PawItWatch:
     type: application
