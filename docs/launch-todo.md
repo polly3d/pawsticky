@@ -2,7 +2,7 @@
 
 > **这是唯一回答"现在该做什么、做到哪了"的文档。** 勾了 = 做完;没勾 = 没做。
 > *为什么*要做某一项 → 看审计依据 [`launch-readiness.md`](launch-readiness.md)(只读快照,不再记状态)。
-> **更新:** 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 11/11 完成并通过真机复验**(C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **53 通过 · 0 ⏳ · 0 失败** · 测试 **258 / 258** · 提交都在 `dev` 上(`main` 仍停在 `f36d2d4`,没推送;合并见 E1)· v1.0 免费版 · 仅 iPhone(+ Watch)
+> **更新:** 2026-10-23 · **v1.0 (1) 已提审,被拒 1 次**(Guideline 2.1(a):Watch App 没同步便签)→ **根因已查明并修复,模拟器 + 全量测试已验证,待真机复验后出 Build 2**(见 E5;修复**尚未提交**)· 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 11/11 完成并通过真机复验**(C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **53 通过 · 0 ⏳ · 0 失败** · 测试 **275 / 275**(2.1(a) 修复新增 17;之前 258)· `main` = `dev` = `v1.0.0` = `7b54f6a`(Build 1 的出包点,已推送 origin)· v1.0 免费版 · 仅 iPhone(+ Watch)
 
 **怎么用:** 从上往下做;做完把 `- [ ]` 改成 `- [x]`(或回复我任务编号,我来改)。
 **图例:** 🔴 不做就不能提审 · 🟡 应做(口碑 / 兑现承诺)· ⚪ 可推迟 ｜ **[你]** 只有你能做(账号、审美拍板、对外发布)· **[我]** 我来写代码 / 文档
@@ -18,9 +18,9 @@
 | **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | **5 / 5 已完成**(B4 未触发) |
 | **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **11 / 11 已完成**(C9–C11 真机发现并修复,C10 已复验通过;请你过目 C3 的新宠物图) |
 | **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 4 / 6(剩 D4、D5、D7;D1、D8 可推迟) |
-| **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4 |
+| **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4(Build 1 已提审、被拒 1 次 → **E5 修复中**) |
 
-**👉 现在:** **E1 进行中**——`dev` 已合 `main` 并打 tag `v1.0.0`,轮到你 Xcode Archive → Upload;**D4**(贴文案 / 传截图)、**D5**、**D7** 在提审(E4)前完成即可。另请过目 C3 的新宠物图。
+**👉 现在:** **E5**——v1.0 (1) 因 2.1(a) 被拒,**修复已做完并验证,但还没提交**。轮到:① 你一句话 → 我把 Build 号 +1(→ 2)并提交修复;② **你真机复验**(步骤见 E5,要踩审核员那条路径);③ 重新 Archive → Upload Build 2 → 回复审核 → 重新提审。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -49,7 +49,7 @@
 - [x] **B2 填 Team ID** 🔴 — ✅ 你在 Xcode UI 设置的 Team 只活在本地 pbxproj;我已写入 `Config/Signing.local.xcconfig`(`X38QPV26TR`)并在重新 `xcodegen generate`(UI 设置被冲掉)后验证构建设置仍读到它。
 - [x] **B3 真机跑起来** 🔴 — ✅ 你已真机跑通(2026-10-21),并抓到第一个真机问题:Live Activity 被关后 App 内无入口(→ C9,问题已代码确认)。
 - [ ] **B4 (仅 B3 报 App Group 错才做)** — developer.apple.com → Certificates, IDs & Profiles → Identifiers:手动建 App Group `group.com.fitpetgo.pawsticky.shared`,再到 4 个 App ID(App / Widget / Watch / Watch Widget)的 App Groups 能力里勾上它。
-- [x] **B5 真机冒烟 15 分钟** 🔴 — ✅ 完成(2026-10-21):全项通过——启动 / 选宠 / Widget 家族 / 勾选回 App 同步 / 点按直达(含设置页开着时)/ Watch 数据与新头像 / 备份恢复(明文 + 加密)。C9 回归也过(关掉 Live Activities 点 Pin 弹窗指路)。真机发现的 LA 次级文字偏灰 → C10 已修(待再瞄一眼)。
+- [x] **B5 真机冒烟 15 分钟** 🔴 — ✅ 完成(2026-10-21):全项通过——启动 / 选宠 / Widget 家族 / 勾选回 App 同步 / 点按直达(含设置页开着时)/ Watch 数据与新头像 / 备份恢复(明文 + 加密)。C9 回归也过(关掉 Live Activities 点 Pin 弹窗指路)。真机发现的 LA 次级文字偏灰 → C10 已修(待再瞄一眼)。**⚠️ 2026-10-23 补记:这次冒烟里 Watch 一项能过,走的是"运气路径"**——开发机上 Xcode 同时装两端并重启手表 App,缓存里本来就有数据;"先有便签、后装手表 App"这条冷路径没覆盖到,被审核员踩中(→ E5)。以后真机冒烟必须包含它。
 
 ---
 
@@ -97,6 +97,11 @@
 - [ ] **E2 TestFlight 内测 + 真机 QA** 🔴 · 3–7 天 — 邀请自己 + 几位朋友(Internal Testing:ASC 用户最多 100 人,**无需审核**),按审计 §8 的 11 个场景在真机跑一遍;设备至少:最小屏 iPhone、带灵动岛的 iPhone、一块 Watch。崩溃以 Xcode Organizer 报告为准,门槛沿用商业计划:崩溃率 < 0.1%。
 - [ ] **E3 修复迭代** 🔴 · [我] — 把 QA 发现的问题(截图 + 复现步骤)给我,我修,你重传(Build 号 +1)。
 - [ ] **E4 提审与发布** 🔴 · 30 分钟 + 审核等待 — 在 ASC 的版本页选 build → 核对 D3–D7 全绿 → Submit for Review。审核通常 1–2 天,首次可能更久。发布方式选"手动发布",过审后自己按下按钮;地区先 NZ。被拒:把拒信贴给我,按条目处理。
+- [ ] **E5 审核被拒 · Guideline 2.1(a) "Watch App 没同步便签" → 修复后重新提审** 🔴 — 2026-10-23 首次提审被拒(v1.0 (1);审核设备 iPhone 17 Pro Max + Apple Watch;Submission ID `3ac53f88-fd27-4b1d-93ba-145ff9ab4620`;审核员截图在 `docs/assets/review/`:手表停在空状态 "Open PawSticky on iPhone",而 iPhone 上明明有便签)。**根因已查明、修复已写完、验证已做**,详情与证据见[文末「已完成」](#已完成)里的 E5 记录。修复**还没提交**(留在工作区,等你真机复验后一起提交)。剩下的:
+  - [x] **[我] 根因 + 修复 + 验证** — 两个独立根因都复现并修复:① 手表 App 晚于便签装好时没人补推;② 手表界面只在启动时读一次缓存,数据后到就一直空着。配对模拟器逐场景验证 + 全量 **275 / 275** + preflight **53 / 0 / 0**。![Watch 同步修复前后:上排修复前,下排修复后](assets/launch-audit/18-watch-sync-before-after.jpg)
+  - [ ] **[我] Build 号 +1** — `project.yml` 的 `CURRENT_PROJECT_VERSION` `"1"` → `"2"`,`xcodegen generate`,构建 + preflight,再提交修复(`fix: …`)。**等你一句话**——这是发版决定,我不擅自改。版本号 1.0 不变,Build 号递增即可在同一个版本下重传。
+  - [ ] **[你] 真机复验(约 10 分钟)** — 要踩的正是审核员的路径(开发机 Xcode 同时装两端会掩盖它,所以别用 Xcode 直装来验;理想是用 TestFlight 装 Build 2):① iPhone 上 Watch App → My Watch → 找到 PawSticky,关掉 *Show App on Apple Watch*(或在手表上长按图标删除),让手表端卸载;② 在 iPhone 的 PawSticky 里建 2 条便签(其中一条带清单);③ 重新打开该开关,等手表端装好;④ **只**在手表上打开 PawSticky(别碰 iPhone)→ 期望:几秒内出现宠物头像 + 2 条便签;⑤ 手表开着时在 iPhone 上再建一条 → 期望:手表上实时出现;⑥ 把 iPhone 上的 PawSticky 划掉(强退),重复 ①–④ → 期望:手表照样拿到数据。手表要解锁、在手腕上、与 iPhone 在蓝牙范围内。**任一步不符把现象告诉我**,真机的连通性时序可能与模拟器不同。
+  - [ ] **[你] 重新出包并回复审核** — Archive → Upload Build 2;ASC 版本页把 Build 换成 2;把[附录审核备注模板](#附录审核备注模板)里**已改写的第 6 条**更新到 ASC 的 Notes;在 Resolution Center 回复被拒的那条消息(附录有英文稿,**真机复验通过后再发**);重新 Submit for Review。
 
 ---
 
@@ -203,6 +208,47 @@
 
 </details>
 
+<details>
+<summary>E5 审核被拒 2.1(a)(2026-10-23):根因 / 修复 / 验证证据 / 没验证的</summary>
+
+**拒信要点:** "the watch app does not sync notes at time of review"(v1.0 (1),iPhone 17 Pro Max + Apple Watch)。审核员截图:`docs/assets/review/Screenshot-1023-145811.png`(手表:空状态)、`Screenshot-1023-145837.png`(iPhone:有 Tabby 和一条已完成的 "Test")。
+
+**为什么 B5 没抓到:** 开发机上 Xcode 同时装两端并**重启**手表 App,缓存里已有数据——走的是"运气路径"。而 ASC 审核备注让审核员**先建便签(第 2 步)、再从 Watch App 里装手表端(第 6 步)**,正好踩中冷路径。
+
+**两个独立根因**(都在配对模拟器上用审核员的顺序复现,按 iPhone 日志 → 手表日志 → 落盘 → 截图逐层对证):
+
+| # | 根因 | 修复前的现场证据 |
+|---|---|---|
+| ① 投递缺口 | iPhone 只在"激活 / 回前台 / 便签变更"时推送,`isWatchAppInstalled == false` 时直接跳过;**没实现 `sessionWatchStateDidChange`**,手表 App 装好后没人通知 iPhone 去补推;手表端也从不主动要 | iPhone 日志在装手表 App 前只有 `未配对 Watch 或未安装 Watch App，跳过同步`,装好之后**一条都没有** |
+| ② 界面不刷新 | `WatchNoteListView` 只在 `.task` 里读**一次** UserDefaults;数据**后到**(冷启动激活回调、后台推送、之后的推送)只落盘、不重绘 | iPhone 回前台后推送成功、手表日志 `收到同步:1 条便签,存入 UserDefaults`,但**屏幕仍是空状态**(对比图 BEFORE 2);重启手表 App 才出现(BEFORE 3) |
+
+**修复(源码 4 改 + 1 新,测试 2 新;均未提交):**
+- `Core/Sources/Core/Store/WatchSnapshotStore.swift`(新):手表端**可观察**的快照存储(`@MainActor @Observable`)。界面读它;Watch Widget 读它落的盘(同一个 UserDefaults key、同一种编码,有测试守着)。**新 `syncDate` 优先**——几条来路可能乱序,旧快照不许盖新的;同时间戳视为幂等。
+- `Core/Sources/Core/Store/WatchPayload.swift`:新增"要快照"请求的契约(`snapshotRequest` / `isSnapshotRequest`),两端共用一处定义。
+- `PawIt/Features/Watch/PhoneSessionManager.swift`:① 实现 `sessionWatchStateDidChange` → 重新 `syncToWatch()`(手表 App 一装好就补推);② 实现 `didReceiveMessage`:手表来要时应答当前快照;③ 抽出 `WatchSessionProviding` 协议接缝,让这两条路径不依赖真 WCSession 就能测。状态守卫(未激活 / 未配对 / 未安装)原样保留在 `syncToWatch()` 里。
+- `PawItWatch/WatchSessionManager.swift`:收到的快照一律汇入 `store`;**激活后 / 回前台 / iPhone 变得可达时主动向 iPhone 要一份**(未激活或不可达时先跳过,连通性恢复再补要);空应答不会覆盖缓存里的好数据。
+- `PawItWatch/PawItWatchApp.swift`:视图改读 `store`(快照什么时候到就什么时候重绘);回前台触发拉取;**区分两种空状态**——从未同步:"Open PawSticky on iPhone";已同步但确实没有便签:"No notes yet / Add one on iPhone"(此前后者也显示前者,看上去像同步坏了)。
+
+**验证(2026-10-23):**
+1. **TDD,先红后绿:** Core `WatchSnapshotStoreTests` +10;App `PhoneSessionManagerTests` +7(含"手表 App 装在便签之后、无需任何操作即得到快照"这条审核员路径)。对 `WatchSnapshotStore` 做了**变异检查**(临时改坏"旧快照不许覆盖新快照"→ 对应测试变红 → 还原,文件与备份逐字节一致)。过程中抓到过一次假绿:新测试文件没进 Xcode 工程,`TEST SUCCEEDED` 却是 `Executed 0 tests`,`xcodegen generate` 后才看到真正的红——**看到 "TEST SUCCEEDED" 之后还要看用例数**。
+2. **配对模拟器重放**(iPhone 17 Pro iOS 26.5 ↔ Apple Watch Series 12 watchOS 27.0;证据图 [18](assets/launch-audit/18-watch-sync-before-after.jpg)):先在**未修复**的构建上复现(上排三张),再在修复版上跑四个场景(下排四张):
+   - **S1 审核员路径** — iPhone App 开着、便签已存在,**事后**才装 Watch App,全程不碰 iPhone:iPhone 日志 `Watch 状态变化，重新同步 → 同步到 Watch 成功：1 条便签`(修复前此处是零条);手表打开即见 Tabby + 便签,日志里还能看到主动拉取拿到了应答。
+   - **S2 最难的冷路径** — iPhone App **没在运行**、手表缓存为空:手表打开 1.5 秒时仍是空状态(合理);随后系统在后台把 iPhone App 拉起(无人操作下出现新进程),它激活后自己推了一次,手表在连通性恢复时又拉了一次并拿到应答——约 3 秒内**同一个手表进程自动填满**,没重启、没碰任何一端。修复前同样的"数据到了界面不动"正是被拒的画面。
+   - **S3 实时更新** — 手表开着,iPhone 上新增带清单的便签并回前台:0.6 秒内手表出现 "Buy milk · 1/2 items",手表没被碰过。
+   - **S4 已同步的空列表** — 清空便签:手表显示 "No notes yet / Add one on iPhone"。这一步里模拟器把手表 App 的"已安装"状态翻成了 false 又翻回 true(见下面的坑),iPhone 在翻回来后 **1.3 秒内自己补推了"0 条便签"**,顺带在真实环境里验证了状态变化回调,以及"激活时遗留的旧 context(2 条)先到、新推送(0 条)后到,以新者为准"的顺序保护。
+3. **全量回归:** `xcodebuild test` **275 / 275**(Core 204 + App 71;基线 258 + 17);标准 `generic/platform=iOS Simulator` 构建成功,我改动的文件零警告;`scripts/preflight.sh` **53 通过 · 0 ⏳ · 0 失败**;源码里无 `TEMP-SHOT` 残留。
+
+**没验证的 / 已知局限:**
+- **只在模拟器验证过,没有真机**——尤其是 TestFlight 路径下系统自动装 Watch App 的时序,以及 `sendMessage` 在真机上把没运行的 iPhone App 拉起的行为(官方文档行为;模拟器里实际观察到的是另一条路径:手表 App 一打开,系统就在后台拉起了 iPhone App)。→ E5 的真机复验步骤。
+- 手表端胶水代码(`WatchSessionManager` / 视图)没有单测(工程里没有 Watch 测试 target),靠模拟器场景验证;可观察存储与 iPhone 端逻辑有单测。
+- `applicationContext` 有约 64 KB 的体积上限(系统限制);便签特别多时可能超限,**v1.0 未处理**(既有行为,非本次引入),可放 v1.0.x:截断到最近 N 条。
+- 既有隐患(没动):`WatchPayload.fromStore` 读库失败时用 `try?` 吞错,可能推一份空快照,把手表上的好数据盖掉。
+- 没加 `.backgroundTask(.watchConnectivity)`:手表 App 在后台被推送唤醒时的收尾靠系统给的短暂运行时间,模拟器里观察到数据能正常落盘。
+
+**模拟器验证的新坑(也记进了 CLAUDE.md):** `simctl install` 重装 iPhone App 后,`appconduitd` 会排一次"把内嵌手表 App 自动装到手表上"的任务,约 90 秒后可能失败(`ACXErrorDomain Code=12`),并把手表 App 记成"未安装"——`isWatchAppInstalled` 随之变 false,iPhone 的推送被守卫跳过。手表模拟器里其实还装着(`simctl listapps` 看得到),这是**两条安装通道记账不一致**的假象,真机只走 appconduitd 一条通道。**对策:** 原地再 `simctl install` 一次手表 App 即可翻回 true(这也是验证 `sessionWatchStateDidChange` 的现成办法)。
+
+</details>
+
 ---
 
 ## 附录:常用命令
@@ -220,7 +266,7 @@ xcrun simctl io booted screenshot shot.png          # 模拟器截图;iPhone 17 
 
 ## 附录:审核备注模板
 
-贴进 ASC → App Review Information → Notes。**第 5、6 条的措辞等真机 QA 后再核对一遍**(Watch 的描述我还没在真机上验证)。
+贴进 ASC → App Review Information → Notes。**第 5、6 条的措辞等真机 QA 后再核对一遍**(Watch 的描述我还没在真机上验证)。**第 6 条于 2026-10-23 因 2.1(a) 重写**:审核员的顺序是"先建便签、再装手表端",旧措辞没说装好后多久出现、要不要动 iPhone;新措辞对应修复后的行为,但**真机复验(E5)通过前别当定稿**。
 
 ```text
 PawSticky works fully offline and needs no account or sign-in. All data stays on the device.
@@ -231,7 +277,26 @@ Try it in 30 seconds:
 3. Add the widget: long-press the Home Screen > "+" > search "PawSticky" > add a Small, Medium or Large widget. Lock Screen widgets: long-press the Lock Screen > Customize > Add Widgets.
 4. Tap the checkmark on the widget to complete a note, then open the app. The note is checked off and your pet has been fed.
 5. Live Activity: long-press a note in the list and choose Pin to show it on the Lock Screen.
-6. Apple Watch: install the Watch app from the Watch app on iPhone; it shows your current note and pet.
+6. Apple Watch: install the Watch app from the Watch app on iPhone (My Watch > PawSticky > Install), then open it on the Watch. Your pet and your notes appear within a few seconds, and notes you create, complete or delete on iPhone keep showing up there automatically. The Watch app is a read-only mirror, so there is nothing to set up on the Watch.
 
 Notifications are optional. Permission is requested only when you set a reminder on a note. The app does not collect or transmit any data.
+```
+
+## 附录:被拒回复模板(2.1(a) Watch 不同步 · Build 2)
+
+贴进 ASC → Resolution Center,回复被拒的那条消息。**真机复验(E5)通过后再发**;发之前把里面"within a few seconds"核对成你真机上看到的实际情况。
+
+```text
+Hello App Review team,
+
+Thank you for the feedback. We reproduced the problem: when the Watch app was installed after notes had already been created on the iPhone, it stayed on its empty screen. The iPhone only sent notes when something changed on the iPhone, and the Watch screen did not refresh when data arrived late.
+
+Build 2 fixes this in three ways:
+1. The iPhone app now sends the current notes to the Watch as soon as the Watch app becomes available.
+2. The Watch app now asks the iPhone for the latest notes whenever it opens or the iPhone becomes reachable.
+3. The Watch screen now updates the moment notes arrive. It also shows "No notes yet" instead of the setup message when there really are no notes.
+
+To check: create a note in PawSticky on the iPhone, then install the PawSticky Watch app (Watch app on iPhone > My Watch > PawSticky > Install) and open it on the Watch. The note appears within a few seconds. We have also updated the App Review Notes with these steps.
+
+Thank you for your time.
 ```

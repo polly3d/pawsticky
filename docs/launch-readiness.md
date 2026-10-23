@@ -306,7 +306,7 @@ zh-Hans 显示名可独立于英文品牌名(`InfoPlist.strings` + ASC 本地化
 | 5 | 低电量模式、后台刷新关闭、存储空间不足 | 降级但可用 |
 | 6 | 升级路径:旧 build → 新 build | 数据保留;**改 App Group 会使旧测试数据丢失——仅限开发机** |
 | 7 | Live Activity 启停与 12h 过期 | 过期后清理 / 前台重启 |
-| 8 | Watch:配对 / 断连 / 无数据态 | 无数据时显示 "Open … on iPhone" |
+| 8 | Watch:配对 / 断连 / 无数据态;**先有便签、后装手表 App**(审核员路径,2.1(a) 被拒的现场)与 **iPhone App 没在运行**两条冷路径(开发机 Xcode 同时装两端会掩盖它们) | 从未同步显示 "Open … on iPhone",已同步但没有便签显示 "No notes yet";装好 / 打开手表 App 后几秒内出现便签,不用先去动 iPhone;手表开着时 iPhone 的改动实时出现。详见 `launch-todo.md` E5 |
 | 9 | 无障碍:VoiceOver 过一遍主流程;Dynamic Type XXL;Reduce Motion(喂食动画) | 可完成主流程 |
 | 10 | 通知:拒绝权限后的行为;到期提醒触达;点击通知的深链 | 不循环弹窗;深链正确 |
 | 11 | 导出 → 导入 → 回滚往返(若做 P1-6) | 数据逐条一致 |
