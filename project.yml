@@ -12,7 +12,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
 # 签名团队来自本地 xcconfig（不入库）：见 Config/Base.xcconfig 与 Config/Signing.local.xcconfig.example。
 # 没有本地文件时不影响构建；上架/真机调试前复制模板并填 Team ID 即可。
