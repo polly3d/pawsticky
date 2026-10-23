@@ -79,12 +79,14 @@ struct NoteActivityLiveActivity: Widget {
                 }
             } compactLeading: {
                 // ── 药丸左端：宠物头像 ──
-                petImage(context.attributes.petSpecies)
-                    .frame(width: 24, height: 24)
-                    .clipShape(Circle())
+                // 必须用 badge 档位（≤144px）：系统归档 Live Activity 画面时会按呈现形式的尺寸
+                // 卡图片上限，超限不报错、只静默换成灰色占位图——Watch 智能叠放上的灰圆盘就是它
+                // （日志 "Max size exceeded: 437.85x219.6; using placeholder image"，此前这里
+                // 用的是 480px 的举牌图）。上限由 scripts/preflight.sh 守住。
+                PetBadge(speciesRaw: context.attributes.petSpecies, size: 24)
             } compactTrailing: {
-                // ── 药丸右端：便签标题缩略 ──
-                Text(context.state.noteText.prefix(12))
+                // ── 药丸右端：便签标题缩略（按词边界 + 省略号，口径见 Core 的 LiveActivityText）──
+                compactTitleText(context.state.noteText)
                     .font(.caption)
                     .lineLimit(1)
             } minimal: {
@@ -212,4 +214,41 @@ private func petImage(_ speciesRaw: String) -> some View {
 /// 便签背景色（NoteStylePreset 单一定义——此前硬编码 RGB 副本，P0-4 修复）。
 private func noteBackground(_ styleRaw: String?) -> Color {
     NoteStylePreset.resolve(styleRaw).backgroundColor
+}
+
+/// 宠物小头像：物种淡色圆底 + 胸像（85%，耳尖不会被圆形裁掉）。
+///
+/// 只加载 `pet-<sp>-badge`（48/96/144px）——紧凑态 / 手表小呈现的图片尺寸上限很低，
+/// 超限会被系统换成灰色占位图，见 `art/scripts/export-pet-imagesets.sh` 的说明。
+/// 圆底配色与主屏 Widget 的 `WidgetPetAvatar` 保持一致（同一套物种色相）。
+private struct PetBadge: View {
+    let speciesRaw: String
+    let size: CGFloat
+
+    private var hue: Double {
+        PetSpecies(rawValue: speciesRaw).map { PetAsset.accentHue(species: $0) } ?? 30
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color(hue: hue / 360, saturation: 0.2, brightness: 0.97))
+            Image("pet-\(speciesRaw)-badge")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.85, height: size * 0.85)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+/// 紧凑态标题：空便签显示 "Untitled"（与锁屏卡片一致），其余走 `LiveActivityText` 的缩略口径。
+@ViewBuilder
+private func compactTitleText(_ raw: String) -> some View {
+    let title = LiveActivityText.compactTitle(raw)
+    if title.isEmpty {
+        Text("Untitled")
+    } else {
+        Text(verbatim: title)
+    }
 }

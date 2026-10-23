@@ -151,6 +151,46 @@ else
   for f in $missing_pet; do printf '       %s\n' "$f"; done
 fi
 
+# Live Activity 小呈现头像（badge）：系统归档 Live Activity 画面时，图片超过呈现形式的尺寸上限
+# 会被**静默**换成灰色占位图（日志 "Max size exceeded: … using placeholder image"）——不崩溃、
+# 不报错，只有看系统日志才发现。Watch 智能叠放上那个灰圆盘就是这么来的（480px 的举牌图被用在 24pt
+# 的紧凑态里）。所以这个档位要齐全，且每张都不能超过 BADGE_MAX_PX。
+# 素材由 art/scripts/export-pet-imagesets.sh 生成（BADGE_BASE=48 → 48/96/144px）。
+BADGE_MAX_PX=144
+bad_badge=""
+for sp in cat graycat corgi shiba rabbit hamster; do
+  for scale in 1x 2x 3x; do
+    f="PawItWidget/Assets.xcassets/pet-$sp-badge.imageset/pet-$sp-badge@$scale.png"
+    if [[ ! -f "$f" ]]; then
+      bad_badge="$bad_badge       缺 $f"$'\n'
+      continue
+    fi
+    w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}')
+    h=$(sips -g pixelHeight "$f" | awk '/pixelHeight/{print $2}')
+    if (( w > BADGE_MAX_PX || h > BADGE_MAX_PX )); then
+      bad_badge="$bad_badge       $f 是 ${w}×${h}，超过上限 ${BADGE_MAX_PX}px"$'\n'
+    fi
+  done
+done
+if [[ -z "$bad_badge" ]]; then
+  ok "Live Activity 小头像 badge 齐全（6 物种 × 3 档），每张 ≤ ${BADGE_MAX_PX}px"
+else
+  bad "Live Activity 小头像 badge 缺失或超限（超限会被系统静默换成灰色占位图）："
+  printf '%s' "$bad_badge"
+fi
+
+# 紧凑态左端（灵动岛药丸 / 手表默认卡片）不得改回大图：此前用 petImage()（480px 举牌图），
+# 在手表上整个变成灰圆盘。只检查代码行，注释里提到 petImage 不算。
+compact_leading=$(awk '/compactLeading:/{on=1} /compactTrailing:/{on=0} on' PawItWidget/NoteActivityLiveActivity.swift \
+  | grep -vE '^[[:space:]]*//')
+if [[ -z "$compact_leading" ]]; then
+  bad "PawItWidget/NoteActivityLiveActivity.swift 里找不到 compactLeading（守卫失效，检查这条 awk）"
+elif printf '%s\n' "$compact_leading" | grep -qE 'petImage\('; then
+  bad "compactLeading 用了 petImage()（480px 举牌图，会被系统换成灰色占位图）——改用 PetBadge"
+else
+  ok "compactLeading 没有使用大图（走 PetBadge / badge 档位）"
+fi
+
 # ---------------------------------------------------------------------------
 section "构建产物"
 
