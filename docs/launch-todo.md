@@ -2,7 +2,7 @@
 
 > **这是唯一回答"现在该做什么、做到哪了"的文档。** 勾了 = 做完;没勾 = 没做。
 > *为什么*要做某一项 → 看审计依据 [`launch-readiness.md`](launch-readiness.md)(只读快照,不再记状态)。
-> **更新:** 2026-10-23 · **v1.0 (1) 已提审,被拒 1 次**(Guideline 2.1(a):Watch App 没同步便签)→ **根因已查明并修复,模拟器 + 全量测试已验证,待真机复验后出 Build 2**(见 E5;修复**尚未提交**)· 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 11/11 完成并通过真机复验**(C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **53 通过 · 0 ⏳ · 0 失败** · 测试 **275 / 275**(2.1(a) 修复新增 17;之前 258)· `main` = `dev` = `v1.0.0` = `7b54f6a`(Build 1 的出包点,已推送 origin)· v1.0 免费版 · 仅 iPhone(+ Watch)
+> **更新:** 2026-10-23 · **v1.0 (1) 已提审,被拒 1 次**(Guideline 2.1(a):Watch App 没同步便签)→ **根因已查明并修复,你已真机复验通过;另修了真机发现的 C12(pin 图标不立刻显示);Build 号已 +1(→ 2),修复已提交到本地 `main`(未推送、未打 tag),等你 Archive → Upload Build 2**(见 E5)· 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 12/12 完成**(C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地已通过真机复验;C12 pin 图标即时显示在模拟器上验证,待真机瞄一眼)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **53 通过 · 0 ⏳ · 0 失败**(四个 bundle 构建号均为 2)· 测试 **285 / 285**(Core 204 + App 81;2.1(a) 修复新增 17、C12 新增 10;之前 258)· `v1.0.0` = `7b54f6a`(Build 1 的出包点,已推送 origin);Build 2 的修复在 `main` 的 `678095b`…`7f265f4`(之后另有一个文档提交;本地,**未推送、未打 tag**;`dev` 仍停在 `7b54f6a`)· v1.0 免费版 · 仅 iPhone(+ Watch)
 
 **怎么用:** 从上往下做;做完把 `- [ ]` 改成 `- [x]`(或回复我任务编号,我来改)。
 **图例:** 🔴 不做就不能提审 · 🟡 应做(口碑 / 兑现承诺)· ⚪ 可推迟 ｜ **[你]** 只有你能做(账号、审美拍板、对外发布)· **[我]** 我来写代码 / 文档
@@ -16,11 +16,11 @@
 | ✅ 工程 P0 | 改名 / ID / 隐私清单 / 版本号 / 合规键 / 相册崩溃 / 回前台刷新 / 锁浅色 / 仅 iPhone | 我 | **已完成** → [文末](#已完成) |
 | **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | **6 / 6 已完成** |
 | **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | **5 / 5 已完成**(B4 未触发) |
-| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **11 / 11 已完成**(C9–C11 真机发现并修复,C10 已复验通过;请你过目 C3 的新宠物图) |
+| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **12 / 12 已完成**(C9–C12 真机发现并修复,C10 已复验通过,C12 待真机瞄一眼;请你过目 C3 的新宠物图) |
 | **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 4 / 6(剩 D4、D5、D7;D1、D8 可推迟) |
-| **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4(Build 1 已提审、被拒 1 次 → **E5 修复中**) |
+| **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4(Build 1 已提审、被拒 1 次 → **E5:修复已提交、Build 号已是 2,等你出包**) |
 
-**👉 现在:** **E5**——v1.0 (1) 因 2.1(a) 被拒,**修复已做完并验证,但还没提交**。轮到:① 你一句话 → 我把 Build 号 +1(→ 2)并提交修复;② **你真机复验**(步骤见 E5,要踩审核员那条路径);③ 重新 Archive → Upload Build 2 → 回复审核 → 重新提审。
+**👉 现在:** **E5**——Build 2 已备好:2.1(a) 的修复你已真机复验通过,真机发现的 pin 图标小 bug(C12)也修好了,Build 号已 +1(→ 2),修复都已提交到本地 `main`。轮到你:① (推荐)先推送 `main` 并打 tag(如 `v1.0.0-b2`),让 Build 2 可回溯到代码;② Archive → Upload Build 2 → ASC 版本页把 Build 换成 2;③ 更新审核备注第 6 条 → Resolution Center 回复 → 重新提审。**真机上顺手看一眼 C12**(点 Pin / Unpin 后图钉应当立刻出现 / 消失),并建议 Build 2 上 TestFlight 后把 E5 的冷路径步骤再走一遍。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -75,6 +75,11 @@
 - [x] **C9 Live Activity 被系统关闭后无入口(B3 真机发现)** 🟡 — ✅ 已修(2026-10-21,方案你拍板:失败弹窗 + 设置页状态行):**问题**——锁屏移除 / 系统设置里关掉 Live Activities 后,`pin` 的 `areActivitiesEnabled` 守卫只写 os_log 就静默返回,`togglePin` 又用 `try?` 吞掉,点 Pin 零反馈且 App 内无任何"去系统设置打开"的入口(低电量也触发同一静默失败;只划掉 Activity 而开关还开着时再 Pin 本来就能恢复,`isPinned` 只认 `.active`)。**修法**:① `pin` 改为 throw `LiveActivityUnavailableError.activitiesDisabled`(授权探针参数可注入,测试用);② 列表 `togglePin` do/catch → `PinIssue` 归因弹窗("Live Activities Are Off" + **Open Settings** 直达 `openSettingsURLString`,全工程唯一出口;其他失败给通用重试文案);③ 设置页新增 Lock Screen 分组:Live Activities On/Off 状态行,点按直达系统设置,回前台(`scenePhase == .active`)自动刷新。**验证**:先写 4 个测试看红(缺类型 / 缺参数),实现后 **258 / 258 通过**(Core 194 + App 64,新增 4);preflight **53 通过 · 0 ⏳ · 0 失败**;改动文件无新增编译警告(增量构建)。**真机回归**:✅ 通过(2026-10-21)——弹窗指路、状态行刷新都验过;顺带发现 LA 文字偏灰 → C10。
 - [x] **C10 Live Activity 卡片发灰看不清(B5 真机反馈,三轮)** 🟡 — ✅ 已修(2026-10-21):**第一轮**按次级文字透明度修(0.4–0.6 → 0.75),复验仍灰;**第二轮**真机截图视觉分析定位到"粉彩底根本没画、系统深玻璃 + 系统灰阶文字",按 `containerBackgroundRemovable(false)` 修——真机复验**仍玻璃**(该开关对锁屏 LA 无效);**第三轮**查官方文档(Creating custom views for Live Activities)钉死真因:**锁屏 LA 的背景色归 `activityBackgroundTint(_:)` 管**(默认白 / 黑 / iOS 26 玻璃),`containerBackground(for: .widget)` 是主屏 Widget 的机制、对锁屏 LA 从未生效——粉彩其实一直没画上去过,iOS 26 把默认底改成玻璃才暴露。修法:`activityBackgroundTint(便签色)` + 文档配套的 `activitySystemActionForegroundColor(墨色)`(系统"结束"辅助按钮的文字色)。**真机复验**:✅ 通过(2026-10-21)——粉彩底 + 深字回来了。三轮终修的教训:锁屏 LA 的背景归 `activityBackgroundTint`,View 层的 `containerBackground` 管不到它。
 - [x] **C11 收敛运行目的地到仅 iPhone** 🟡 — ✅ 已做(2026-10-21):`project.yml` 给 PawIt / PawItWidget 显式 `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO`、`SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO`,重新生成后 Xcode 目的地列表只剩 iPhone(在 Xcode UI 里删活不过 `xcodegen generate`,持久层必须在 yml)。**注意**:这两个开关只管构建 / 运行目的地;商店侧的 Mac / Vision 兼容是 ASC 的 Availability 设置(D4 顺手关),且 Designed-for-* 渠道复用 iOS 截图、本来不需要额外截图。
+- [x] **C12 Pin 之后钉住图标不立刻显示(E5 真机复验时发现)** 🟡 — ✅ 已修(2026-10-23,`1610f29`):点 Pin 后便签卡片右上角的橙色图钉要切走再回 App 才出现;Unpin 同理(图标赖着不走)。![pin 图标修复前后:pin / unpin 后 2.5 秒图标有没有跟上](assets/launch-audit/19-pin-icon-before-after.jpg)
+  - **根因(模拟器复现 + 日志对证):** 列表在 `body` 里直接问 ActivityKit(`LiveActivityManager.isPinned`)——那是**不可观察**的外部状态,而 `togglePin` 又没改任何 `@State`,SwiftUI 没有重绘的理由。数据本身是对的(pin 返回时 ActivityKit 已报告 `true`);"切走再回来就好了"只是因为回前台的 `reloadNotes()` 重新赋值 `notes`、顺带整页重绘。和 2.1(a) 的手表空状态是同一类坑:**界面显示的外部状态必须有可观察的持有者**(已写进 CLAUDE.md 代码规范)。
+  - **修法:** 新增 `@MainActor @Observable PinnedNotes`,列表读它;`togglePin` 当场 `didPin` / `didUnpin`,`reloadNotes()`(回前台、各 sheet 关闭时)与 ActivityKit 对齐——锁屏上被划掉、系统到期收走都靠这一步反映回来。**一个坑:** `Activity.end` 是**异步**的,`unpin()` 返回 6ms 后 ActivityKit 仍报告"钉着",约 500ms 后才变;这个窗口里恰好来一次对齐,就会把刚取消的图标"拉回来"。所以持有者记住"已请求结束"的便签,系统真正报告结束之前不显示。`LiveActivityManager.isPinned` 因此无人调用,已删(换成 `pinnedNoteIds()`,注释写明界面不许在 `body` 里直接调它)。
+  - **验证:** ① 先写 10 个测试看红(桩实现下全是断言失败,不是缺符号),再实现转绿;对 `ending` 记账做了两个**变异检查**(去掉"压着已请求结束的" → 竞态测试红;去掉"系统结束后解除压制" → "可再次钉住"测试红;均已还原)。② 模拟器按同一流程做前后对比(上图:每组中间一格是关键帧;日志里 unpin 后 `activityKit=true ui=false`,500ms 后两者都是 `false`);冷启动时 Activity 还活着,图钉也能正确显示。③ 全量 **285 / 285**(Core 204 + App 81),标准构建 0 警告,preflight 53 / 0 / 0。
+  - **没验证的:** 真机(Live Activity 的 `end` 时序可能与模拟器不同,但对账逻辑不依赖具体毫秒数);"在锁屏上把卡片划掉后回 App,图钉消失"这条对齐路径只有单测(`refreshDropsActivitiesTheSystemHasEnded`),没在模拟器里操作过(`simctl` 点不了屏)。删除便签 / 备份恢复也会结束 Activity,但被结束的便签那时已不在列表里,图标无从显示,之后的 `reloadNotes()` 会对齐,没有单独处理。→ **真机请看:Pin 后图钉立刻出现;Unpin 后立刻消失;Pin 后在锁屏上划掉那张卡片,回 App 图钉消失。**
 
 ---
 
@@ -97,11 +102,11 @@
 - [ ] **E2 TestFlight 内测 + 真机 QA** 🔴 · 3–7 天 — 邀请自己 + 几位朋友(Internal Testing:ASC 用户最多 100 人,**无需审核**),按审计 §8 的 11 个场景在真机跑一遍;设备至少:最小屏 iPhone、带灵动岛的 iPhone、一块 Watch。崩溃以 Xcode Organizer 报告为准,门槛沿用商业计划:崩溃率 < 0.1%。
 - [ ] **E3 修复迭代** 🔴 · [我] — 把 QA 发现的问题(截图 + 复现步骤)给我,我修,你重传(Build 号 +1)。
 - [ ] **E4 提审与发布** 🔴 · 30 分钟 + 审核等待 — 在 ASC 的版本页选 build → 核对 D3–D7 全绿 → Submit for Review。审核通常 1–2 天,首次可能更久。发布方式选"手动发布",过审后自己按下按钮;地区先 NZ。被拒:把拒信贴给我,按条目处理。
-- [ ] **E5 审核被拒 · Guideline 2.1(a) "Watch App 没同步便签" → 修复后重新提审** 🔴 — 2026-10-23 首次提审被拒(v1.0 (1);审核设备 iPhone 17 Pro Max + Apple Watch;Submission ID `3ac53f88-fd27-4b1d-93ba-145ff9ab4620`;审核员截图在 `docs/assets/review/`:手表停在空状态 "Open PawSticky on iPhone",而 iPhone 上明明有便签)。**根因已查明、修复已写完、验证已做**,详情与证据见[文末「已完成」](#已完成)里的 E5 记录。修复**还没提交**(留在工作区,等你真机复验后一起提交)。剩下的:
+- [ ] **E5 审核被拒 · Guideline 2.1(a) "Watch App 没同步便签" → 修复后重新提审** 🔴 — 2026-10-23 首次提审被拒(v1.0 (1);审核设备 iPhone 17 Pro Max + Apple Watch;Submission ID `3ac53f88-fd27-4b1d-93ba-145ff9ab4620`;审核员截图在 `docs/assets/review/`:手表停在空状态 "Open PawSticky on iPhone",而 iPhone 上明明有便签)。**根因已查明、修复已写完、验证已做**,详情与证据见[文末「已完成」](#已完成)里的 E5 记录。修复**已提交**(`678095b`,提交表见文末),Build 号也已 +1。剩下的:
   - [x] **[我] 根因 + 修复 + 验证** — 两个独立根因都复现并修复:① 手表 App 晚于便签装好时没人补推;② 手表界面只在启动时读一次缓存,数据后到就一直空着。配对模拟器逐场景验证 + 全量 **275 / 275** + preflight **53 / 0 / 0**。![Watch 同步修复前后:上排修复前,下排修复后](assets/launch-audit/18-watch-sync-before-after.jpg)
-  - [ ] **[我] Build 号 +1** — `project.yml` 的 `CURRENT_PROJECT_VERSION` `"1"` → `"2"`,`xcodegen generate`,构建 + preflight,再提交修复(`fix: …`)。**等你一句话**——这是发版决定,我不擅自改。版本号 1.0 不变,Build 号递增即可在同一个版本下重传。
-  - [ ] **[你] 真机复验(约 10 分钟)** — 要踩的正是审核员的路径(开发机 Xcode 同时装两端会掩盖它,所以别用 Xcode 直装来验;理想是用 TestFlight 装 Build 2):① iPhone 上 Watch App → My Watch → 找到 PawSticky,关掉 *Show App on Apple Watch*(或在手表上长按图标删除),让手表端卸载;② 在 iPhone 的 PawSticky 里建 2 条便签(其中一条带清单);③ 重新打开该开关,等手表端装好;④ **只**在手表上打开 PawSticky(别碰 iPhone)→ 期望:几秒内出现宠物头像 + 2 条便签;⑤ 手表开着时在 iPhone 上再建一条 → 期望:手表上实时出现;⑥ 把 iPhone 上的 PawSticky 划掉(强退),重复 ①–④ → 期望:手表照样拿到数据。手表要解锁、在手腕上、与 iPhone 在蓝牙范围内。**任一步不符把现象告诉我**,真机的连通性时序可能与模拟器不同。
-  - [ ] **[你] 重新出包并回复审核** — Archive → Upload Build 2;ASC 版本页把 Build 换成 2;把[附录审核备注模板](#附录审核备注模板)里**已改写的第 6 条**更新到 ASC 的 Notes;在 Resolution Center 回复被拒的那条消息(附录有英文稿,**真机复验通过后再发**);重新 Submit for Review。
+  - [x] **[我] Build 号 +1** — ✅ 已做(2026-10-23,你说"版本号加到 2"):`project.yml` 的 `CURRENT_PROJECT_VERSION` `"1"` → `"2"`(`7f265f4`),`xcodegen generate`(入库的 plist 引用变量,无需变动),完整测试 + 标准构建 + preflight 全绿,四个 bundle 构建号均为 2。**我没有 Archive / 上传。** 版本号 1.0 不变,Build 号递增即可在同一个版本下重传。
+  - [x] **[你] 真机复验** — ✅ 你已在真机上测过,效果正常(2026-10-23)。当时走的是哪条路径没有记录;开发机 Xcode 直装会掩盖冷路径(见 B5 补记),所以 **Build 2 传上 TestFlight 后,建议用 TestFlight 版把下面的步骤再走一遍**(尤其 ① 手表端先卸再装、⑥ iPhone App 被划掉)——重新提审前最便宜的一道保险。步骤(要踩的正是审核员的路径):① iPhone 上 Watch App → My Watch → 找到 PawSticky,关掉 *Show App on Apple Watch*(或在手表上长按图标删除),让手表端卸载;② 在 iPhone 的 PawSticky 里建 2 条便签(其中一条带清单);③ 重新打开该开关,等手表端装好;④ **只**在手表上打开 PawSticky(别碰 iPhone)→ 期望:几秒内出现宠物头像 + 2 条便签;⑤ 手表开着时在 iPhone 上再建一条 → 期望:手表上实时出现;⑥ 把 iPhone 上的 PawSticky 划掉(强退),重复 ①–④ → 期望:手表照样拿到数据。手表要解锁、在手腕上、与 iPhone 在蓝牙范围内。**任一步不符把现象告诉我**,真机的连通性时序可能与模拟器不同。
+  - [ ] **[你] 重新出包并回复审核** — Archive → Upload Build 2;ASC 版本页把 Build 换成 2;把[附录审核备注模板](#附录审核备注模板)里**已改写的第 6 条**更新到 ASC 的 Notes;在 Resolution Center 回复被拒的那条消息(附录有英文稿;真机复验已通过,发之前把措辞核对成你看到的实际现象);重新 Submit for Review。
 
 ---
 
@@ -188,7 +193,7 @@
 
 **验证口径(2026-10-14):** **干净**构建 + `xcodebuild test`(iPhone 17 Pro 模拟器)**254 / 254 通过**(Core 194 + App 60;P0 时是 172,多出来的 82 个都按“先看它因正确的原因失败、再实现转绿”的顺序写成);编译警告仍是审计时的那 2 条,没有新增;[`scripts/preflight.sh`](../scripts/preflight.sh) **51 通过 · 2 等待外部输入 · 0 失败**。
 
-| 项 | 提交(都在 `dev`,没推送) |
+| 项 | 提交 |
 |---|---|
 | A 阶段决议、TODO 文档 | `ea17828` `cffd2a4` |
 | C2 App 图标 | `1aec30d` |
@@ -201,8 +206,15 @@
 | C9 Live Activity 失败引导(真机发现) | `c3909b3` |
 | C10 锁屏 LA 背景 activityBackgroundTint(真机发现,三轮) | `a44b624` |
 | C11 仅 iPhone 运行目的地 | `5696ed1` |
+| E5 Watch 同步修复(2.1(a) 被拒)· 代码 / 文档 | `678095b` / `a8bf923` |
+| C12 pin 图标即时显示(E5 复验时发现) | `1610f29` |
+| Build 号 +1(→ 2) | `7f265f4` |
+
+以上 C 阶段的提交已随 `v1.0.0` 合入 `main` 并推送;**最后三行(2026-10-23 起)直接提在 `main` 上,尚未推送。**
 
 **C9–C11 验证口径(2026-10-21)**:**258 / 258 通过**(Core 194 + App 64,C9 新增 4 测试,先红后绿);preflight **53 通过 · 0 ⏳ · 0 失败**;C9、C10 真机复验通过(C10 教训:锁屏 LA 背景归 `activityBackgroundTint`,View 层 `containerBackground` 管不到)。
+
+**C12 / E5 / Build 2 验证口径(2026-10-23)**:全量 **285 / 285 通过**(Core 204 + App 81;基线 258 + E5 的 17 + C12 的 10,均先红后绿);标准 `generic/platform=iOS Simulator` 构建成功、整包 0 警告;preflight **53 通过 · 0 ⏳ · 0 失败**,四个 bundle 构建号均为 2;源码里无 `TEMP-SHOT` 残留。
 
 **C 阶段新增、只能真机验的:** Widget 画廊里是示例便签(不是空状态);点 Widget(空状态 / 有便签)直达新建 / 那一条;设置页开着时再点 Widget;系统“存储到文件 / 选择文件”面板下的备份与恢复;锁屏圆形 Widget 里新头像的耳尖;Watch 上的新头像。→ 都已写进 B5。
 
@@ -222,7 +234,7 @@
 | ① 投递缺口 | iPhone 只在"激活 / 回前台 / 便签变更"时推送,`isWatchAppInstalled == false` 时直接跳过;**没实现 `sessionWatchStateDidChange`**,手表 App 装好后没人通知 iPhone 去补推;手表端也从不主动要 | iPhone 日志在装手表 App 前只有 `未配对 Watch 或未安装 Watch App，跳过同步`,装好之后**一条都没有** |
 | ② 界面不刷新 | `WatchNoteListView` 只在 `.task` 里读**一次** UserDefaults;数据**后到**(冷启动激活回调、后台推送、之后的推送)只落盘、不重绘 | iPhone 回前台后推送成功、手表日志 `收到同步:1 条便签,存入 UserDefaults`,但**屏幕仍是空状态**(对比图 BEFORE 2);重启手表 App 才出现(BEFORE 3) |
 
-**修复(源码 4 改 + 1 新,测试 2 新;均未提交):**
+**修复(源码 4 改 + 1 新,测试 2 新;已提交 `678095b`):**
 - `Core/Sources/Core/Store/WatchSnapshotStore.swift`(新):手表端**可观察**的快照存储(`@MainActor @Observable`)。界面读它;Watch Widget 读它落的盘(同一个 UserDefaults key、同一种编码,有测试守着)。**新 `syncDate` 优先**——几条来路可能乱序,旧快照不许盖新的;同时间戳视为幂等。
 - `Core/Sources/Core/Store/WatchPayload.swift`:新增"要快照"请求的契约(`snapshotRequest` / `isSnapshotRequest`),两端共用一处定义。
 - `PawIt/Features/Watch/PhoneSessionManager.swift`:① 实现 `sessionWatchStateDidChange` → 重新 `syncToWatch()`(手表 App 一装好就补推);② 实现 `didReceiveMessage`:手表来要时应答当前快照;③ 抽出 `WatchSessionProviding` 协议接缝,让这两条路径不依赖真 WCSession 就能测。状态守卫(未激活 / 未配对 / 未安装)原样保留在 `syncToWatch()` 里。
@@ -236,7 +248,7 @@
    - **S2 最难的冷路径** — iPhone App **没在运行**、手表缓存为空:手表打开 1.5 秒时仍是空状态(合理);随后系统在后台把 iPhone App 拉起(无人操作下出现新进程),它激活后自己推了一次,手表在连通性恢复时又拉了一次并拿到应答——约 3 秒内**同一个手表进程自动填满**,没重启、没碰任何一端。修复前同样的"数据到了界面不动"正是被拒的画面。
    - **S3 实时更新** — 手表开着,iPhone 上新增带清单的便签并回前台:0.6 秒内手表出现 "Buy milk · 1/2 items",手表没被碰过。
    - **S4 已同步的空列表** — 清空便签:手表显示 "No notes yet / Add one on iPhone"。这一步里模拟器把手表 App 的"已安装"状态翻成了 false 又翻回 true(见下面的坑),iPhone 在翻回来后 **1.3 秒内自己补推了"0 条便签"**,顺带在真实环境里验证了状态变化回调,以及"激活时遗留的旧 context(2 条)先到、新推送(0 条)后到,以新者为准"的顺序保护。
-3. **全量回归:** `xcodebuild test` **275 / 275**(Core 204 + App 71;基线 258 + 17);标准 `generic/platform=iOS Simulator` 构建成功,我改动的文件零警告;`scripts/preflight.sh` **53 通过 · 0 ⏳ · 0 失败**;源码里无 `TEMP-SHOT` 残留。
+3. **全量回归:** `xcodebuild test` **275 / 275**(Core 204 + App 71;基线 258 + 17;之后 C12 再加 10 个,终检为 285 / 285);标准 `generic/platform=iOS Simulator` 构建成功,我改动的文件零警告;`scripts/preflight.sh` **53 通过 · 0 ⏳ · 0 失败**;源码里无 `TEMP-SHOT` 残留。
 
 **没验证的 / 已知局限:**
 - **只在模拟器验证过,没有真机**——尤其是 TestFlight 路径下系统自动装 Watch App 的时序,以及 `sendMessage` 在真机上把没运行的 iPhone App 拉起的行为(官方文档行为;模拟器里实际观察到的是另一条路径:手表 App 一打开,系统就在后台拉起了 iPhone App)。→ E5 的真机复验步骤。
@@ -266,7 +278,7 @@ xcrun simctl io booted screenshot shot.png          # 模拟器截图;iPhone 17 
 
 ## 附录:审核备注模板
 
-贴进 ASC → App Review Information → Notes。**第 5、6 条的措辞等真机 QA 后再核对一遍**(Watch 的描述我还没在真机上验证)。**第 6 条于 2026-10-23 因 2.1(a) 重写**:审核员的顺序是"先建便签、再装手表端",旧措辞没说装好后多久出现、要不要动 iPhone;新措辞对应修复后的行为,但**真机复验(E5)通过前别当定稿**。
+贴进 ASC → App Review Information → Notes。**第 5、6 条的措辞请对照你在真机上看到的现象再核对一遍。** **第 6 条于 2026-10-23 因 2.1(a) 重写**:审核员的顺序是"先建便签、再装手表端",旧措辞没说装好后多久出现、要不要动 iPhone;新措辞对应修复后的行为;**E5 真机复验你已通过(2026-10-23)**,提交前核对一下"几秒内出现"与你实际看到的是否一致即可。
 
 ```text
 PawSticky works fully offline and needs no account or sign-in. All data stays on the device.
@@ -284,7 +296,7 @@ Notifications are optional. Permission is requested only when you set a reminder
 
 ## 附录:被拒回复模板(2.1(a) Watch 不同步 · Build 2)
 
-贴进 ASC → Resolution Center,回复被拒的那条消息。**真机复验(E5)通过后再发**;发之前把里面"within a few seconds"核对成你真机上看到的实际情况。
+贴进 ASC → Resolution Center,回复被拒的那条消息。E5 真机复验已通过(2026-10-23);**发之前把里面 "within a few seconds" 核对成你真机上看到的实际情况**。
 
 ```text
 Hello App Review team,

@@ -16,7 +16,7 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - `docs/launch-readiness.md` — v1.0 上线就绪审计快照（P0/P1/P2 差距清单 / ASC 提审清单 / 命名评估 / 决策记录）；只保留"为什么"，不再记进度
 - `docs/launch-art-prompts.md` — 美术提示词包；**v1.0 不需要生成新图**（零生成方案见 todo），仅供以后补图
 - `docs/pawsticky-privacy-policy.md` — 可直接发布的 App 隐私政策英文稿（fitpetgo.com 现有页面只覆盖网站，不能给 App 用；任何 SDK / 网络请求 / 新权限变化都要同步改它和 ASC 隐私问卷）
-- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09、零生成复用对比 10、图标三选一 11、新美术在 App 内的截图 12 / 13、设置页 14、撤销与备份 15 / 16、小组件点按直达 17、Watch 同步修复前后对比 18）
+- `docs/assets/launch-audit/` — 上线审计的证据截图（含修复后的对比图 08 / 09、零生成复用对比 10、图标三选一 11、新美术在 App 内的截图 12 / 13、设置页 14、撤销与备份 15 / 16、小组件点按直达 17、Watch 同步修复前后对比 18、pin 图标修复前后对比 19）
 - `Config/` — 构建配置：`Base.xcconfig`（由 `project.yml` 引用）+ 本地签名模板 `Signing.local.xcconfig.example`
 - `scripts/preflight.sh` — 上线验收脚本（Bundle ID / App Group / 品牌名 / 版本号 / 隐私清单 / 外观 / 合规键 / 设备族 / 深链 scheme）
 - `art/` — 美术资产与生成管线（风格已冻结 B 扁平矢量+描边，见 `art/style-pack/style-notes.md`）
@@ -51,6 +51,7 @@ PawIt（爪印便利贴）是一款 iOS 宠物主题便签 Widget App 的商业�
 - **i18n 就绪**：SwiftUI 的 `Text("...")` 天然支持 `LocalizedStringKey`，使用英文字面量即可在将来通过 `.strings` 文件扩展多语言，无需额外包装。
 - **站内跳转（深链）**：scheme 是 `pawsticky://`（`new` / `note/<UUID>`）。契约只在 Core 的 `DeepLink`（构造 + 严格白名单解析，别在别处手拼 URL）；注册在 `project.yml` 的 `CFBundleURLTypes`（改 scheme 两处同步，`PawItTests` 与 `scripts/preflight.sh` 会核对）；App 端 `onOpenURL` → `DeepLinkRouter`（挂起，供冷启动）→ `NoteListView` 取走。新增链接类型只许“打开某个页面”，不许携带会改数据的动作——scheme 注册后网页和别的 App 都能触发它。
 - **Watch 同步（WatchConnectivity）**：iPhone 端 `PhoneSessionManager` 负责推（激活 / 回前台 / 便签变更 / `sessionWatchStateDidChange`）与答（`didReceiveMessage` 回当前快照）；手表端 `WatchSessionManager` 负责拉（激活 / 回前台 / 连通性恢复时 `requestSnapshot()`）。手表界面**只读** Core 的 `WatchSnapshotStore`（`@Observable`；新 `syncDate` 优先、同时间戳幂等），**不要**在视图里一次性读 UserDefaults——数据后到就永远不重绘，这是 2.1(a) 被拒的原因之一。“要快照”请求的契约只在 `WatchPayload.snapshotRequest` / `isSnapshotRequest`。**验收 Watch 同步必须覆盖两条冷路径**：先有便签、后装手表 App；iPhone App 没在运行——开发机上 Xcode 同时装两端并重启手表 App 会把它们都掩盖掉（B5 就是这样漏过去的，见 `docs/launch-todo.md` E5）。
+- **界面显示的外部状态必须有可观察的持有者**：`body` 里只读 `@State` / `@Observable` / `@Environment` 这类 SwiftUI 能追踪的状态。ActivityKit（`Activity.activities` / `activityState`）、UserDefaults、WCSession 的状态变了都**不会**通知界面——在 `body` 里直接读它们，界面就停在旧画面，直到某次无关的重绘“碰巧”更新（手表空状态 2.1(a)、钉住图标 C12 都是这个坑，后者表现为“重进 App 才更新”）。做法：放进 `@MainActor @Observable` 的持有者（`WatchSnapshotStore`、`PinnedNotes`）——变更发生的当下主动更新，回前台 / 列表重载时再与外部真实状态对齐；单测用 `withObservationTracking` 断言“读它的界面会被通知”（见 `PinnedNotesTests`）。**外部操作是异步的时**（`Activity.end`：`unpin()` 返回 6ms 后 ActivityKit 仍报告“钉着”，约 500ms 后才变），持有者要记住“已请求、未完成”的项，别让对齐把刚改的状态拉回去。**验这类 bug 要在操作后停几秒截图、不切走 App**——切走再回来会触发重载，正好把它掩盖掉（真机上“重进就好了”就是这么来的）。
 - **Commit 消息**：英语，格式 `feat/fix/test/refactor/docs: <内容>`。
 
 ## 构建与验收
