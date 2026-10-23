@@ -3,6 +3,8 @@ import Core
 
 @main
 struct PawItWatchApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     /// Watch 端 WCSession 管理器（App 生命周期持有）。
     private let sessionManager = WatchSessionManager.shared
 
@@ -12,7 +14,12 @@ struct PawItWatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WatchNoteListView()
+            WatchNoteListView(store: sessionManager.store)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // 每次回到前台都向 iPhone 要一份最新快照：推送可能在手表 App 不在场时被错过
+            // （App Review 2.1(a)：手表端晚于便签装好，没人补推，手表上永远是空的）。
+            if newPhase == .active { sessionManager.requestSnapshot() }
         }
     }
 }
@@ -20,21 +27,23 @@ struct PawItWatchApp: App {
 // MARK: - Watch 便签列表（只读镜像）
 
 /// Watch 主界面——显示从 iPhone 同步来的便签。
+///
+/// 读的是可观察的 `store`：快照什么时候到（冷启动后、后台推送、主动拉取的应答），界面就什么时候重绘。
+/// 此前这里只在 `.task` 里读一次 UserDefaults，数据落盘后界面依然停在空状态。
 struct WatchNoteListView: View {
-    @State private var payload: WatchPayload?
+    let store: WatchSnapshotStore
 
     var body: some View {
         NavigationStack {
             Group {
-                if let payload, !payload.notes.isEmpty {
+                if let payload = store.payload, !payload.notes.isEmpty {
                     noteList(payload)
                 } else {
-                    emptyState
+                    emptyState(synced: store.payload != nil)
                 }
             }
             .navigationTitle("PawSticky")
         }
-        .task { loadPayload() }
     }
 
     private func noteList(_ payload: WatchPayload) -> some View {
@@ -77,21 +86,20 @@ struct WatchNoteListView: View {
         }
     }
 
-    private var emptyState: some View {
+    /// - Parameter synced: 已经收到过 iPhone 的快照。区分两种空：
+    ///   还没同步过（等同步）≠ 同步过了、iPhone 上确实一条便签都没有——
+    ///   后者再说「Open PawSticky on iPhone」会让人以为同步坏了。
+    private func emptyState(synced: Bool) -> some View {
         VStack(spacing: 8) {
             Image(systemName: "pawprint.fill")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("Open PawSticky on iPhone")
+            Text(synced ? "No notes yet" : "Open PawSticky on iPhone")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text("Notes sync automatically")
+            Text(synced ? "Add one on iPhone" : "Notes sync automatically")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-    }
-
-    private func loadPayload() {
-        payload = WatchSessionManager.cachedPayload()
     }
 }

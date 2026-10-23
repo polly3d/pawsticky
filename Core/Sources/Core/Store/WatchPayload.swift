@@ -84,6 +84,25 @@ public struct WatchPayload: Codable, Sendable, Equatable {
         return try? JSONDecoder().decode(WatchPayload.self, from: data)
     }
 
+    // MARK: - 手表 → iPhone：主动要快照
+
+    private static let requestKey = "request"
+    private static let snapshotValue = "snapshot"
+
+    /// 手表发给 iPhone 的「请把最新快照给我」消息；iPhone 用 `toDictionary()` 的结果应答。
+    ///
+    /// 为什么需要它：iPhone 的推送（applicationContext）只在 iPhone 自己这边有事发生时才触发——
+    /// 手表 App 晚于便签装好、或错过了一次推送时，没人会再补推（App Review 2.1(a) 的现场）。
+    /// 由手表在启动 / 回前台 / 连通性恢复时主动要一份，兜住这一类时序问题。
+    ///
+    /// 用计算属性而非 `static let`：`[String: Any]` 不是 Sendable，Swift 6 不允许它做全局常量。
+    public static var snapshotRequest: [String: Any] { [requestKey: snapshotValue] }
+
+    /// iPhone 端用它判断收到的消息是不是「要快照」；认不得的消息一律不应答，不「尽量理解」。
+    public static func isSnapshotRequest(_ message: [String: Any]) -> Bool {
+        message[requestKey] as? String == snapshotValue
+    }
+
     // MARK: - 从 SharedStore 构建
 
     /// 从 App Group 数据库构建当前快照。
