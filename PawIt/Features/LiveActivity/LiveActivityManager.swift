@@ -20,9 +20,16 @@ enum LiveActivityManager {
 
     // MARK: - 查询
 
-    /// 指定便签是否正在锁屏上钉着。
-    static func isPinned(noteId: UUID) -> Bool {
-        currentActivity(for: noteId) != nil
+    /// 当前所有钉在锁屏上的便签 id（只算 `.active` 的——stale / ended 不算钉着，与 `currentActivity` 同口径）。
+    ///
+    /// 界面**不要**在 body 里直接调它：ActivityKit 的状态不可观察，界面直接读它就不会随 pin / unpin 重绘。
+    /// 界面读 `PinnedNotes`，由它在回前台 / 列表重载时调用这里与系统对齐（C12）。
+    static func pinnedNoteIds() -> Set<UUID> {
+        Set(
+            Activity<NoteActivityAttributes>.activities
+                .filter { $0.activityState == .active }
+                .compactMap { UUID(uuidString: $0.attributes.noteId) }
+        )
     }
 
     // MARK: - Pin（启动 Live Activity）

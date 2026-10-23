@@ -21,6 +21,9 @@ struct NoteListView: View {
     @State private var shareNote: Note?
     /// C9：pin 失败的呈现（弹窗）。nil = 无弹窗。
     @State private var pinIssue: PinIssue?
+    /// C12：哪些便签显示钉住图标。必须是可观察状态——ActivityKit 不会通知界面重绘，
+    /// 直接在 body 里问它，pin / unpin 之后图标就要等到下一次无关的重绘才变（见 `PinnedNotes`）。
+    @State private var pinned = PinnedNotes()
     /// 刚删除的便签的撤销条（几秒后自动收起）。
     @State private var pendingUndo: PendingUndo?
     @State private var showUndoFailed = false
@@ -358,7 +361,7 @@ struct NoteListView: View {
             ForEach(notes, id: \.id) { note in
                 NoteCardView(
                     note: note,
-                    isPinned: LiveActivityManager.isPinned(noteId: note.id),
+                    isPinned: pinned.contains(note.id),
                     onTap: { editorMode = .edit(note.id) },
                     onToggleDone: { toggleDone(note) },
                     onTogglePin: { togglePin(note) },
@@ -506,14 +509,17 @@ struct NoteListView: View {
     }
 
     private func togglePin(_ note: Note) {
-        if LiveActivityManager.isPinned(noteId: note.id) {
+        // 以界面当前显示的状态决定动作，保证菜单文案（Pin / Unpin）与点下去的动作一致
+        if pinned.contains(note.id) {
             LiveActivityManager.unpin(noteId: note.id)
+            pinned.didUnpin(note.id)
         } else {
             guard let store = SharedStore.cachedAppGroup() else { return }
             let items = (try? store.noteItems(noteId: note.id)) ?? []
             let pet = try? store.selectedPet()
             do {
                 try LiveActivityManager.pin(note: note, items: items, pet: pet)
+                pinned.didPin(note.id)
             } catch {
                 // C9：不再吞错——Live Activities 被关时指路系统设置
                 pinIssue = PinIssue.issue(for: error)
@@ -537,6 +543,9 @@ struct NoteListView: View {
             headerPet = try? store.selectedPet()
             headerGrowth = headerPet.flatMap { try? store.growthState(petId: $0.id) }
         }
+        // 钉住状态也在这里与 ActivityKit 对齐：App 在后台时，用户可能在锁屏上划掉了 Live Activity，
+        // 或它到期被系统收走（pin / unpin 本身由 togglePin 当场更新）。
+        pinned.refresh()
     }
 }
 
