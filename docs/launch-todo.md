@@ -2,7 +2,7 @@
 
 > **这是唯一回答"现在该做什么、做到哪了"的文档。** 勾了 = 做完;没勾 = 没做。
 > *为什么*要做某一项 → 看审计依据 [`launch-readiness.md`](launch-readiness.md)(只读快照,不再记状态)。
-> **更新:** 2026-10-23 · **v1.0 (1) 已提审,被拒 1 次**(Guideline 2.1(a):Watch App 没同步便签)→ **根因已查明并修复,你已真机复验通过;另修了真机发现的 C12(pin 图标不立刻显示)、Watch 模拟器截图里看出的 C13(智能叠放卡片灰圆盘 + 字太小,**还没在手表上亲眼验过**);Build 号已 +1(→ 2),修复已提交到本地 `main`(未推送、未打 tag),等你 Archive → Upload Build 2**(见 E5)· 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 13/13 完成**(C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地已通过真机复验;C12 pin 图标即时显示在模拟器上验证,待真机瞄一眼;C13 手表卡片的日志 / 测试 / 版面已验证,**系统里的真实样子待你看**)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **55 通过 · 0 ⏳ · 0 失败**(四个 bundle 构建号均为 2)· 测试 **313 / 313**(Core 232 + App 81;2.1(a) 修复新增 17、C12 新增 10、C13 新增 28;之前 258)· `v1.0.0` = `7b54f6a`(Build 1 的出包点,已推送 origin);Build 2 的修复在 `main` 的 `678095b`…`7f265f4`(之后另有文档提交与 C13 的 `b45c59e` `94a2617`;本地,**未推送、未打 tag**;`dev` 仍停在 `7b54f6a`)· v1.0 免费版 · 仅 iPhone(+ Watch)
+> **更新:** 2026-10-23 · **v1.0 (1) 已提审,被拒 1 次**(Guideline 2.1(a):Watch App 没同步便签)→ **根因已查明并修复,你已真机复验通过;另修了真机发现的 C12(pin 图标不立刻显示)、Watch 模拟器截图里看出的 C13(智能叠放卡片灰圆盘 + 字太小,**还没在手表上亲眼验过**);Build 号已 +1(→ 2),修复已提交到本地 `main`(未推送、未打 tag),等你 Archive → Upload Build 2**(见 E5)· 2026-10-21 · **A 6/6 拍完**(A2 Team ID = X38QPV26TR,A3 维持豁免)· **B 5/5 完成** · D2 已拍板(隐私政策直接用网站通用页,5.1.1(i) 风险已接受)· **C 14/14 完成**(C14 把审计起就挂着的 2 条编译警告清零;C9 Live Activity 无入口 / C10 锁屏背景 / C11 仅 iPhone 目的地已通过真机复验;C12 pin 图标即时显示在模拟器上验证,待真机瞄一眼;C13 手表卡片的日志 / 测试 / 版面已验证,**系统里的真实样子待你看**)· **D3 完成、D6 截图齐备**(iPhone 7 + Watch 2,ASC 格式在 `docs/assets/screenshots/asc-upload/`)· preflight **55 通过 · 0 ⏳ · 0 失败**(四个 bundle 构建号均为 2)· 测试 **313 / 313**(Core 232 + App 81;2.1(a) 修复新增 17、C12 新增 10、C13 新增 28;之前 258)· `v1.0.0` = `7b54f6a`(Build 1 的出包点,已推送 origin);Build 2 的修复在 `main` 的 `678095b`…`7f265f4`(之后另有文档提交、C13 的 `b45c59e` `94a2617` 与 C14 的 `35e6344` `b156496`;本地,**未推送、未打 tag**;`dev` 仍停在 `7b54f6a`)· v1.0 免费版 · 仅 iPhone(+ Watch)
 
 **怎么用:** 从上往下做;做完把 `- [ ]` 改成 `- [x]`(或回复我任务编号,我来改)。
 **图例:** 🔴 不做就不能提审 · 🟡 应做(口碑 / 兑现承诺)· ⚪ 可推迟 ｜ **[你]** 只有你能做(账号、审美拍板、对外发布)· **[我]** 我来写代码 / 文档
@@ -16,11 +16,11 @@
 | ✅ 工程 P0 | 改名 / ID / 隐私清单 / 版本号 / 合规键 / 相册崩溃 / 回前台刷新 / 锁浅色 / 仅 iPhone | 我 | **已完成** → [文末](#已完成) |
 | **A** 先拍板 | 6 个小问题,一条消息答完 | 你 | **6 / 6 已完成** |
 | **B** 账号 + 真机 | 填 Team ID、真机跑通 | 你 | **5 / 5 已完成**(B4 未触发) |
-| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **13 / 13 已完成**(C9–C13 真机 / 模拟器发现并修复,C10 已复验通过,C12 待真机瞄一眼,**C13 待在手表上看一眼**;请你过目 C3 的新宠物图) |
+| **C** 代码 + 美术 | 图标、宠物图、设置页、撤销 / 备份、Widget 体验 | 我 | **14 / 14 已完成**(C9–C13 真机 / 模拟器发现并修复,C14 = 编译警告清零,C10 已复验通过,C12 待真机瞄一眼,**C13 待在手表上看一眼**;请你过目 C3 的新宠物图) |
 | **D** 站点 + ASC | 隐私政策页、商店资料、截图 | 你(我起草文字) | 4 / 6(剩 D4、D5、D7;D1、D8 可推迟) |
 | **E** 出包 + 提审 | 构建、TestFlight、提审、发布 | 你为主 | 0 / 4(Build 1 已提审、被拒 1 次 → **E5:修复已提交、Build 号已是 2,等你出包**) |
 
-**👉 现在:** **E5**——Build 2 已备好:2.1(a) 的修复你已真机复验通过,真机发现的 pin 图标小 bug(C12)也修好了,Build 号已 +1(→ 2),修复都已提交到本地 `main`。轮到你:⓪ **先看一眼 C13**(在 Device Hub 的手表 / 真机上:手表表盘上滑进智能叠放,看 PawSticky 那张卡;逐项清单在 C13 条目的"请看"),并确认**锁屏上钉住的大卡片没变样**——C13 改了 Live Activity 的渲染入口,而你之前真机复验的是没有它的版本;不满意告诉我怎么调,或 `git revert 94a2617` 只退回手表小卡片(阶段 1 的灰圆盘修复 `b45c59e` 可保留);① (推荐)先推送 `main` 并打 tag(如 `v1.0.0-b2`),让 Build 2 可回溯到代码;② Archive → Upload Build 2 → ASC 版本页把 Build 换成 2;③ 更新审核备注第 6 条 → Resolution Center 回复 → 重新提审。**真机上顺手看一眼 C12**(点 Pin / Unpin 后图钉应当立刻出现 / 消失),并建议 Build 2 上 TestFlight 后把 E5 的冷路径步骤再走一遍。
+**👉 现在:** **E5**——Build 2 已备好:2.1(a) 的修复你已真机复验通过,真机发现的 pin 图标小 bug(C12)也修好了,Build 号已 +1(→ 2),修复都已提交到本地 `main`(含 C14 的编译警告清零——不改行为,不用你看)。轮到你:⓪ **先看一眼 C13**(在 Device Hub 的手表 / 真机上:手表表盘上滑进智能叠放,看 PawSticky 那张卡;逐项清单在 C13 条目的"请看"),并确认**锁屏上钉住的大卡片没变样**——C13 改了 Live Activity 的渲染入口,而你之前真机复验的是没有它的版本;不满意告诉我怎么调,或 `git revert 94a2617` 只退回手表小卡片(阶段 1 的灰圆盘修复 `b45c59e` 可保留);① (推荐)先推送 `main` 并打 tag(如 `v1.0.0-b2`),让 Build 2 可回溯到代码;② Archive → Upload Build 2 → ASC 版本页把 Build 换成 2;③ 更新审核备注第 6 条 → Resolution Center 回复 → 重新提审。**真机上顺手看一眼 C12**(点 Pin / Unpin 后图钉应当立刻出现 / 消失),并建议 Build 2 上 TestFlight 后把 E5 的冷路径步骤再走一遍。
 **关键路径:** A → ( B ∥ C ∥ D 前半 ) → D6 截图(要等 C 做完)→ E。
 **时间:** 从你答完 A 起算,**紧凑 ≈ 2 周,宽松 ≈ 3 周**。TestFlight 与审核等待约占一半;真机问题和审美返工是最大变数。
 **美术:** v1.0 **不需要再生成任何图**,证据与做法见 [§美术方案](#美术方案零生成)。
@@ -71,7 +71,7 @@
   - **没验证的:** ① 画廊本身(模拟器无法脚本化打开);`isPreview` 分支只有一行条件,示例内容的“看起来是好的”由上面 7 个测试守住。② 真实的“点 Widget → `onOpenURL`”(系统投递 Widget 链接时没有确认框;模拟器里加不了 Widget)。③ 设置页开着时从主屏点 Widget 的“先收起再开编辑器”时序(决策函数有单测,收起动画没跑过)。→ **B5 真机请看:画廊里是示例便签而不是空状态;点空状态的 Widget 直达新建;点有便签的 Widget 直达那一条;开着设置页回主屏再点 Widget。**
   - **没做(不在 C6 范围):** Live Activity(锁屏 / 灵动岛上钉住的便签)点按仍只是打开 App,没接这套链接——接法一样(`widgetURL` + `DeepLink.openNote`),可放 v1.0.x。
 - [x] **C7 装扮文案(P1-3)** 🟡 — ✅ 已完成(按 A5(a)):成长页标题 "Outfits" → "Collection"、统计块 "Outfits"(原 T 恤图标)→ "Collected"(sparkles 图标)、"All outfits unlocked!" → "Collection complete!"、分享卡 "n/12 outfits" → "n/12 collected";SF Symbol 网格不变。另给 preflight 加了守卫:用户可见字符串里再出现 outfit 就失败(先让它抓到 4 处,改完变绿)。
-- [x] **C8 每批收尾回归** 🔴 — ✅ 本批已跑(**之后每次改动仍要再跑**):`xcodegen generate` 后入库的生成物零差异 → **干净**构建成功 → `xcodebuild test` **254 / 254 通过**(Core 194 + App 60)→ `scripts/preflight.sh` **51 通过 · 2 ⏳ · 0 失败**(两个 ⏳ 是 Team ID 与"隐私政策 URL 仍是通用页",都在等你)。编译警告仍是审计时的那 2 条(`ToggleItemIntent.swift:34`、`PawItTests.swift:15`),没有新增。命令见[附录](#附录常用命令)。
+- [x] **C8 每批收尾回归** 🔴 — ✅ 本批已跑(**之后每次改动仍要再跑**):`xcodegen generate` 后入库的生成物零差异 → **干净**构建成功 → `xcodebuild test` **254 / 254 通过**(Core 194 + App 60)→ `scripts/preflight.sh` **51 通过 · 2 ⏳ · 0 失败**(两个 ⏳ 是 Team ID 与"隐私政策 URL 仍是通用页",都在等你)。编译警告仍是审计时的那 2 条(`ToggleItemIntent.swift:34`、`PawItTests.swift:15`),没有新增(**→ 已在 C14 清零**)。命令见[附录](#附录常用命令)。
 - [x] **C9 Live Activity 被系统关闭后无入口(B3 真机发现)** 🟡 — ✅ 已修(2026-10-21,方案你拍板:失败弹窗 + 设置页状态行):**问题**——锁屏移除 / 系统设置里关掉 Live Activities 后,`pin` 的 `areActivitiesEnabled` 守卫只写 os_log 就静默返回,`togglePin` 又用 `try?` 吞掉,点 Pin 零反馈且 App 内无任何"去系统设置打开"的入口(低电量也触发同一静默失败;只划掉 Activity 而开关还开着时再 Pin 本来就能恢复,`isPinned` 只认 `.active`)。**修法**:① `pin` 改为 throw `LiveActivityUnavailableError.activitiesDisabled`(授权探针参数可注入,测试用);② 列表 `togglePin` do/catch → `PinIssue` 归因弹窗("Live Activities Are Off" + **Open Settings** 直达 `openSettingsURLString`,全工程唯一出口;其他失败给通用重试文案);③ 设置页新增 Lock Screen 分组:Live Activities On/Off 状态行,点按直达系统设置,回前台(`scenePhase == .active`)自动刷新。**验证**:先写 4 个测试看红(缺类型 / 缺参数),实现后 **258 / 258 通过**(Core 194 + App 64,新增 4);preflight **53 通过 · 0 ⏳ · 0 失败**;改动文件无新增编译警告(增量构建)。**真机回归**:✅ 通过(2026-10-21)——弹窗指路、状态行刷新都验过;顺带发现 LA 文字偏灰 → C10。
 - [x] **C10 Live Activity 卡片发灰看不清(B5 真机反馈,三轮)** 🟡 — ✅ 已修(2026-10-21):**第一轮**按次级文字透明度修(0.4–0.6 → 0.75),复验仍灰;**第二轮**真机截图视觉分析定位到"粉彩底根本没画、系统深玻璃 + 系统灰阶文字",按 `containerBackgroundRemovable(false)` 修——真机复验**仍玻璃**(该开关对锁屏 LA 无效);**第三轮**查官方文档(Creating custom views for Live Activities)钉死真因:**锁屏 LA 的背景色归 `activityBackgroundTint(_:)` 管**(默认白 / 黑 / iOS 26 玻璃),`containerBackground(for: .widget)` 是主屏 Widget 的机制、对锁屏 LA 从未生效——粉彩其实一直没画上去过,iOS 26 把默认底改成玻璃才暴露。修法:`activityBackgroundTint(便签色)` + 文档配套的 `activitySystemActionForegroundColor(墨色)`(系统"结束"辅助按钮的文字色)。**真机复验**:✅ 通过(2026-10-21)——粉彩底 + 深字回来了。三轮终修的教训:锁屏 LA 的背景归 `activityBackgroundTint`,View 层的 `containerBackground` 管不到它。
 - [x] **C11 收敛运行目的地到仅 iPhone** 🟡 — ✅ 已做(2026-10-21):`project.yml` 给 PawIt / PawItWidget 显式 `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO`、`SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO`,重新生成后 Xcode 目的地列表只剩 iPhone(在 Xcode UI 里删活不过 `xcodegen generate`,持久层必须在 yml)。**注意**:这两个开关只管构建 / 运行目的地;商店侧的 Mac / Vision 兼容是 ASC 的 Availability 设置(D4 顺手关),且 Designed-for-* 渠道复用 iOS 截图、本来不需要额外截图。
@@ -84,9 +84,14 @@
   - **根因(日志对证):** App 没声明手表版面,Watch 智能叠放卡片是系统拿**灵动岛紧凑态**的左右两个小视图拼出来的。`compactLeading` 里放的是 480px 的举牌图,**超过紧凑呈现的图片尺寸上限**——系统归档 Live Activity 时**不报错、静默换成灰色占位圆盘**(配对模拟器上 iPhone 端 `PawItWidget` 扩展的日志:`[1: 480x480] Max size exceeded: 437.85x219.6; using placeholder image`)。标题则是内联的 `noteText.prefix(12)`:没有省略号,还切在单词中间。
   - **阶段 1 · 修 bug(所有 iOS 版本都受益):** ① 新增 `pet-<物种>-badge`(48 / 96 / 144px,和 `front` 同一张胸像缩出,**零生成**,由 `export-pet-imagesets.sh` 固化)给紧凑态用;② 标题改走 Core 的 `LiveActivityText.compactTitle`:取第一行、按词边界截断并加 `…`("Test hello world" → "Test hello…");③ preflight 加两条守卫(徽章不得 > 144px;`compactLeading` 里不得再加载 `petImage(`)。
   - **阶段 2 · 手表专用小卡片:** 声明 Live Activity 的 `.small` 家族(iOS 18+;手表智能叠放与 iOS 26 CarPlay 共用),在 `ActivityFamilyRouter` 里按 `@Environment(\.activityFamily)` 分流——`.small` → `SmallActivityView`,锁屏 / 横幅仍是原来的大卡片。小卡片 = **宠物进度环**(环 = 清单完成度,下沿胶囊 x/y,右上角钉住)+ 标题 + "Next: 下一项" + "then 后续两项";全部完成时环变绿、对勾、"All done!";普通便签没有环,头像放大、正文最多 3 行。画布矮(40mm)时 `ViewThatFits` 从最后一行开始丢,不靠截断。卡片逻辑(下一项 / 后续项 / 完成态 / 环比例)是 Core 的 `ActivityGlance`,视图只排版。底色:便签色 `activityBackgroundTint`,卡片自己再铺一层同色底(万一系统在手表上不认 tint,深色字也不会落在黑底上)。**部署目标仍是 iOS 17**:一个 Widget + 一个 `#available(iOS 18.0, *)` 的小扩展(`supplementalSmallIfAvailable()`)就够;iOS 17 上手表继续显示紧凑态(已被阶段 1 修好)。
-  - **验证:** ① **日志对证**(配对模拟器 iPhone 17 Pro ↔ Watch 46mm,同一流程前后对比):修复后 `[3: 144x144] Image permitted`,整段日志**零条** `Max size exceeded`。② **先写测试看红、再实现转绿**:Core +28——`LiveActivityTextTests` 16(短标题原样 / 刚好等于上限 / 按整词截断 / 半个词被丢 / 词尾恰在切点 / 自定义上限 / 单个长词与无空格文本硬切 / emoji 等字形簇不被劈开 / 只取首行 / 全空白得空串 / 结果永不超限 / `firstLine` 3 条),`ActivityGlanceTests` 12(进度与下一项 / 空清单是空环而不是没有环 / 后续项默认最多 2 且可配 / 跳过中间已勾项 / 最后一项没有后续 / 全部完成 / **整条被标成完成但清单没勾完** / 文字去空白 / 空白项不当"下一项"但仍计入总数)→ 全量 **313 / 313**(Core 232 + App 81);阶段 1 的提交**单独**也能构建、**301 / 301**(两个阶段可以独立回滚)。③ 标准构建 0 警告;preflight **55 / 0 / 0**;守卫做过**负对照**(把 `compactLeading` 改回 `petImage(` → ❌ 且退出码 1,还原后 0)。④ **版面**:用一次性渲染工程(不入库)把**真实视图**按系统给的各画布尺寸(手表 40 / 41 / 42 / 44 / 45 / 46mm / Ultra,CarPlay 三种)离屏渲染,看清单三种状态、普通 / 完成 / 无标题、4 种便签色、灵动岛紧凑药丸有没有溢出或切字(上图右侧)。
+  - **验证:** ① **日志对证**(配对模拟器 iPhone 17 Pro ↔ Watch 46mm,同一流程前后对比):修复后 `[3: 144x144] Image permitted`,整段日志**零条** `Max size exceeded`。② **先写测试看红、再实现转绿**:Core +28——`LiveActivityTextTests` 16(短标题原样 / 刚好等于上限 / 按整词截断 / 半个词被丢 / 词尾恰在切点 / 自定义上限 / 单个长词与无空格文本硬切 / emoji 等字形簇不被劈开 / 只取首行 / 全空白得空串 / 结果永不超限 / `firstLine` 3 条),`ActivityGlanceTests` 12(进度与下一项 / 空清单是空环而不是没有环 / 后续项默认最多 2 且可配 / 跳过中间已勾项 / 最后一项没有后续 / 全部完成 / **整条被标成完成但清单没勾完** / 文字去空白 / 空白项不当"下一项"但仍计入总数)→ 全量 **313 / 313**(Core 232 + App 81);阶段 1 的提交**单独**也能构建、**301 / 301**(两个阶段可以独立回滚)。③ 标准构建**没有新增**警告(〔更正:当时是增量构建,没重编 `ToggleItemIntent.swift`,漏掉了审计起就有的 2 条旧警告,见 C14〕);preflight **55 / 0 / 0**;守卫做过**负对照**(把 `compactLeading` 改回 `petImage(` → ❌ 且退出码 1,还原后 0)。④ **版面**:用一次性渲染工程(不入库)把**真实视图**按系统给的各画布尺寸(手表 40 / 41 / 42 / 44 / 45 / 46mm / Ultra,CarPlay 三种)离屏渲染,看清单三种状态、普通 / 完成 / 无标题、4 种便签色、灵动岛紧凑药丸有没有溢出或切字(上图右侧)。
   - **没验证的(请你看):** ① **手表上真实的智能叠放卡片**——唤出它要在手表上手动上滑,我这边操作不了界面(`simctl` 没有点按 / 滑动,Computer Use 没有辅助功能权限),所以**系统认不认便签色底**、卡片四周的内边距、点卡片后的行为(你之前的截图里是一页带 "Open on iPhone" 的详情)都没亲眼见过;上图右侧是**离屏渲染,不是系统截图**。② 40mm 最窄画布(152×69.5pt)文字列最挤,条目文字过长时以省略号结尾(逐字符截断,可能停在单词中间,例如 "Weekend err…")。③ CarPlay(iOS 26)。④ **锁屏 / 横幅的大卡片现在也经过路由视图**——渲染上等价,但没有在真机锁屏上看过,**C10 的粉彩底 + 深字请再瞄一眼**。⑤ 灵动岛紧凑态的真实样子(模拟器截图里灵动岛内容是空的,只验过日志与离屏渲染)。⑥ iOS 17 回退(没有 iOS 17 运行时,只做了编译验证)。
   - **真机 / Device Hub 请看:** 手表表盘上滑进智能叠放,PawSticky 那张卡——① 头像不再是灰圆盘;② 进度环 / 标题 / Next 行清楚;③ **底色是便签色还是黑底、四周有没有露边**(若不好看,退路是手表上统一用深色:`SmallActivityView.preset` 固定成现成的 `.charcoal`,顶层 tint 对小家族同步,几行改动,告诉我就行);④ 点卡片的行为;⑤ 清单勾完后环变绿;⑥ 带灵动岛的真机:药丸左侧是小头像、右侧标题带省略号;⑦ **锁屏上钉住的大卡片没变样**。**注意:`simctl install` 会结束该 App 的所有 Live Activity**——模拟器里重装后要重新 Pin,手表约 15–30 秒后才出现卡片。
+- [x] **C14 编译警告清零(你在 Xcode 里看到 `ToggleItemIntent.swift:34:13 Result of 'try?' is unused` 后让我修)** 🟢 — ✅ 已改(2026-10-23,`35e6344`;**未上传,Build 号仍是 2**,Build 2 出包时会带上它):审计时就记下的 **2 条**编译警告一并清掉,**行为没有变化**。
+  - **两条警告与根因:** ① `ToggleItemIntent.swift:34` `result of 'try?' is unused`——`SharedStore.feedPet` 返回 `GrowthState`、没标 `@discardableResult`,Widget 里的 `try? await store.feedPet(...)` 于是得到一个没人用的 `GrowthState?`。改成 `_ = try? await …`,与 App 内 `NoteListView` 的同类调用一致;喂食失败仍不能影响勾选本身。② `PawItTests.swift:15` `call to main actor-isolated initializer 'init()' in a synchronous nonisolated context`——`PawItApp.init()` 是 `@MainActor`(隔离是从 `App` 协议继承来的),而这条冒烟测试在非隔离的同步函数里构造它;给测试加 `@MainActor`(也更贴近它真实运行的环境)。两条都**只是警告、不是错误**,不修也能编译,但留着会让以后真正的新警告淹没在噪音里。
+  - **为什么一直没被清掉:** 增量构建不会重新编译没改的文件,这两条在日常构建里**根本不出现**——C8 里记过、之后却没人再看见,C12 / C13 验证口径里的"0 警告"其实只是"没有新增"(已在那两处更正)。**查警告要用全新 DerivedData**(做法见 [`simulator-playbook.md`](simulator-playbook.md) §2)。
+  - **验证(先红后绿):** 红 = 全新 DerivedData 的完整 `build-for-testing` 日志里恰好是这 2 条(含 `warning:` 的原始行共 8 行,都是这 2 条的各种输出形式);绿 = 另一个全新目录的完整构建 + 全量测试:**警告 0 条(原始日志 `warning:` 0 行)、313 / 313 通过**(Core 232 + App 81;不新增测试——没有行为变化,既有测试就是回归网);标准 `generic/platform=iOS Simulator` 构建成功、`warning:` 0 行;preflight **55 通过 · 0 ⏳ · 0 失败**;源码无 `TEMP-SHOT` 残留。
+  - **顺带做的两件事:** ① `scripts/run-tests.sh`(`b156496`):测试偶尔在结果打印完后 xcodebuild 空转挂住,它把 xcodebuild 放进自己的进程组轮询日志、出结论就收工(先给 10 秒让它自己退)、只回收自己记下的 PID,末尾列出本次编译的警告;退出码 0 全绿 / 1 失败 / 2 无法判定。② 把这次会话里在模拟器上验证的做法(能证明什么 / 证明不了什么、种数据与临时启动参数补丁、配对模拟器、Live Activity 日志过滤、离屏渲染、动用户模拟器的规矩)整理成 [`simulator-playbook.md`](simulator-playbook.md);`CLAUDE.md` 里三条很长的模拟器条目瘦身成一条、指向它,**信息一条没丢**。
 
 ---
 
@@ -114,6 +119,11 @@
   - [x] **[我] Build 号 +1** — ✅ 已做(2026-10-23,你说"版本号加到 2"):`project.yml` 的 `CURRENT_PROJECT_VERSION` `"1"` → `"2"`(`7f265f4`),`xcodegen generate`(入库的 plist 引用变量,无需变动),完整测试 + 标准构建 + preflight 全绿,四个 bundle 构建号均为 2。**我没有 Archive / 上传。** 版本号 1.0 不变,Build 号递增即可在同一个版本下重传。
   - [x] **[你] 真机复验** — ✅ 你已在真机上测过,效果正常(2026-10-23)。当时走的是哪条路径没有记录;开发机 Xcode 直装会掩盖冷路径(见 B5 补记),所以 **Build 2 传上 TestFlight 后,建议用 TestFlight 版把下面的步骤再走一遍**(尤其 ① 手表端先卸再装、⑥ iPhone App 被划掉)——重新提审前最便宜的一道保险。步骤(要踩的正是审核员的路径):① iPhone 上 Watch App → My Watch → 找到 PawSticky,关掉 *Show App on Apple Watch*(或在手表上长按图标删除),让手表端卸载;② 在 iPhone 的 PawSticky 里建 2 条便签(其中一条带清单);③ 重新打开该开关,等手表端装好;④ **只**在手表上打开 PawSticky(别碰 iPhone)→ 期望:几秒内出现宠物头像 + 2 条便签;⑤ 手表开着时在 iPhone 上再建一条 → 期望:手表上实时出现;⑥ 把 iPhone 上的 PawSticky 划掉(强退),重复 ①–④ → 期望:手表照样拿到数据。手表要解锁、在手腕上、与 iPhone 在蓝牙范围内。**任一步不符把现象告诉我**,真机的连通性时序可能与模拟器不同。
   - [ ] **[你] 重新出包并回复审核** — **注意:Build 2 现在除了 2.1(a) 修复和 C12,还带着 C13(手表智能叠放小卡片 + 灵动岛紧凑态)**——C13 让锁屏卡片也经过一个"按家族分流"的路由视图,出包前请先照 C13 的"请看"清单看一眼(尤其锁屏上钉住的卡片粉彩底 + 深字没变)。Archive → Upload Build 2;ASC 版本页把 Build 换成 2;把[附录审核备注模板](#附录审核备注模板)里**已改写的第 6 条**更新到 ASC 的 Notes;在 Resolution Center 回复被拒的那条消息(附录有英文稿;真机复验已通过,发之前把措辞核对成你看到的实际现象);重新 Submit for Review。
+  - [x] **[你问的] 要不要给审核员附一段 Device Hub 的录屏?** — **结论(2026-10-23):不用附;也不要把模拟器录屏当真机录屏附。**
+    - **没人要求:** 这次被拒是 2.1(a) 的功能问题,审核员给了截图、没有索要视频。修好后的 Build 2 + 备注里的验证步骤 + 一段回复,就是标准做法。
+    - **会不会因为"不是真机"被拒?** 我没查到哪条规定会因此拒你,但它**几乎不起作用**:Apple 官方明说审核员"在真机上审核、不在模拟器上"(Tech Talk 10885);对**必须有特定硬件**才能用的 App,App Review 帮助页明确要求演示视频是真机拍的、"不是屏幕录制"(PawSticky 不属于这一类,但能看出 Apple 的态度);2.1 的"需要更多信息"通知模板里还有"只放真机上的画面、不要模拟器"一类的话(**这条是第三方转引,我没在 Apple 官方页面里核到原句**)。再加上这次出问题的正是 **Watch ↔ iPhone 同步**,模拟器对它有已知假象(见 [`simulator-playbook.md`](simulator-playbook.md) §4),作为证据说服力弱。**最坏的情况是被看成拿模拟器充真机、反而伤信誉**——真要附,必须如实写"模拟器录屏"。
+    - **更值钱的做法:** ① 在 Resolution Center 回复和 Notes 里写明**测试设备与系统版本**(Apple 的"提供完整审核信息"页就列了 "Devices and OS versions tested" 这一项;回复模板里已加占位行,按你真机的实际型号填);② Build 2 上 TestFlight 后,用真机把上面"真机复验"的冷路径步骤再走一遍。
+    - **如果你仍想附视频:** 用真机——iPhone 用控制中心录屏,手表另用一部手机 / 相机拍;镜头里带上设置页的版本 / Build 号(1.0 (2));按"真机复验"的步骤走(手表先卸再装、iPhone App 划掉);导出 **.mp4**(我查到的 ASC 附件格式列表里有 .mp4、没有 .mov,但那是第三方转述的旧列表,**以 ASC 上传页的提示为准**;大小上限我没查到);传在 App Review Information 的附件里,或在 Notes 里放一个**免登录**的链接。你手里的 Device Hub 录屏留着自己用就行,**不必**交。
 
 ---
 
@@ -217,14 +227,17 @@
 | C12 pin 图标即时显示(E5 复验时发现) | `1610f29` |
 | Build 号 +1(→ 2) | `7f265f4` |
 | C13 Watch 智能叠放卡片 · 阶段 1(灰圆盘 / 标题截断)/ 阶段 2(小卡片) | `b45c59e` / `94a2617` |
+| C14 编译警告清零 / `scripts/run-tests.sh`(文档:模拟器手册、录屏结论随后提交) | `35e6344` / `b156496` |
 
-以上 C 阶段的提交已随 `v1.0.0` 合入 `main` 并推送;**最后四行(2026-10-23 起)直接提在 `main` 上,尚未推送。**
+以上 C 阶段的提交已随 `v1.0.0` 合入 `main` 并推送;**最后五行(2026-10-23 起)直接提在 `main` 上,尚未推送。**
 
 **C9–C11 验证口径(2026-10-21)**:**258 / 258 通过**(Core 194 + App 64,C9 新增 4 测试,先红后绿);preflight **53 通过 · 0 ⏳ · 0 失败**;C9、C10 真机复验通过(C10 教训:锁屏 LA 背景归 `activityBackgroundTint`,View 层 `containerBackground` 管不到)。
 
-**C12 / E5 / Build 2 验证口径(2026-10-23)**:全量 **285 / 285 通过**(Core 204 + App 81;基线 258 + E5 的 17 + C12 的 10,均先红后绿);标准 `generic/platform=iOS Simulator` 构建成功、整包 0 警告;preflight **53 通过 · 0 ⏳ · 0 失败**,四个 bundle 构建号均为 2;源码里无 `TEMP-SHOT` 残留。
+**C12 / E5 / Build 2 验证口径(2026-10-23)**:全量 **285 / 285 通过**(Core 204 + App 81;基线 258 + E5 的 17 + C12 的 10,均先红后绿);标准 `generic/platform=iOS Simulator` 构建成功、整包没有新增警告(〔更正:当时漏了审计起就有的 2 条旧警告,见 C14〕);preflight **53 通过 · 0 ⏳ · 0 失败**,四个 bundle 构建号均为 2;源码里无 `TEMP-SHOT` 残留。
 
-**C13 验证口径(2026-10-23)**:全量 **313 / 313 通过**(Core 232 + App 81;C13 新增 28,先红后绿);阶段 1 的提交单独构建 + 测试 **301 / 301**;标准构建 0 警告;preflight **55 通过 · 0 ⏳ · 0 失败**(新增两条守卫:徽章素材 ≤ 144px、`compactLeading` 不得加载大图——后者做过负对照);日志对证"灰圆盘"根因与修复(`Max size exceeded` → 零条);各画布尺寸下的离屏渲染;无 `TEMP-SHOT` 残留。**没在手表的真实智能叠放里看过**(见 C13 条目)。
+**C13 验证口径(2026-10-23)**:全量 **313 / 313 通过**(Core 232 + App 81;C13 新增 28,先红后绿);阶段 1 的提交单独构建 + 测试 **301 / 301**;标准构建没有新增警告(〔更正见 C14〕);preflight **55 通过 · 0 ⏳ · 0 失败**(新增两条守卫:徽章素材 ≤ 144px、`compactLeading` 不得加载大图——后者做过负对照);日志对证"灰圆盘"根因与修复(`Max size exceeded` → 零条);各画布尺寸下的离屏渲染;无 `TEMP-SHOT` 残留。**没在手表的真实智能叠放里看过**(见 C13 条目)。
+
+**C14 验证口径(2026-10-23)**:**全新 DerivedData** 的完整构建 + 全量测试 **313 / 313 通过**(Core 232 + App 81,与 C13 相同——没有行为变化、不新增测试),**编译警告 0 条**(原始日志 `warning:` 0 行;修复前同样方法得到 2 条);标准构建成功、`warning:` 0 行;preflight **55 通过 · 0 ⏳ · 0 失败**;源码无 `TEMP-SHOT` 残留。此前 C8 / C12 / C13 口径里的"0 警告"一律应读作"没有新增",以本条为准。
 
 **C 阶段新增、只能真机验的:** Widget 画廊里是示例便签(不是空状态);点 Widget(空状态 / 有便签)直达新建 / 那一条;设置页开着时再点 Widget;系统“存储到文件 / 选择文件”面板下的备份与恢复;锁屏圆形 Widget 里新头像的耳尖;Watch 上的新头像。→ 都已写进 B5;**C13 的手表智能叠放小卡片、灵动岛紧凑态单独列在 C13 条目的"请看"里。**
 
@@ -278,12 +291,14 @@
 ```bash
 xcodegen generate                                   # 改了 project.yml 之后必跑(Info.plist / entitlements 是入库的生成物,别手改)
 xcodebuild -project PawIt.xcodeproj -scheme PawIt -destination 'generic/platform=iOS Simulator' build   # 不要加 -sdk iphonesimulator
-xcodebuild test -project PawIt.xcodeproj -scheme PawIt -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+scripts/run-tests.sh                                # 全量测试:封装 xcodebuild test(默认 iPhone 17 Pro 模拟器),绕开"跑完却挂住";末尾列出本次编译的警告
+PAWIT_DERIVED_DATA=/tmp/pawit-dd-fresh scripts/run-tests.sh   # 查警告要用全新 DerivedData:增量构建不重编没改的文件,会藏警告
 scripts/preflight.sh                                # 先构建再跑;要求 0 失败
 art/scripts/extract-from-sheets.sh                  # 从已有角色卡抠宠物图(输出到 art/scripts/.tmp/sheets-out/)
 art/scripts/export-pet-imagesets.sh                 # 把抠出的图导成 4 个 catalog 的 imageset(front × 6 物种 + cat full)
 art/scripts/make-app-icon.sh                        # 合成天蓝底 App 图标并写入 iOS / Watch 两个 AppIcon
 xcrun simctl io booted screenshot shot.png          # 模拟器截图;iPhone 17 Pro = 1206×2622
+# 模拟器里验东西(种数据 / 临时启动参数补丁 / 配对模拟器 / Live Activity 日志 / 离屏渲染)的做法见 docs/simulator-playbook.md
 ```
 
 ## 附录:审核备注模板
@@ -306,7 +321,7 @@ Notifications are optional. Permission is requested only when you set a reminder
 
 ## 附录:被拒回复模板(2.1(a) Watch 不同步 · Build 2)
 
-贴进 ASC → Resolution Center,回复被拒的那条消息。E5 真机复验已通过(2026-10-23);**发之前把里面 "within a few seconds" 核对成你真机上看到的实际情况**。
+贴进 ASC → Resolution Center,回复被拒的那条消息。E5 真机复验已通过(2026-10-23);**发之前把里面 "within a few seconds" 核对成你真机上看到的实际情况**。**倒数第二段 "We verified this build on physical devices" 是新加的**(Apple 要求写明测试过的设备与系统版本):把尖括号换成你真机的实际型号和系统版本;方括号里的两种情形**只保留你真的测过的**(没测过就整段删掉方括号),别写没做过的事。这一段只写真机上做过的事——模拟器上的验证不用往里放,但也**绝不能把它说成真机**。
 
 ```text
 Hello App Review team,
@@ -319,6 +334,8 @@ Build 2 fixes this in three ways:
 3. The Watch screen now updates the moment notes arrive. It also shows "No notes yet" instead of the setup message when there really are no notes.
 
 To check: create a note in PawSticky on the iPhone, then install the PawSticky Watch app (Watch app on iPhone > My Watch > PawSticky > Install) and open it on the Watch. The note appears within a few seconds. We have also updated the App Review Notes with these steps.
+
+We verified this build on physical devices: <iPhone model> running iOS <version>, paired with <Apple Watch model> running watchOS <version> [, including the case where the Watch app is installed after the notes already exist and the case where the iPhone app is not running].
 
 Thank you for your time.
 ```
