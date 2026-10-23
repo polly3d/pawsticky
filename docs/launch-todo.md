@@ -173,9 +173,18 @@
 | 装扮图标成图 / 真换装 | v1.0.x / v1.1 | A5 选 (c) 就是 v1.0.x |
 | 多字体 / 渐变便签 | 砍掉 | 商业计划 §4.2 曾写,代码没有;文案不要写 |
 | P2 打磨项 | v1.0.x | 审计 §4(启动图、锁竖屏、无障碍、分享卡字号 …) |
+| Xcode 调试时的线程性能检查器警告(GRDB 读库信号量) | v1.0.1 | 只存在于 Xcode 调试会话,不影响用户;Build 2 不修(修法会碰 Watch 同步链路,改了要重新真机复验)。依据、修法、验收见表下"线程性能检查器警告" |
 | 4 物种举牌图、happy / sleeping、营销背景图 | 看数据再说 | 见 [§美术方案](#美术方案零生成) |
 | iPhone Duo(折叠屏)截图 | 2027-04 前留意 | Apple 截图规格页在该机型下提示:2027 年 4 月起,使用 iOS 27.1 SDK 及以上的 App 需要提供其截图;12 月上线不受影响 |
 | ⚪ 顺手:备份无损母版 | 5 分钟 | `art/scripts/.tmp/raw/`(17 MB,18 张 PNG)是唯一无损来源且不在 git 里,拷到网盘 / 外置盘;入库的 webp 是有损的 |
+
+**线程性能检查器警告(2026-10-23 记录;Build 2 不修,留 v1.0.1)**
+
+- **现象:** Xcode 的 Issue 导航栏出现 *Hang Risk*:`Thread running at User-interactive quality-of-service class waiting on a lower QoS thread running at Utility quality-of-service class`。栈在主线程 `NoteListView.reloadNotes()` → `SharedStore.selectedPet()` → `DatabasePool.read` → GRDB `Pool.get()` 的 `itemsSemaphore.wait()`(`Pool.swift:97`)。iPhone 17e 模拟器上从 Xcode 运行**每次冷启动必现**;真机还没在 Xcode 附加调试下跑过(未知)。
+- **为什么 Build 2 不修:** ① 它只存在于 Xcode 调试会话,TestFlight / App Store 的包里没有这个检查器(同一份控制台里的 `Looking up debug dylib …` 也一样:Build 1 归档里 `*.debug.dylib` 是 0 个,主程序是 3.9 MB 的完整可执行文件);② 它报的是"风险"不是实测卡顿——信号量没有持有者,检查器只能按"谁碰过它"推测,也只印被等待一侧(主线程)的栈;GRDB 读者池默认 5 个名额,本进程同时读库的线程只有两三条,`wait()` 不会真阻塞;③ 修法落在 `PhoneSessionManager` 的 WatchConnectivity 回调上——正是 2.1(a) 的链路,改了就得重新真机复验两条冷路径。
+- **最可疑的低优先级一侧(未实测):** WC 回调线程(系统给的低优先级线程)上的 `syncToWatch()` → `WatchPayload.fromStore`:读 `allNotes` 1 次 + `selectedPet` 1 次 + 每条便签再读一次条目,共 **N+2 次**独立读库。其余读库入口都在主线程(视图的 `reloadNotes()`、`LiveActivityManager.handleAppForeground()`),`NotificationDelegate` 不读库。检查器是 Xcode 调试会话自带的,命令行复现不了(翻过 `libMainThreadChecker` / `libBacktraceRecording` / 模拟器 introspection `libdispatch`,都不是它),**验证只能在 Xcode 里做**。
+- **v1.0.1 做法与验收:** ① `PhoneSessionManager` 的三个 WC 回调(`session(_:activationDidCompleteWith:error:)` / `sessionWatchStateDidChange` / `session(_:didReceiveMessage:replyHandler:)`)把读库工作 hop 到一个 `.userInitiated` 队列,与 GRDB 读队列的 QoS 对齐;`syncToWatch()` / `snapshotReply(to:)` 本身不动(`PhoneSessionManagerTests` 同步调它们),新增单测断言"从 Utility 线程进来的回调,读库发生在 ≥ `.userInitiated` 的线程上"。② `fromStore` 的 N+2 次读合成一次 `read` 事务(更快,且快照一致)。③ **验收:** iPhone 17e 模拟器 + 已配对手表,从 Xcode 冷启动 3 次,Issue 导航栏不再出现该 Hang Risk;**并重新真机复验 Watch 同步的两条冷路径**(见 E5)。修完仍在 → 在 Xcode 里设 Runtime Issue 断点,命中后 `bt all` 抓那条 Utility 线程再定。
+- **v1.1:** 主线程的同步读改成异步 / 观察式(`ValueObservation`)。`SharedStore` 的同步读是有意留给 Widget 渲染的设计,所以这是架构改动,不是补丁。
 
 ---
 
