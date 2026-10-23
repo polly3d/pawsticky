@@ -31,7 +31,8 @@ public struct ToggleItemIntent: AppIntent {
         // 进程更新——App 回前台时 handleAppForeground 会补刷。
         if nowDone, GrowthSettings.isEnabled,
            let pet = try? store.selectedPet() {
-            try? await store.feedPet(petId: pet.id)
+            // 返回的 GrowthState 在这里用不上，显式丢弃（与 App 内 NoteListView 的同类调用一致）。
+            _ = try? await store.feedPet(petId: pet.id)
         }
         return .result()
     }
